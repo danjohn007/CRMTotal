@@ -228,12 +228,13 @@ class EventsController extends Controller {
         $registrationId = null;
         
         // Check if returning from successful payment
-        if (isset($_GET['payment']) && $_GET['payment'] === 'success') {
+        $paymentParam = isset($_GET['payment']) ? $this->sanitize($_GET['payment']) : '';
+        if ($paymentParam === 'success') {
             $success = '¡Pago completado exitosamente! Tu registro está confirmado.';
             // Try to get registration ID from session if available
             if (isset($_SESSION['last_registration_id'])) {
                 $registrationId = $_SESSION['last_registration_id'];
-                unset($_SESSION['last_registration_id']);
+                // Keep the registration ID in session for page refreshes (will be cleared on next registration)
             }
         }
         
@@ -314,6 +315,10 @@ class EventsController extends Controller {
                     
                     // Multiple registrations are now allowed
                     try {
+                        // Clear any previous registration session data
+                        unset($_SESSION['last_registration_id']);
+                        unset($_SESSION['show_ticket_download']);
+                        
                         $registrationId = $this->eventModel->registerAttendee($id, $registrationData);
                         
                         // Store registration ID in session for later retrieval

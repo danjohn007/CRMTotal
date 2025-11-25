@@ -76,8 +76,9 @@
         <?php endif; ?>
         
         <?php 
-        // Check for payment success parameter
-        $paymentSuccess = isset($_GET['payment']) && $_GET['payment'] === 'success';
+        // Check for payment success parameter (sanitized)
+        $paymentParam = isset($_GET['payment']) ? htmlspecialchars($_GET['payment'], ENT_QUOTES, 'UTF-8') : '';
+        $paymentSuccess = $paymentParam === 'success';
         $showTicketDownload = isset($_SESSION['show_ticket_download']) && $_SESSION['show_ticket_download'];
         
         if (isset($success) || $paymentSuccess): 
@@ -114,12 +115,7 @@
                 </a>
                 <?php endif; ?>
             </div>
-            <?php 
-            // Clear the session flag after showing
-            if ($showTicketDownload) {
-                unset($_SESSION['show_ticket_download']);
-            }
-            ?>
+
             <?php endif; ?>
         </div>
         
