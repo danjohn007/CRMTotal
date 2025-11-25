@@ -105,4 +105,34 @@ class Event extends Model {
         
         return $url;
     }
+    
+    public function getCategories(): array {
+        $sql = "SELECT * FROM event_categories WHERE is_active = 1 ORDER BY name";
+        try {
+            return $this->raw($sql);
+        } catch (Exception $e) {
+            // Table might not exist yet, return empty array
+            return [];
+        }
+    }
+    
+    public function getEventTypeCatalog(): array {
+        $sql = "SELECT * FROM event_type_catalog WHERE is_active = 1 ORDER BY name";
+        try {
+            return $this->raw($sql);
+        } catch (Exception $e) {
+            // Table might not exist yet, return empty array
+            return [];
+        }
+    }
+    
+    public function updatePaymentStatus(int $registrationId, string $status, ?string $paymentReference = null): int {
+        $data = ['payment_status' => $status];
+        if ($paymentReference) {
+            // Sanitize payment reference - only allow alphanumeric, dashes and underscores
+            $safeReference = preg_replace('/[^a-zA-Z0-9\-\_]/', '', $paymentReference);
+            $data['notes'] = 'PayPal Order ID: ' . $safeReference;
+        }
+        return $this->db->update('event_registrations', $data, 'id = :id', ['id' => $registrationId]);
+    }
 }

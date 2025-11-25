@@ -1,10 +1,10 @@
-<!-- User Create View -->
+<!-- User Edit View -->
 <div class="space-y-6">
     <!-- Header -->
     <div class="flex items-center justify-between">
         <div>
-            <h2 class="text-2xl font-bold text-gray-900">Nuevo Usuario</h2>
-            <p class="mt-1 text-sm text-gray-500">Crea una nueva cuenta de usuario en el sistema</p>
+            <h2 class="text-2xl font-bold text-gray-900">Editar Usuario</h2>
+            <p class="mt-1 text-sm text-gray-500">Modifica la información del usuario</p>
         </div>
         <a href="<?php echo BASE_URL; ?>/usuarios" class="text-blue-600 hover:text-blue-800">
             ← Volver a Usuarios
@@ -17,7 +17,7 @@
     </div>
     <?php endif; ?>
     
-    <!-- Create Form -->
+    <!-- Edit Form -->
     <form method="POST" class="bg-white rounded-lg shadow-sm p-6">
         <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
         
@@ -28,7 +28,7 @@
                 <div>
                     <label for="email" class="block text-sm font-medium text-gray-700">Correo Electrónico *</label>
                     <input type="email" id="email" name="email" required
-                           placeholder="usuario@ejemplo.com"
+                           value="<?php echo htmlspecialchars($user['email']); ?>"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
                 
@@ -36,9 +36,8 @@
                     <label for="role_id" class="block text-sm font-medium text-gray-700">Rol *</label>
                     <select id="role_id" name="role_id" required
                             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
-                        <option value="">Seleccionar rol...</option>
                         <?php foreach ($roles as $role): ?>
-                        <option value="<?php echo $role['id']; ?>">
+                        <option value="<?php echo $role['id']; ?>" <?php echo $user['role_id'] == $role['id'] ? 'selected' : ''; ?>>
                             <?php echo htmlspecialchars($role['display_name']); ?>
                         </option>
                         <?php endforeach; ?>
@@ -46,24 +45,25 @@
                 </div>
                 
                 <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700">Contraseña *</label>
-                    <input type="password" id="password" name="password" required
+                    <label for="password" class="block text-sm font-medium text-gray-700">Nueva Contraseña</label>
+                    <input type="password" id="password" name="password"
                            minlength="8"
-                           placeholder="Mínimo 8 caracteres"
+                           placeholder="Dejar vacío para no cambiar"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
                 
                 <div>
-                    <label for="confirm_password" class="block text-sm font-medium text-gray-700">Confirmar Contraseña *</label>
-                    <input type="password" id="confirm_password" name="confirm_password" required
+                    <label for="confirm_password" class="block text-sm font-medium text-gray-700">Confirmar Contraseña</label>
+                    <input type="password" id="confirm_password" name="confirm_password"
                            minlength="8"
-                           placeholder="Repite la contraseña"
+                           placeholder="Confirmar nueva contraseña"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
                 
                 <div class="md:col-span-2">
                     <label class="flex items-center">
-                        <input type="checkbox" name="is_active" value="1" checked
+                        <input type="checkbox" name="is_active" value="1" 
+                               <?php echo $user['is_active'] ? 'checked' : ''; ?>
                                class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                         <span class="ml-2 text-sm text-gray-700">Usuario activo</span>
                     </label>
@@ -78,7 +78,7 @@
                 <div class="md:col-span-2">
                     <label for="name" class="block text-sm font-medium text-gray-700">Nombre Completo *</label>
                     <input type="text" id="name" name="name" required
-                           placeholder="Nombre y apellidos"
+                           value="<?php echo htmlspecialchars($user['name']); ?>"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
                 
@@ -86,6 +86,7 @@
                     <label for="phone" class="block text-sm font-medium text-gray-700">Teléfono</label>
                     <input type="text" id="phone" name="phone"
                            maxlength="10" pattern="\d{10}"
+                           value="<?php echo htmlspecialchars($user['phone'] ?? ''); ?>"
                            placeholder="10 dígitos"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                     <p class="mt-1 text-xs text-gray-500">Solo 10 dígitos, sin espacios ni guiones</p>
@@ -95,6 +96,7 @@
                     <label for="whatsapp" class="block text-sm font-medium text-gray-700">WhatsApp</label>
                     <input type="text" id="whatsapp" name="whatsapp"
                            maxlength="10" pattern="\d{10}"
+                           value="<?php echo htmlspecialchars($user['whatsapp'] ?? ''); ?>"
                            placeholder="10 dígitos"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                     <p class="mt-1 text-xs text-gray-500">Solo 10 dígitos, sin espacios ni guiones</p>
@@ -104,18 +106,8 @@
                     <label for="address" class="block text-sm font-medium text-gray-700">Dirección</label>
                     <textarea id="address" name="address" rows="2"
                               placeholder="Dirección completa (opcional)"
-                              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"></textarea>
+                              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"><?php echo htmlspecialchars($user['address'] ?? ''); ?></textarea>
                 </div>
-            </div>
-        </div>
-        
-        <!-- Role Descriptions -->
-        <div class="mb-8 p-4 bg-gray-50 rounded-lg">
-            <h4 class="text-sm font-medium text-gray-700 mb-2">Descripción de Roles</h4>
-            <div class="text-xs text-gray-600 space-y-1">
-                <?php foreach ($roles as $role): ?>
-                <div><strong><?php echo htmlspecialchars($role['display_name']); ?>:</strong> <?php echo htmlspecialchars($role['description'] ?? 'Sin descripción'); ?></div>
-                <?php endforeach; ?>
             </div>
         </div>
         
@@ -126,7 +118,7 @@
                 Cancelar
             </a>
             <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                Crear Usuario
+                Guardar Cambios
             </button>
         </div>
     </form>
@@ -135,7 +127,7 @@
 <script>
 document.getElementById('confirm_password').addEventListener('input', function() {
     const password = document.getElementById('password').value;
-    if (this.value !== password) {
+    if (password && this.value !== password) {
         this.setCustomValidity('Las contraseñas no coinciden');
     } else {
         this.setCustomValidity('');

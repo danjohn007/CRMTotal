@@ -36,6 +36,27 @@ class ImportController extends Controller {
             $this->redirect('importar');
         }
         
+        // Check if this is a confirmation after preview
+        if ($this->getInput('confirm_import') === '1') {
+            // Import from stored session data
+            if (!isset($_SESSION['import_data']) || empty($_SESSION['import_data'])) {
+                $_SESSION['flash_error'] = 'No hay datos de importación disponibles. Por favor, sube el archivo nuevamente.';
+                $this->redirect('importar');
+            }
+            
+            $data = $_SESSION['import_data'];
+            $contactType = $_SESSION['import_contact_type'] ?? 'prospecto';
+            
+            // Clear the session data
+            unset($_SESSION['import_data']);
+            unset($_SESSION['import_contact_type']);
+            
+            $result = $this->importData($data, $contactType);
+            $_SESSION['flash_success'] = "Importación completada: {$result['imported']} registros importados, {$result['errors']} errores.";
+            $this->redirect('importar');
+            return;
+        }
+        
         if (!isset($_FILES['excel_file']) || $_FILES['excel_file']['error'] !== UPLOAD_ERR_OK) {
             $errorMessages = [
                 UPLOAD_ERR_INI_SIZE => 'El archivo excede el tamaño máximo permitido por el servidor.',
@@ -74,6 +95,10 @@ class ImportController extends Controller {
             
             // Preview mode or import
             if ($this->getInput('preview') === '1') {
+                // Store data in session for later import
+                $_SESSION['import_data'] = $data;
+                $_SESSION['import_contact_type'] = $contactType;
+                
                 $this->view('import/preview', [
                     'pageTitle' => 'Vista Previa de Importación',
                     'currentPage' => 'importar',

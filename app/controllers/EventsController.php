@@ -6,10 +6,12 @@
 class EventsController extends Controller {
     
     private Event $eventModel;
+    private Config $configModel;
     
     public function __construct(array $params = []) {
         parent::__construct($params);
         $this->eventModel = new Event();
+        $this->configModel = new Config();
     }
     
     public function index(): void {
@@ -41,7 +43,28 @@ class EventsController extends Controller {
             } else {
                 $data = $this->getFormData();
                 $data['created_by'] = $_SESSION['user_id'];
-                $data['registration_url'] = $this->eventModel->generateUniqueUrl($data['title']);
+                
+                // Handle custom URL or generate one
+                $customUrl = $this->sanitize($this->getInput('registration_url', ''));
+                if (!empty($customUrl)) {
+                    // Validate URL format and availability
+                    if (!preg_match('/^[a-z0-9\-]+$/', $customUrl)) {
+                        $error = 'La URL solo puede contener letras minúsculas, números y guiones.';
+                    } elseif ($this->eventModel->findByRegistrationUrl($customUrl)) {
+                        $error = 'Esta URL ya está en uso. Por favor, elige otra.';
+                    } else {
+                        $data['registration_url'] = $customUrl;
+                    }
+                } else {
+                    $data['registration_url'] = $this->eventModel->generateUniqueUrl($data['title']);
+                }
+                
+                // Handle category (custom or from dropdown)
+                $category = $this->getInput('category', '');
+                if ($category === '__other__') {
+                    $category = $this->sanitize($this->getInput('category_other', ''));
+                }
+                $data['category'] = $category;
                 
                 // Handle target audiences
                 $audiences = $this->getInput('target_audiences', []);
@@ -49,12 +72,24 @@ class EventsController extends Controller {
                     $data['target_audiences'] = json_encode($audiences);
                 }
                 
-                try {
-                    $id = $this->eventModel->create($data);
-                    $_SESSION['flash_success'] = 'Evento creado exitosamente.';
-                    $this->redirect('eventos/' . $id);
-                } catch (Exception $e) {
-                    $error = 'Error al crear el evento: ' . $e->getMessage();
+                // Handle image upload
+                if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+                    $imageResult = $this->handleImageUpload($_FILES['image']);
+                    if ($imageResult['success']) {
+                        $data['image'] = $imageResult['filename'];
+                    } else {
+                        $error = $imageResult['error'];
+                    }
+                }
+                
+                if (!$error) {
+                    try {
+                        $id = $this->eventModel->create($data);
+                        $_SESSION['flash_success'] = 'Evento creado exitosamente.';
+                        $this->redirect('eventos/' . $id);
+                    } catch (Exception $e) {
+                        $error = 'Error al crear el evento: ' . $e->getMessage();
+                    }
                 }
             }
         }
@@ -63,6 +98,7 @@ class EventsController extends Controller {
             'pageTitle' => 'Nuevo Evento',
             'currentPage' => 'eventos',
             'eventTypes' => $this->getEventTypes(),
+            'eventCategories' => $this->eventModel->getCategories(),
             'audiences' => $this->getAudiences(),
             'error' => $error,
             'csrf_token' => $this->csrfToken()
@@ -114,18 +150,49 @@ class EventsController extends Controller {
             } else {
                 $data = $this->getFormData();
                 
+                // Handle custom URL
+                $customUrl = $this->sanitize($this->getInput('registration_url', ''));
+                if (!empty($customUrl) && $customUrl !== $event['registration_url']) {
+                    if (!preg_match('/^[a-z0-9\-]+$/', $customUrl)) {
+                        $error = 'La URL solo puede contener letras minúsculas, números y guiones.';
+                    } elseif ($this->eventModel->findByRegistrationUrl($customUrl)) {
+                        $error = 'Esta URL ya está en uso. Por favor, elige otra.';
+                    } else {
+                        $data['registration_url'] = $customUrl;
+                    }
+                }
+                
                 // Handle target audiences
                 $audiences = $this->getInput('target_audiences', []);
                 if (is_array($audiences)) {
                     $data['target_audiences'] = json_encode($audiences);
                 }
                 
-                try {
-                    $this->eventModel->update($id, $data);
-                    $_SESSION['flash_success'] = 'Evento actualizado exitosamente.';
-                    $this->redirect('eventos/' . $id);
-                } catch (Exception $e) {
-                    $error = 'Error al actualizar: ' . $e->getMessage();
+                // Handle image upload
+                if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+                    $imageResult = $this->handleImageUpload($_FILES['image']);
+                    if ($imageResult['success']) {
+                        $data['image'] = $imageResult['filename'];
+                        // Delete old image if exists
+                        if (!empty($event['image'])) {
+                            $oldPath = PUBLIC_PATH . '/uploads/events/' . $event['image'];
+                            if (file_exists($oldPath)) {
+                                unlink($oldPath);
+                            }
+                        }
+                    } else {
+                        $error = $imageResult['error'];
+                    }
+                }
+                
+                if (!$error) {
+                    try {
+                        $this->eventModel->update($id, $data);
+                        $_SESSION['flash_success'] = 'Evento actualizado exitosamente.';
+                        $this->redirect('eventos/' . $id);
+                    } catch (Exception $e) {
+                        $error = 'Error al actualizar: ' . $e->getMessage();
+                    }
                 }
             }
         }
@@ -135,6 +202,7 @@ class EventsController extends Controller {
             'currentPage' => 'eventos',
             'event' => $event,
             'eventTypes' => $this->getEventTypes(),
+            'eventCategories' => $this->eventModel->getCategories(),
             'audiences' => $this->getAudiences(),
             'error' => $error,
             'csrf_token' => $this->csrfToken()
@@ -142,9 +210,13 @@ class EventsController extends Controller {
     }
     
     public function registration(): void {
-        // Public event registration
+        // Public event registration - try by URL first, then by ID
         $id = (int) ($this->params['id'] ?? 0);
-        $event = $this->eventModel->find($id);
+        $event = null;
+        
+        if ($id > 0) {
+            $event = $this->eventModel->find($id);
+        }
         
         if (!$event || $event['status'] !== 'published') {
             $_SESSION['flash_error'] = 'Evento no disponible.';
@@ -153,49 +225,71 @@ class EventsController extends Controller {
         
         $error = null;
         $success = null;
+        $registrationId = null;
+        
+        // Get PayPal configuration
+        $paypalClientId = $this->configModel->get('paypal_client_id', '');
         
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $registrationData = [
-                'guest_name' => $this->sanitize($this->getInput('name', '')),
-                'guest_email' => $this->sanitize($this->getInput('email', '')),
-                'guest_phone' => $this->sanitize($this->getInput('phone', '')),
-                'guest_rfc' => $this->sanitize($this->getInput('rfc', '')),
-                'payment_status' => $event['is_paid'] ? 'pending' : 'free'
-            ];
+            // Validate anti-spam
+            $expectedSum = (int) base64_decode($this->getInput('expected_sum', ''));
+            $userSum = (int) $this->getInput('spam_check', 0);
             
-            // Check if already registered
-            $registrations = $this->eventModel->getRegistrations($id);
-            $alreadyRegistered = array_filter($registrations, fn($r) => 
-                $r['guest_email'] === $registrationData['guest_email']
-            );
-            
-            if ($alreadyRegistered) {
-                $error = 'Este correo ya está registrado para este evento.';
+            if ($userSum !== $expectedSum) {
+                $error = 'La verificación anti-spam es incorrecta. Por favor, intenta de nuevo.';
             } else {
-                try {
-                    $this->eventModel->registerAttendee($id, $registrationData);
+                $tickets = max(1, min(5, (int) $this->getInput('tickets', 1)));
+                
+                $registrationData = [
+                    'guest_name' => $this->sanitize($this->getInput('name', '')),
+                    'guest_email' => $this->sanitize($this->getInput('email', '')),
+                    'guest_phone' => $this->sanitize($this->getInput('phone', '')),
+                    'guest_rfc' => $this->sanitize($this->getInput('rfc', '')),
+                    'tickets' => $tickets,
+                    'payment_status' => $event['is_paid'] ? 'pending' : 'free'
+                ];
+                
+                // Validate phone (10 digits)
+                if (!empty($registrationData['guest_phone']) && !preg_match('/^\d{10}$/', $registrationData['guest_phone'])) {
+                    $error = 'El teléfono debe tener exactamente 10 dígitos.';
+                }
+                
+                if (!$error) {
+                    // Check if already registered
+                    $registrations = $this->eventModel->getRegistrations($id);
+                    $alreadyRegistered = array_filter($registrations, fn($r) => 
+                        $r['guest_email'] === $registrationData['guest_email']
+                    );
                     
-                    // Check if this email belongs to a contact - convert to prospect
-                    $contactModel = new Contact();
-                    $existingContact = $contactModel->findBy('corporate_email', $registrationData['guest_email']);
-                    
-                    if (!$existingContact && $registrationData['guest_rfc']) {
-                        // Create new prospect from registration
-                        $contactModel->create([
-                            'rfc' => $registrationData['guest_rfc'],
-                            'corporate_email' => $registrationData['guest_email'],
-                            'phone' => $registrationData['guest_phone'],
-                            'owner_name' => $registrationData['guest_name'],
-                            'contact_type' => 'prospecto',
-                            'source_channel' => $event['is_paid'] ? 'evento_pagado' : 'evento_gratuito',
-                            'profile_completion' => 25,
-                            'completion_stage' => 'A'
-                        ]);
+                    if ($alreadyRegistered) {
+                        $error = 'Este correo ya está registrado para este evento.';
+                    } else {
+                        try {
+                            $registrationId = $this->eventModel->registerAttendee($id, $registrationData);
+                            
+                            // Check if this email belongs to a contact - convert to prospect
+                            $contactModel = new Contact();
+                            $existingContact = $contactModel->findBy('corporate_email', $registrationData['guest_email']);
+                            
+                            if (!$existingContact && $registrationData['guest_rfc']) {
+                                // Create new prospect from registration
+                                $contactModel->create([
+                                    'rfc' => $registrationData['guest_rfc'],
+                                    'corporate_email' => $registrationData['guest_email'],
+                                    'phone' => $registrationData['guest_phone'],
+                                    'owner_name' => $registrationData['guest_name'],
+                                    'contact_type' => 'prospecto',
+                                    'source_channel' => $event['is_paid'] ? 'evento_pagado' : 'evento_gratuito',
+                                    'profile_completion' => 25,
+                                    'completion_stage' => 'A'
+                                ]);
+                            }
+                            
+                            $success = '¡Registro exitoso! Te hemos enviado un correo de confirmación.';
+                        } catch (Exception $e) {
+                            $error = 'Error en el registro: ' . $e->getMessage();
+                        }
                     }
-                    
-                    $success = '¡Registro exitoso! Te hemos enviado un correo de confirmación.';
-                } catch (Exception $e) {
-                    $error = 'Error en el registro: ' . $e->getMessage();
                 }
             }
         }
@@ -205,8 +299,25 @@ class EventsController extends Controller {
             'event' => $event,
             'error' => $error,
             'success' => $success,
+            'registrationId' => $registrationId,
+            'paypalClientId' => $paypalClientId,
             'csrf_token' => $this->csrfToken()
         ]);
+    }
+    
+    public function publicRegistration(): void {
+        // Public event registration by friendly URL
+        $url = $this->params['url'] ?? '';
+        $event = $this->eventModel->findByRegistrationUrl($url);
+        
+        if (!$event || $event['status'] !== 'published') {
+            $_SESSION['flash_error'] = 'Evento no disponible.';
+            $this->redirect('');
+        }
+        
+        // Redirect to the registration method with the event ID
+        $this->params['id'] = $event['id'];
+        $this->registration();
     }
     
     public function attendance(): void {
@@ -239,6 +350,52 @@ class EventsController extends Controller {
         ]);
     }
     
+    private function handleImageUpload(array $file): array {
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+        $maxSize = 5 * 1024 * 1024; // 5MB
+        
+        if (!in_array($file['type'], $allowedTypes)) {
+            return ['success' => false, 'error' => 'Formato de imagen no permitido. Use JPG, PNG o GIF.'];
+        }
+        
+        if ($file['size'] > $maxSize) {
+            return ['success' => false, 'error' => 'La imagen excede el tamaño máximo de 5MB.'];
+        }
+        
+        // Validate file extension from original filename
+        $originalExtension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!in_array($originalExtension, $allowedExtensions)) {
+            return ['success' => false, 'error' => 'Extensión de archivo no permitida.'];
+        }
+        
+        // Create upload directory if not exists with restrictive permissions
+        $uploadDir = PUBLIC_PATH . '/uploads/events/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0750, true);
+        }
+        
+        // Map MIME type to safe extension
+        $extensionMap = [
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/gif' => 'gif'
+        ];
+        
+        // Use extension based on detected MIME type, not user input
+        $safeExtension = $extensionMap[$file['type']] ?? 'jpg';
+        
+        // Generate unique filename with safe extension
+        $filename = 'event_' . time() . '_' . bin2hex(random_bytes(8)) . '.' . $safeExtension;
+        $destination = $uploadDir . $filename;
+        
+        if (move_uploaded_file($file['tmp_name'], $destination)) {
+            return ['success' => true, 'filename' => $filename];
+        }
+        
+        return ['success' => false, 'error' => 'Error al guardar la imagen.'];
+    }
+    
     private function getFormData(): array {
         return [
             'title' => $this->sanitize($this->getInput('title', '')),
@@ -261,6 +418,16 @@ class EventsController extends Controller {
     }
     
     private function getEventTypes(): array {
+        // Get from database catalog or return defaults
+        $types = $this->eventModel->getEventTypeCatalog();
+        if (!empty($types)) {
+            $result = [];
+            foreach ($types as $type) {
+                $result[$type['code']] = $type['name'];
+            }
+            return $result;
+        }
+        
         return [
             'interno' => 'Evento Interno CCQ',
             'externo' => 'Evento Externo',

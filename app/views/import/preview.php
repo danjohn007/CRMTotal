@@ -64,10 +64,9 @@
         </a>
         <form method="POST" action="<?php echo BASE_URL; ?>/importar/procesar" class="inline">
             <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-            <input type="hidden" name="contact_type" value="<?php echo htmlspecialchars($contactType); ?>">
-            <!-- Note: In production, you'd store the file temporarily and reference it here -->
+            <input type="hidden" name="confirm_import" value="1">
             <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
-                Confirmar Importación
+                Confirmar Importación (<?php echo $total; ?> registros)
             </button>
         </form>
     </div>

@@ -67,6 +67,9 @@ $router->add('eventos/{id}/editar', ['controller' => 'events', 'action' => 'edit
 $router->add('eventos/{id}/registro', ['controller' => 'events', 'action' => 'registration']);
 $router->add('eventos/{id}/asistencia', ['controller' => 'events', 'action' => 'attendance']);
 
+// Public Event Registration (friendly URL)
+$router->add('evento/{url}', ['controller' => 'events', 'action' => 'publicRegistration']);
+
 // Agenda / Calendar
 $router->add('agenda', ['controller' => 'agenda', 'action' => 'index']);
 $router->add('agenda/nueva', ['controller' => 'agenda', 'action' => 'create']);
@@ -157,6 +160,9 @@ $router->add('api/eventos', ['controller' => 'api', 'action' => 'events']);
 $router->add('api/dashboard', ['controller' => 'api', 'action' => 'dashboard']);
 $router->add('api/notificaciones', ['controller' => 'api', 'action' => 'notifications']);
 $router->add('api/buscar', ['controller' => 'api', 'action' => 'search']);
+$router->add('api/buscar-empresa', ['controller' => 'api', 'action' => 'searchCompany']);
+$router->add('api/eventos/verificar-url', ['controller' => 'api', 'action' => 'verifyEventUrl']);
+$router->add('api/eventos/confirmar-pago', ['controller' => 'api', 'action' => 'confirmEventPayment']);
 
 // Dispatch the route
 $url = $_GET['url'] ?? '';
