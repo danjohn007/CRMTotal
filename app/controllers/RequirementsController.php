@@ -316,7 +316,9 @@ class RequirementsController extends Controller {
             $sql = "SELECT * FROM requirement_categories ORDER BY name";
             return $this->db->fetchAll($sql);
         } catch (Exception $e) {
-            // Table may not exist yet
+            // Table may not exist yet - this is expected before running the update SQL
+            // Log for debugging if needed
+            error_log("RequirementsController: Unable to fetch requirement categories - " . $e->getMessage());
             return [];
         }
     }

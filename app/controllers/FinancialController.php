@@ -401,6 +401,9 @@ class FinancialController extends Controller {
             $sql = "SELECT * FROM financial_categories ORDER BY type, name";
             return $this->db->fetchAll($sql);
         } catch (Exception $e) {
+            // Table may not exist yet - this is expected before running the update SQL
+            // Log for debugging if needed
+            error_log("FinancialController: Unable to fetch financial categories - " . $e->getMessage());
             return [];
         }
     }

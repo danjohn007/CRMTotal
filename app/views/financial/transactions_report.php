@@ -197,8 +197,19 @@
 <?php if (!empty($byCategory)): ?>
 // Category Chart
 const categoryData = <?php echo json_encode($byCategory); ?>;
-const incomeCategories = categoryData.filter(c => c.type === 'ingreso');
-const expenseCategories = categoryData.filter(c => c.type === 'egreso');
+const incomeColors = ['#10B981', '#34D399', '#6EE7B7', '#A7F3D0', '#D1FAE5'];
+const expenseColors = ['#EF4444', '#F87171', '#FCA5A5', '#FECACA', '#FEE2E2'];
+
+let incomeIndex = 0;
+let expenseIndex = 0;
+
+const backgroundColors = categoryData.map(c => {
+    if (c.type === 'ingreso') {
+        return incomeColors[incomeIndex++ % incomeColors.length];
+    } else {
+        return expenseColors[expenseIndex++ % expenseColors.length];
+    }
+});
 
 new Chart(document.getElementById('categoryChart').getContext('2d'), {
     type: 'doughnut',
@@ -206,10 +217,7 @@ new Chart(document.getElementById('categoryChart').getContext('2d'), {
         labels: categoryData.map(c => c.name),
         datasets: [{
             data: categoryData.map(c => parseFloat(c.total)),
-            backgroundColor: categoryData.map(c => c.type === 'ingreso' ? 
-                ['#10B981', '#34D399', '#6EE7B7', '#A7F3D0'][incomeCategories.indexOf(c) % 4] : 
-                ['#EF4444', '#F87171', '#FCA5A5', '#FECACA'][expenseCategories.indexOf(c) % 4]
-            )
+            backgroundColor: backgroundColors
         }]
     },
     options: {

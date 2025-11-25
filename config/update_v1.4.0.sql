@@ -102,11 +102,16 @@ CREATE INDEX IF NOT EXISTS `idx_contacts_phone` ON `contacts` (`phone`);
 -- AUDIT LOG FOR SCHEMA CHANGE
 -- =============================================
 
+-- Insert audit log entry for schema update (uses first available user or NULL)
 INSERT INTO `audit_log` (`user_id`, `action`, `table_name`, `record_id`, `new_values`, `ip_address`, `created_at`)
-SELECT 1, 'schema_update', NULL, NULL, 
+SELECT 
+    COALESCE((SELECT id FROM users ORDER BY id LIMIT 1), NULL),
+    'schema_update', 
+    NULL, 
+    NULL, 
     '{"version": "1.4.0", "changes": ["financial_categories", "financial_transactions", "requirement_categories", "search_indexes"]}', 
-    '127.0.0.1', NOW()
-WHERE EXISTS (SELECT 1 FROM users WHERE id = 1);
+    '127.0.0.1', 
+    NOW();
 
 SET FOREIGN_KEY_CHECKS = 1;
 
