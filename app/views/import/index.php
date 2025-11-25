@@ -80,7 +80,7 @@
     
     <!-- Expected Format -->
     <div class="bg-white rounded-lg shadow-sm p-6">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">Formato Esperado</h3>
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Formato Esperado (Plantilla CCQ)</h3>
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 text-sm">
                 <thead class="bg-gray-50">
@@ -91,19 +91,22 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
-                    <tr><td class="px-4 py-2 font-mono">rfc</td><td class="px-4 py-2 text-gray-500">RFC de la empresa</td><td class="px-4 py-2 text-gray-500">No</td></tr>
-                    <tr><td class="px-4 py-2 font-mono">business_name</td><td class="px-4 py-2 text-gray-500">Razón social</td><td class="px-4 py-2 text-green-600 font-medium">Sí</td></tr>
-                    <tr><td class="px-4 py-2 font-mono">commercial_name</td><td class="px-4 py-2 text-gray-500">Nombre comercial</td><td class="px-4 py-2 text-gray-500">No</td></tr>
-                    <tr><td class="px-4 py-2 font-mono">owner_name</td><td class="px-4 py-2 text-gray-500">Nombre del propietario</td><td class="px-4 py-2 text-gray-500">No</td></tr>
-                    <tr><td class="px-4 py-2 font-mono">corporate_email</td><td class="px-4 py-2 text-gray-500">Correo corporativo</td><td class="px-4 py-2 text-gray-500">No</td></tr>
-                    <tr><td class="px-4 py-2 font-mono">phone</td><td class="px-4 py-2 text-gray-500">Teléfono</td><td class="px-4 py-2 text-gray-500">No</td></tr>
-                    <tr><td class="px-4 py-2 font-mono">whatsapp</td><td class="px-4 py-2 text-gray-500">WhatsApp</td><td class="px-4 py-2 text-gray-500">No</td></tr>
-                    <tr><td class="px-4 py-2 font-mono">industry</td><td class="px-4 py-2 text-gray-500">Giro/Industria</td><td class="px-4 py-2 text-gray-500">No</td></tr>
-                    <tr><td class="px-4 py-2 font-mono">commercial_address</td><td class="px-4 py-2 text-gray-500">Dirección comercial</td><td class="px-4 py-2 text-gray-500">No</td></tr>
-                    <tr><td class="px-4 py-2 font-mono">city</td><td class="px-4 py-2 text-gray-500">Ciudad</td><td class="px-4 py-2 text-gray-500">No</td></tr>
-                    <tr><td class="px-4 py-2 font-mono">state</td><td class="px-4 py-2 text-gray-500">Estado</td><td class="px-4 py-2 text-gray-500">No</td></tr>
-                    <tr><td class="px-4 py-2 font-mono">postal_code</td><td class="px-4 py-2 text-gray-500">Código postal</td><td class="px-4 py-2 text-gray-500">No</td></tr>
-                    <tr><td class="px-4 py-2 font-mono">website</td><td class="px-4 py-2 text-gray-500">Sitio web</td><td class="px-4 py-2 text-gray-500">No</td></tr>
+                    <tr><td class="px-4 py-2 font-mono">EMPRESA / RAZON SOCIAL</td><td class="px-4 py-2 text-gray-500">Razón social de la empresa</td><td class="px-4 py-2 text-green-600 font-medium">Sí</td></tr>
+                    <tr><td class="px-4 py-2 font-mono">RFC</td><td class="px-4 py-2 text-gray-500">RFC de la empresa</td><td class="px-4 py-2 text-gray-500">No</td></tr>
+                    <tr><td class="px-4 py-2 font-mono">EMAIL</td><td class="px-4 py-2 text-gray-500">Correo electrónico corporativo</td><td class="px-4 py-2 text-gray-500">No</td></tr>
+                    <tr><td class="px-4 py-2 font-mono">TELÉFONO</td><td class="px-4 py-2 text-gray-500">Número de teléfono</td><td class="px-4 py-2 text-gray-500">No</td></tr>
+                    <tr><td class="px-4 py-2 font-mono">REPRESENTANTE</td><td class="px-4 py-2 text-gray-500">Nombre del representante o propietario</td><td class="px-4 py-2 text-gray-500">No</td></tr>
+                    <tr><td class="px-4 py-2 font-mono">DIRECCIÓN COMERCIAL</td><td class="px-4 py-2 text-gray-500">Dirección comercial completa</td><td class="px-4 py-2 text-gray-500">No</td></tr>
+                    <tr><td class="px-4 py-2 font-mono">DIRECCIÓN FISCAL</td><td class="px-4 py-2 text-gray-500">Dirección fiscal para facturación</td><td class="px-4 py-2 text-gray-500">No</td></tr>
+                    <tr><td class="px-4 py-2 font-mono">SECTOR</td><td class="px-4 py-2 text-gray-500">Giro o industria de la empresa</td><td class="px-4 py-2 text-gray-500">No</td></tr>
+                    <tr><td class="px-4 py-2 font-mono">CATEGORÍA</td><td class="px-4 py-2 text-gray-500">Categoría o nombre comercial</td><td class="px-4 py-2 text-gray-500">No</td></tr>
+                    <tr><td class="px-4 py-2 font-mono">MEMBRESÍA</td><td class="px-4 py-2 text-gray-500">Tipo de membresía (BASICA, PYME, PREMIER, PATROCINADOR)</td><td class="px-4 py-2 text-gray-500">No</td></tr>
+                    <tr><td class="px-4 py-2 font-mono">TIPO DE AFILIACIÓN</td><td class="px-4 py-2 text-gray-500">Tipo de afiliación (MEMBRESIA, SIEM)</td><td class="px-4 py-2 text-gray-500">No</td></tr>
+                    <tr><td class="px-4 py-2 font-mono">VENDEDOR</td><td class="px-4 py-2 text-gray-500">Código del afiliador/vendedor</td><td class="px-4 py-2 text-gray-500">No</td></tr>
+                    <tr><td class="px-4 py-2 font-mono">FECHA DE RENOVACIÓN</td><td class="px-4 py-2 text-gray-500">Fecha de vencimiento (YYYY-MM-DD)</td><td class="px-4 py-2 text-gray-500">No</td></tr>
+                    <tr><td class="px-4 py-2 font-mono">No. DE RECIBO</td><td class="px-4 py-2 text-gray-500">Número de recibo de pago</td><td class="px-4 py-2 text-gray-500">No</td></tr>
+                    <tr><td class="px-4 py-2 font-mono">No. DE FACTURA</td><td class="px-4 py-2 text-gray-500">Número de factura</td><td class="px-4 py-2 text-gray-500">No</td></tr>
+                    <tr><td class="px-4 py-2 font-mono">ENGOMADO</td><td class="px-4 py-2 text-gray-500">Número de engomado</td><td class="px-4 py-2 text-gray-500">No</td></tr>
                 </tbody>
             </table>
         </div>

@@ -1,14 +1,26 @@
 <?php $content = ob_start(); ?>
+<?php 
+$siteLogo = $config['site_logo'] ?? null;
+$siteName = $config['site_name'] ?? 'CRM Total';
+$primaryColor = $config['primary_color'] ?? '#1e40af';
+$secondaryColor = $config['secondary_color'] ?? '#3b82f6';
+?>
 
-<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 to-blue-700 py-12 px-4 sm:px-6 lg:px-8">
+<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style="background: linear-gradient(135deg, <?php echo htmlspecialchars($primaryColor); ?> 0%, <?php echo htmlspecialchars($secondaryColor); ?> 100%);">
     <div class="max-w-md w-full space-y-8">
         <!-- Logo and Title -->
         <div class="text-center">
-            <div class="mx-auto h-20 w-20 bg-white rounded-full flex items-center justify-center shadow-lg">
-                <span class="text-3xl font-bold text-blue-800">CCQ</span>
+            <?php if ($siteLogo): ?>
+            <div class="mx-auto h-20 w-auto flex items-center justify-center">
+                <img src="<?php echo BASE_URL . $siteLogo; ?>" alt="Logo" class="h-20 object-contain">
             </div>
+            <?php else: ?>
+            <div class="mx-auto h-20 w-20 bg-white rounded-full flex items-center justify-center shadow-lg">
+                <span class="text-3xl font-bold" style="color: <?php echo htmlspecialchars($primaryColor); ?>;">CCQ</span>
+            </div>
+            <?php endif; ?>
             <h2 class="mt-6 text-3xl font-extrabold text-white">
-                CRM Total
+                <?php echo htmlspecialchars($siteName); ?>
             </h2>
             <p class="mt-2 text-sm text-blue-200">
                 Cámara de Comercio de Querétaro
@@ -41,7 +53,7 @@
                     </label>
                     <div class="mt-1">
                         <input id="email" name="email" type="email" autocomplete="email" required
-                               class="appearance-none block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                               class="appearance-none block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm"
                                placeholder="usuario@ejemplo.com">
                     </div>
                 </div>
@@ -52,7 +64,7 @@
                     </label>
                     <div class="mt-1">
                         <input id="password" name="password" type="password" autocomplete="current-password" required
-                               class="appearance-none block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                               class="appearance-none block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm"
                                placeholder="••••••••">
                     </div>
                 </div>
@@ -60,14 +72,14 @@
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
                         <input id="remember" name="remember" type="checkbox"
-                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                               class="h-4 w-4 focus:ring-2 border-gray-300 rounded" style="color: <?php echo htmlspecialchars($primaryColor); ?>;">
                         <label for="remember" class="ml-2 block text-sm text-gray-900">
                             Recordarme
                         </label>
                     </div>
 
                     <div class="text-sm">
-                        <a href="#" class="font-medium text-blue-600 hover:text-blue-500">
+                        <a href="<?php echo BASE_URL; ?>/recuperar-password" class="font-medium hover:underline" style="color: <?php echo htmlspecialchars($primaryColor); ?>;">
                             ¿Olvidaste tu contraseña?
                         </a>
                     </div>
@@ -75,7 +87,8 @@
 
                 <div>
                     <button type="submit"
-                            class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition">
+                            class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition"
+                            style="background-color: <?php echo htmlspecialchars($primaryColor); ?>;">
                         Iniciar Sesión
                     </button>
                 </div>
@@ -84,7 +97,7 @@
         
         <!-- Footer -->
         <p class="text-center text-sm text-blue-200">
-            © <?php echo date('Y'); ?> Cámara de Comercio de Querétaro
+            © <?php echo date('Y'); ?> <?php echo htmlspecialchars($siteName); ?>
         </p>
     </div>
 </div>
