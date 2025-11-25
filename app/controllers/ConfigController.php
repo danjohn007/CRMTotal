@@ -277,11 +277,17 @@ class ConfigController extends Controller {
             ini_set('SMTP', $host);
             ini_set('smtp_port', $port);
             
-            $sent = @mail($to, $subject, $body, implode("\r\n", $headers));
+            // Suppress warnings but capture error
+            $errorLevel = error_reporting(0);
+            $sent = mail($to, $subject, $body, implode("\r\n", $headers));
+            $mailError = error_get_last();
+            error_reporting($errorLevel);
             
             if ($sent) {
                 return ['success' => true];
             } else {
+                // Log the mail error for debugging
+                $errorMessage = $mailError ? $mailError['message'] : 'Error desconocido';
                 // Try with fsockopen SMTP for more control
                 return $this->sendSmtpEmail($to, $subject, $body, $host, $port, $user, $password, $fromName);
             }
@@ -292,8 +298,8 @@ class ConfigController extends Controller {
     
     private function sendSmtpEmail(string $to, string $subject, string $body, string $host, int $port, string $user, string $password, string $fromName): array {
         try {
-            // Simple SMTP connection
-            $socket = @fsockopen($host, $port, $errno, $errstr, 30);
+            // Simple SMTP connection with proper error handling
+            $socket = fsockopen($host, $port, $errno, $errstr, 30);
             
             if (!$socket) {
                 return ['success' => false, 'error' => "No se pudo conectar al servidor SMTP: $errstr ($errno)"];
@@ -301,9 +307,9 @@ class ConfigController extends Controller {
             
             // Get server greeting
             $response = fgets($socket, 515);
-            if (substr($response, 0, 3) !== '220') {
+            if ($response === false || substr($response, 0, 3) !== '220') {
                 fclose($socket);
-                return ['success' => false, 'error' => 'Error en saludo del servidor: ' . $response];
+                return ['success' => false, 'error' => 'Error en saludo del servidor: ' . ($response ?: 'Sin respuesta')];
             }
             
             // Send EHLO

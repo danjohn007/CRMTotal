@@ -225,7 +225,13 @@ class AuthController extends Controller {
         try {
             ini_set('SMTP', $host);
             ini_set('smtp_port', $port);
-            return @mail($user['email'], $subject, $body, implode("\r\n", $headers));
+            
+            // Use proper error handling instead of suppression
+            $errorLevel = error_reporting(0);
+            $result = mail($user['email'], $subject, $body, implode("\r\n", $headers));
+            error_reporting($errorLevel);
+            
+            return $result;
         } catch (Exception $e) {
             return false;
         }

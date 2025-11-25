@@ -15,8 +15,9 @@ ALTER TABLE `users`
 ADD COLUMN IF NOT EXISTS `reset_token` VARCHAR(64) NULL AFTER `last_login`,
 ADD COLUMN IF NOT EXISTS `reset_token_expires` DATETIME NULL AFTER `reset_token`;
 
--- Add index for reset token lookups
-CREATE INDEX IF NOT EXISTS `idx_reset_token` ON `users` (`reset_token`);
+-- Add unique index for reset token lookups (ensures one token per user and prevents reuse)
+-- Using unique constraint to prevent token collision attacks
+CREATE UNIQUE INDEX IF NOT EXISTS `idx_reset_token_unique` ON `users` (`reset_token`);
 
 -- =============================================
 -- AFFILIATIONS ENHANCEMENTS
