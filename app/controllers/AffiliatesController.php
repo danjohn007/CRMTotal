@@ -19,7 +19,24 @@ class AffiliatesController extends Controller {
     public function index(): void {
         $this->requireAuth();
         
-        $affiliates = $this->contactModel->getAffiliates();
+        // Handle search query
+        $search = $this->getInput('search', '');
+        $membership = $this->getInput('membership', '');
+        
+        if (!empty($search)) {
+            // Use search function for filtered results
+            $affiliates = $this->searchAffiliates($search, $membership);
+        } else {
+            $affiliates = $this->contactModel->getAffiliates();
+            
+            // Filter by membership if specified
+            if (!empty($membership)) {
+                $affiliates = array_filter($affiliates, function($a) use ($membership) {
+                    return ($a['membership_code'] ?? '') === $membership;
+                });
+            }
+        }
+        
         $expiringAffiliations = $this->affiliationModel->getExpiringSoon(30);
         
         $this->view('affiliates/index', [
@@ -28,6 +45,46 @@ class AffiliatesController extends Controller {
             'affiliates' => $affiliates,
             'expiringCount' => count($expiringAffiliations)
         ]);
+    }
+    
+    /**
+     * Search affiliates by name, RFC, phone, WhatsApp, or email
+     */
+    private function searchAffiliates(string $search, string $membership = ''): array {
+        $search = '%' . trim($search) . '%';
+        
+        $sql = "SELECT c.*, u.name as affiliator_name,
+                       a.affiliation_date, a.expiration_date, a.status as affiliation_status,
+                       m.name as membership_name, m.code as membership_code
+                FROM contacts c 
+                LEFT JOIN users u ON c.assigned_affiliate_id = u.id 
+                LEFT JOIN affiliations a ON c.id = a.contact_id AND a.status = 'active'
+                LEFT JOIN membership_types m ON a.membership_type_id = m.id
+                WHERE c.contact_type = 'afiliado'
+                AND (c.business_name LIKE :term1 
+                     OR c.commercial_name LIKE :term2 
+                     OR c.rfc LIKE :term3
+                     OR c.phone LIKE :term4
+                     OR c.whatsapp LIKE :term5
+                     OR c.corporate_email LIKE :term6)";
+        
+        $params = [
+            'term1' => $search,
+            'term2' => $search,
+            'term3' => $search,
+            'term4' => $search,
+            'term5' => $search,
+            'term6' => $search
+        ];
+        
+        if (!empty($membership)) {
+            $sql .= " AND m.code = :membership";
+            $params['membership'] = $membership;
+        }
+        
+        $sql .= " ORDER BY c.business_name";
+        
+        return $this->db->fetchAll($sql, $params);
     }
     
     public function create(): void {

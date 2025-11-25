@@ -48,16 +48,16 @@
     <div class="bg-white rounded-lg shadow-sm p-4">
         <form method="GET" class="flex flex-wrap gap-4">
             <div class="flex-1 min-w-[200px]">
-                <input type="text" name="search" placeholder="Buscar por nombre, RFC o teléfono..."
+                <input type="text" name="search" placeholder="Buscar por nombre, RFC, teléfono, WhatsApp o email..."
                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
                        value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>">
             </div>
             <select name="membership" class="px-4 py-2 border border-gray-300 rounded-lg">
                 <option value="">Todas las membresías</option>
-                <option value="BASICA">Básica</option>
-                <option value="PYME">PYME</option>
-                <option value="PREMIER">Premier</option>
-                <option value="PATROCINADOR">Patrocinador</option>
+                <option value="BASICA" <?php echo ($_GET['membership'] ?? '') === 'BASICA' ? 'selected' : ''; ?>>Básica</option>
+                <option value="PYME" <?php echo ($_GET['membership'] ?? '') === 'PYME' ? 'selected' : ''; ?>>PYME</option>
+                <option value="PREMIER" <?php echo ($_GET['membership'] ?? '') === 'PREMIER' ? 'selected' : ''; ?>>Premier</option>
+                <option value="PATROCINADOR" <?php echo ($_GET['membership'] ?? '') === 'PATROCINADOR' ? 'selected' : ''; ?>>Patrocinador</option>
             </select>
             <button type="submit" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
                 Buscar

@@ -132,6 +132,9 @@ $router->add('financiero/facturas', ['controller' => 'financial', 'action' => 'i
 $router->add('financiero/reporte', ['controller' => 'financial', 'action' => 'report']);
 $router->add('financiero/registrar-pago', ['controller' => 'financial', 'action' => 'recordPayment']);
 $router->add('financiero/generar-factura', ['controller' => 'financial', 'action' => 'generateInvoice']);
+$router->add('financiero/categorias', ['controller' => 'financial', 'action' => 'categories']);
+$router->add('financiero/movimientos', ['controller' => 'financial', 'action' => 'transactions']);
+$router->add('financiero/reporte-movimientos', ['controller' => 'financial', 'action' => 'transactionsReport']);
 
 // Import Module
 $router->add('importar', ['controller' => 'import', 'action' => 'index']);
@@ -148,6 +151,7 @@ $router->add('auditoria/tabla', ['controller' => 'audit', 'action' => 'byTable']
 // Commercial Requirements
 $router->add('requerimientos', ['controller' => 'requirements', 'action' => 'index']);
 $router->add('requerimientos/nuevo', ['controller' => 'requirements', 'action' => 'create']);
+$router->add('requerimientos/categorias', ['controller' => 'requirements', 'action' => 'categories']);
 $router->add('requerimientos/mis-requerimientos', ['controller' => 'requirements', 'action' => 'myRequirements']);
 $router->add('requerimientos/actualizar-estado', ['controller' => 'requirements', 'action' => 'updateStatus']);
 $router->add('requerimientos/{id}', ['controller' => 'requirements', 'action' => 'show']);

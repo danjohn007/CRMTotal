@@ -37,6 +37,7 @@ class RequirementsController extends Controller {
         
         $error = null;
         $contacts = $this->contactModel->getAffiliates();
+        $categories = $this->getCategories();
         
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$this->validateCsrf()) {
@@ -69,6 +70,7 @@ class RequirementsController extends Controller {
             'pageTitle' => 'Nuevo Requerimiento',
             'currentPage' => 'requerimientos',
             'contacts' => $contacts,
+            'categories' => $categories,
             'error' => $error,
             'csrf_token' => $this->csrfToken()
         ]);
@@ -118,6 +120,7 @@ class RequirementsController extends Controller {
         
         $error = null;
         $contacts = $this->contactModel->getAffiliates();
+        $categories = $this->getCategories();
         
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$this->validateCsrf()) {
@@ -150,6 +153,7 @@ class RequirementsController extends Controller {
             'currentPage' => 'requerimientos',
             'requirement' => $requirement,
             'contacts' => $contacts,
+            'categories' => $categories,
             'error' => $error,
             'csrf_token' => $this->csrfToken()
         ]);
@@ -195,5 +199,125 @@ class RequirementsController extends Controller {
             'requirements' => $requirements,
             'status' => $status
         ]);
+    }
+    
+    /**
+     * Manage requirement categories
+     */
+    public function categories(): void {
+        $this->requireAuth();
+        
+        $error = null;
+        $success = null;
+        
+        // Handle form submissions
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!$this->validateCsrf()) {
+                $error = 'Token de seguridad inválido.';
+            } else {
+                $action = $this->getInput('action', '');
+                
+                switch ($action) {
+                    case 'create':
+                        $name = $this->sanitize($this->getInput('name', ''));
+                        $code = $this->sanitize($this->getInput('code', ''));
+                        $description = $this->sanitize($this->getInput('description', ''));
+                        $isActive = $this->getInput('is_active') ? 1 : 0;
+                        
+                        if (empty($name) || empty($code)) {
+                            $error = 'El nombre y código son obligatorios.';
+                        } else {
+                            try {
+                                $sql = "INSERT INTO requirement_categories (name, code, description, is_active) VALUES (:name, :code, :description, :is_active)";
+                                $this->db->query($sql, [
+                                    'name' => $name,
+                                    'code' => $code,
+                                    'description' => $description,
+                                    'is_active' => $isActive
+                                ]);
+                                $success = 'Categoría creada exitosamente.';
+                            } catch (Exception $e) {
+                                $error = 'Error al crear la categoría: ' . $e->getMessage();
+                            }
+                        }
+                        break;
+                        
+                    case 'toggle':
+                        $id = (int) $this->getInput('id');
+                        try {
+                            $sql = "UPDATE requirement_categories SET is_active = NOT is_active WHERE id = :id";
+                            $this->db->query($sql, ['id' => $id]);
+                            $success = 'Estado de la categoría actualizado.';
+                        } catch (Exception $e) {
+                            $error = 'Error al actualizar la categoría.';
+                        }
+                        break;
+                        
+                    case 'delete':
+                        $id = (int) $this->getInput('id');
+                        try {
+                            $sql = "DELETE FROM requirement_categories WHERE id = :id";
+                            $this->db->query($sql, ['id' => $id]);
+                            $success = 'Categoría eliminada.';
+                        } catch (Exception $e) {
+                            $error = 'Error al eliminar la categoría.';
+                        }
+                        break;
+                }
+            }
+        }
+        
+        // Get all categories
+        $categories = $this->getCategoriesFromDb();
+        
+        $this->view('requirements/categories', [
+            'pageTitle' => 'Categorías de Requerimientos',
+            'currentPage' => 'requerimientos',
+            'categories' => $categories,
+            'error' => $error,
+            'success' => $success,
+            'csrf_token' => $this->csrfToken()
+        ]);
+    }
+    
+    /**
+     * Get categories - from DB or default
+     */
+    private function getCategories(): array {
+        $dbCategories = $this->getCategoriesFromDb();
+        
+        if (!empty($dbCategories)) {
+            $categories = [];
+            foreach ($dbCategories as $cat) {
+                if ($cat['is_active']) {
+                    $categories[$cat['code']] = $cat['name'];
+                }
+            }
+            return $categories;
+        }
+        
+        // Default categories
+        return [
+            'membresia' => 'Nueva Membresía',
+            'renovacion' => 'Renovación',
+            'servicio' => 'Servicio Adicional',
+            'evento' => 'Evento',
+            'capacitacion' => 'Capacitación',
+            'marketing' => 'Marketing',
+            'otro' => 'Otro'
+        ];
+    }
+    
+    /**
+     * Get categories from database
+     */
+    private function getCategoriesFromDb(): array {
+        try {
+            $sql = "SELECT * FROM requirement_categories ORDER BY name";
+            return $this->db->fetchAll($sql);
+        } catch (Exception $e) {
+            // Table may not exist yet
+            return [];
+        }
     }
 }
