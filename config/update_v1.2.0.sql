@@ -11,13 +11,13 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- =============================================
 
 -- Add reset token columns to users table
-ALTER TABLE `users` 
-ADD COLUMN IF NOT EXISTS `reset_token` VARCHAR(64) NULL AFTER `last_login`,
-ADD COLUMN IF NOT EXISTS `reset_token_expires` DATETIME NULL AFTER `reset_token`;
+ALTER TABLE `users`
+ADD COLUMN `reset_token` VARCHAR(64) NULL AFTER `last_login`,
+ADD COLUMN `reset_token_expires` DATETIME NULL AFTER `reset_token`;
 
 -- Add unique index for reset token lookups (ensures one token per user and prevents reuse)
 -- Using unique constraint to prevent token collision attacks
-CREATE UNIQUE INDEX IF NOT EXISTS `idx_reset_token_unique` ON `users` (`reset_token`);
+CREATE UNIQUE INDEX `idx_reset_token_unique` ON `users` (`reset_token`);
 
 -- =============================================
 -- AFFILIATIONS ENHANCEMENTS
@@ -25,9 +25,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS `idx_reset_token_unique` ON `users` (`reset_to
 
 -- Add receipt number and sticker number to affiliations
 ALTER TABLE `affiliations`
-ADD COLUMN IF NOT EXISTS `receipt_number` VARCHAR(50) NULL AFTER `invoice_number`,
-ADD COLUMN IF NOT EXISTS `sticker_number` VARCHAR(50) NULL AFTER `receipt_number`,
-ADD COLUMN IF NOT EXISTS `affiliation_type` ENUM('MEMBRESIA', 'SIEM', 'OTRO') DEFAULT 'MEMBRESIA' AFTER `sticker_number`;
+ADD COLUMN `receipt_number` VARCHAR(50) NULL AFTER `invoice_number`,
+ADD COLUMN `sticker_number` VARCHAR(50) NULL AFTER `receipt_number`,
+ADD COLUMN `affiliation_type` ENUM('MEMBRESIA', 'SIEM', 'OTRO') DEFAULT 'MEMBRESIA' AFTER `sticker_number`;
 
 -- =============================================
 -- CONTACTS ENHANCEMENTS
@@ -61,7 +61,7 @@ WHERE NOT EXISTS (SELECT 1 FROM `membership_types` WHERE `code` = 'SIEM');
 -- =============================================
 
 -- Add index for business name searches in imports
-CREATE INDEX IF NOT EXISTS `idx_business_name` ON `contacts` (`business_name`);
+CREATE INDEX `idx_business_name` ON `contacts` (`business_name`);
 
 -- =============================================
 -- AUDIT LOG FOR SCHEMA CHANGE
