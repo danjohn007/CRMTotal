@@ -75,16 +75,53 @@
         </div>
         <?php endif; ?>
         
-        <?php if (isset($success)): ?>
+        <?php 
+        // Check for payment success parameter
+        $paymentSuccess = isset($_GET['payment']) && $_GET['payment'] === 'success';
+        $showTicketDownload = isset($_SESSION['show_ticket_download']) && $_SESSION['show_ticket_download'];
+        
+        if (isset($success) || $paymentSuccess): 
+        ?>
         <div class="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+            <?php if ($paymentSuccess): ?>
+            ¡Pago completado exitosamente! Tu registro está confirmado. Recibirás un correo con tu código QR de acceso.
+            <?php else: ?>
             <?php echo htmlspecialchars($success); ?>
-            <?php if ($event['is_paid'] && isset($registrationId)): ?>
+            <?php endif; ?>
+            
+            <?php if ($event['is_paid'] && isset($registrationId) && !$paymentSuccess): ?>
             <p class="mt-2 font-medium">Por favor, completa el pago para confirmar tu registro.</p>
+            <?php endif; ?>
+            
+            <?php if ($showTicketDownload || $paymentSuccess): ?>
+            <div class="mt-4 p-4 bg-white border border-green-300 rounded-lg">
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">🎫 Tu Boleto Está Listo</h3>
+                <p class="text-gray-700 mb-3">
+                    Tu código QR de acceso ha sido generado. También lo encontrarás en el correo de confirmación.
+                </p>
+                <p class="text-sm text-gray-600 mb-3">
+                    <strong>Importante:</strong> Presenta este código QR al llegar al evento para registrar tu asistencia.
+                </p>
+                <?php if (isset($registrationCode) && !empty($registrationCode)): ?>
+                <a href="<?php echo BASE_URL; ?>/uploads/qr/qr_<?php echo htmlspecialchars($registrationCode); ?>.png" 
+                   download 
+                   target="_blank"
+                   class="inline-block px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium">
+                    📥 Descargar Código QR
+                </a>
+                <?php endif; ?>
+            </div>
+            <?php 
+            // Clear the session flag after showing
+            if ($showTicketDownload) {
+                unset($_SESSION['show_ticket_download']);
+            }
+            ?>
             <?php endif; ?>
         </div>
         
         <!-- PayPal Payment Section (only shown after successful registration for paid events) -->
-        <?php if ($event['is_paid'] && isset($registrationId) && !empty($paypalClientId)): ?>
+        <?php if ($event['is_paid'] && isset($registrationId) && !empty($paypalClientId) && !$paymentSuccess && !$showTicketDownload): ?>
         <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Completar Pago</h2>
             <div class="mb-4 p-4 bg-blue-50 rounded-lg">
@@ -109,7 +146,7 @@
             onApprove: function(data, actions) {
                 return actions.order.capture().then(function(details) {
                     // Send payment confirmation to server
-                    fetch(<?php echo json_encode(BASE_URL . '/api/eventos/confirmar-pago'); ?>, {
+                    return fetch(<?php echo json_encode(BASE_URL . '/api/eventos/confirmar-pago'); ?>, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -119,15 +156,35 @@
                             order_id: data.orderID,
                             payer_email: details.payer.email_address
                         })
-                    }).then(function(response) {
-                        alert('¡Pago completado exitosamente! Recibirás un correo de confirmación.');
-                        window.location.reload();
+                    })
+                    .then(function(response) {
+                        if (!response.ok) {
+                            throw new Error('Error al confirmar el pago en el servidor');
+                        }
+                        return response.json();
+                    })
+                    .then(function(result) {
+                        if (result.success) {
+                            // Show success message and redirect to ticket download
+                            alert('¡Pago completado exitosamente! Recibirás un correo con tu código QR de acceso.');
+                            // Redirect to show the success message and download link
+                            window.location.href = <?php echo json_encode(BASE_URL . '/eventos/' . $event['id'] . '/registro?payment=success'); ?>;
+                        } else {
+                            throw new Error(result.message || 'Error al procesar la confirmación');
+                        }
+                    })
+                    .catch(function(error) {
+                        console.error('Error:', error);
+                        alert('El pago fue exitoso pero hubo un error al confirmar. Por favor, contacta a soporte con tu ID de orden: ' + data.orderID);
                     });
                 });
             },
             onError: function(err) {
-                console.error(err);
+                console.error('PayPal Error:', err);
                 alert('Hubo un error al procesar el pago. Por favor, intenta de nuevo.');
+            },
+            onCancel: function(data) {
+                alert('Pago cancelado. Puedes intentar de nuevo cuando estés listo.');
             }
         }).render('#paypal-button-container');
     </script>
@@ -159,6 +216,14 @@
             <form method="POST" id="registration-form">
                 <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                 <input type="hidden" name="contact_id" id="contact_id" value="">
+                
+                <!-- Loading overlay -->
+                <div id="loading-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div class="bg-white rounded-lg p-6 text-center">
+                        <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                        <p class="text-gray-700">Procesando registro...</p>
+                    </div>
+                </div>
                 
                 <div class="space-y-6">
                     <!-- Company/Business Information Section -->
@@ -528,6 +593,12 @@
                 alert('Debe seleccionar la categoría del asistente.');
                 return false;
             }
+        }
+        
+        // Show loading overlay
+        const loadingOverlay = document.getElementById('loading-overlay');
+        if (loadingOverlay) {
+            loadingOverlay.classList.remove('hidden');
         }
     });
     </script>

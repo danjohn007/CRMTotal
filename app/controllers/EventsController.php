@@ -227,6 +227,16 @@ class EventsController extends Controller {
         $success = null;
         $registrationId = null;
         
+        // Check if returning from successful payment
+        if (isset($_GET['payment']) && $_GET['payment'] === 'success') {
+            $success = '¡Pago completado exitosamente! Tu registro está confirmado.';
+            // Try to get registration ID from session if available
+            if (isset($_SESSION['last_registration_id'])) {
+                $registrationId = $_SESSION['last_registration_id'];
+                unset($_SESSION['last_registration_id']);
+            }
+        }
+        
         // Get PayPal configuration
         $paypalClientId = $this->configModel->get('paypal_client_id', '');
         
@@ -306,6 +316,9 @@ class EventsController extends Controller {
                     try {
                         $registrationId = $this->eventModel->registerAttendee($id, $registrationData);
                         
+                        // Store registration ID in session for later retrieval
+                        $_SESSION['last_registration_id'] = $registrationId;
+                        
                         // Check if this email belongs to a contact - convert to prospect
                         $contactModel = new Contact();
                         $existingContact = $contactModel->findBy('corporate_email', $registrationData['guest_email']);
@@ -331,6 +344,8 @@ class EventsController extends Controller {
                         if ($registrationData['payment_status'] === 'free') {
                             $this->generateAndSendQR($registrationId, $event, $registrationData);
                             $success = '¡Registro exitoso! Te hemos enviado un correo con tu código QR de acceso.';
+                            // Set flag to show ticket download section
+                            $_SESSION['show_ticket_download'] = true;
                         } else {
                             $success = '¡Registro exitoso! Te hemos enviado un correo de confirmación con el enlace de pago.';
                         }
@@ -341,12 +356,25 @@ class EventsController extends Controller {
             }
         }
         
+        // Get registration code if registration was successful
+        $registrationCode = null;
+        if ($registrationId) {
+            $regCodeResult = $this->db->query(
+                "SELECT registration_code FROM event_registrations WHERE id = :id", 
+                ['id' => $registrationId]
+            );
+            if (!empty($regCodeResult)) {
+                $registrationCode = $regCodeResult[0]['registration_code'];
+            }
+        }
+        
         $this->view('events/registration', [
             'pageTitle' => 'Registro - ' . $event['title'],
             'event' => $event,
             'error' => $error,
             'success' => $success,
             'registrationId' => $registrationId,
+            'registrationCode' => $registrationCode,
             'paypalClientId' => $paypalClientId,
             'csrf_token' => $this->csrfToken()
         ]);
