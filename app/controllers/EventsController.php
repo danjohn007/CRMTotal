@@ -255,15 +255,15 @@ class EventsController extends Controller {
                 }
                 
                 if (!$error) {
-                    // Check if already registered
-                    $registrations = $this->eventModel->getRegistrations($id);
-                    $alreadyRegistered = array_filter($registrations, fn($r) => 
-                        $r['guest_email'] === $registrationData['guest_email']
-                    );
+                    // Check if this is an active affiliate and event offers free access
+                    $isActiveAffiliate = $this->eventModel->isActiveAffiliate($registrationData['guest_email']);
+                    if ($event['free_for_affiliates'] && $isActiveAffiliate && $tickets === 1) {
+                        // First ticket is free for active affiliates
+                        $registrationData['payment_status'] = 'free';
+                    }
                     
-                    if ($alreadyRegistered) {
-                        $error = 'Este correo ya está registrado para este evento.';
-                    } else {
+                    // Allow multiple registrations from same email/RFC
+                    if (true) {
                         try {
                             $registrationId = $this->eventModel->registerAttendee($id, $registrationData);
                             
@@ -285,7 +285,16 @@ class EventsController extends Controller {
                                 ]);
                             }
                             
-                            $success = '¡Registro exitoso! Te hemos enviado un correo de confirmación.';
+                            // Send confirmation email
+                            $this->sendConfirmationEmail($registrationId, $event, $registrationData);
+                            
+                            // If payment is free, generate and send QR code immediately
+                            if ($registrationData['payment_status'] === 'free') {
+                                $this->generateAndSendQR($registrationId, $event, $registrationData);
+                                $success = '¡Registro exitoso! Te hemos enviado un correo con tu código QR de acceso.';
+                            } else {
+                                $success = '¡Registro exitoso! Te hemos enviado un correo de confirmación con el enlace de pago.';
+                            }
                         } catch (Exception $e) {
                             $error = 'Error en el registro: ' . $e->getMessage();
                         }
@@ -413,6 +422,7 @@ class EventsController extends Controller {
             'is_paid' => (int) $this->getInput('is_paid', 0),
             'price' => (float) $this->getInput('price', 0),
             'member_price' => (float) $this->getInput('member_price', 0),
+            'free_for_affiliates' => (int) $this->getInput('free_for_affiliates', 1),
             'status' => $this->sanitize($this->getInput('status', 'draft'))
         ];
     }
@@ -444,5 +454,131 @@ class EventsController extends Controller {
             'funcionario' => 'Funcionarios',
             'consejero' => 'Consejeros'
         ];
+    }
+    
+    private function sendConfirmationEmail(int $registrationId, array $event, array $registrationData): void {
+        try {
+            // Get registration code
+            $registration = $this->eventModel->getRegistrationByCode(
+                $this->db->queryOne("SELECT registration_code FROM event_registrations WHERE id = :id", 
+                ['id' => $registrationId])['registration_code'] ?? ''
+            );
+            
+            if (!$registration) {
+                return;
+            }
+            
+            $to = $registrationData['guest_email'];
+            $subject = "Confirmación de Registro - " . $event['title'];
+            $registrationCode = $registration['registration_code'];
+            
+            // Build email body
+            $body = "Hola " . htmlspecialchars($registrationData['guest_name']) . ",\n\n";
+            $body .= "Gracias por registrarte al evento:\n\n";
+            $body .= "📅 " . htmlspecialchars($event['title']) . "\n";
+            $body .= "📍 " . ($event['is_online'] ? 'Evento en línea' : htmlspecialchars($event['location'] ?? '')) . "\n";
+            $body .= "🕐 " . date('d/m/Y H:i', strtotime($event['start_date'])) . " hrs\n";
+            $body .= "🎫 Boletos: " . $registrationData['tickets'] . "\n\n";
+            
+            if ($event['is_paid'] && $registrationData['payment_status'] === 'pending') {
+                $paymentUrl = BASE_URL . '/evento/pago/' . $registrationCode;
+                $body .= "💳 COMPLETAR PAGO\n";
+                $body .= "Para confirmar tu asistencia, completa el pago en el siguiente enlace:\n";
+                $body .= $paymentUrl . "\n\n";
+                $body .= "Monto a pagar: $" . number_format($event['price'] * $registrationData['tickets'], 2) . " MXN\n\n";
+            }
+            
+            $body .= "Código de registro: " . $registrationCode . "\n\n";
+            $body .= "Te esperamos!\n\n";
+            $body .= "Cámara de Comercio de Querétaro\n";
+            $body .= BASE_URL;
+            
+            // Send email using PHP mail() - in production, use PHPMailer or similar
+            $headers = "From: " . ($this->configModel->get('smtp_from_name', 'CRM CCQ')) . " <noreply@camaradecomercioqro.mx>\r\n";
+            $headers .= "Reply-To: " . ($this->configModel->get('contact_email', 'info@camaradecomercioqro.mx')) . "\r\n";
+            $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+            
+            mail($to, $subject, $body, $headers);
+            
+            // Update confirmation sent flag
+            $this->eventModel->updateConfirmationSent($registrationId);
+        } catch (Exception $e) {
+            // Log error but don't fail the registration
+            error_log("Error sending confirmation email: " . $e->getMessage());
+        }
+    }
+    
+    private function generateAndSendQR(int $registrationId, array $event, array $registrationData): void {
+        try {
+            // Get registration code
+            $registration = $this->eventModel->getRegistrationByCode(
+                $this->db->queryOne("SELECT registration_code FROM event_registrations WHERE id = :id", 
+                ['id' => $registrationId])['registration_code'] ?? ''
+            );
+            
+            if (!$registration) {
+                return;
+            }
+            
+            $registrationCode = $registration['registration_code'];
+            
+            // Generate QR code using a free API or library
+            // For this implementation, we'll use the Google Charts API (deprecated but still works)
+            // In production, consider using a PHP QR code library like endroid/qr-code
+            $qrData = BASE_URL . '/evento/verificar/' . $registrationCode;
+            $qrImageUrl = "https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=" . urlencode($qrData);
+            
+            // Download QR code image
+            $qrDir = PUBLIC_PATH . '/uploads/qr/';
+            if (!is_dir($qrDir)) {
+                mkdir($qrDir, 0750, true);
+            }
+            
+            $qrFilename = 'qr_' . $registrationCode . '.png';
+            $qrPath = $qrDir . $qrFilename;
+            
+            // Download and save QR code
+            $qrContent = @file_get_contents($qrImageUrl);
+            if ($qrContent) {
+                file_put_contents($qrPath, $qrContent);
+                
+                // Update database with QR filename
+                $this->db->update('event_registrations', [
+                    'qr_code' => $qrFilename
+                ], 'id = :id', ['id' => $registrationId]);
+            }
+            
+            // Send QR code email
+            $to = $registrationData['guest_email'];
+            $subject = "Código QR de Acceso - " . $event['title'];
+            
+            $body = "Hola " . htmlspecialchars($registrationData['guest_name']) . ",\n\n";
+            $body .= "¡Tu pago ha sido confirmado!\n\n";
+            $body .= "Adjunto encontrarás tu código QR de acceso al evento:\n\n";
+            $body .= "📅 " . htmlspecialchars($event['title']) . "\n";
+            $body .= "📍 " . ($event['is_online'] ? 'Evento en línea' : htmlspecialchars($event['location'] ?? '')) . "\n";
+            $body .= "🕐 " . date('d/m/Y H:i', strtotime($event['start_date'])) . " hrs\n";
+            $body .= "🎫 Boletos: " . $registrationData['tickets'] . "\n\n";
+            $body .= "Presenta este código QR en el evento para registrar tu asistencia.\n\n";
+            $body .= "También puedes descargar tu QR desde:\n";
+            $body .= BASE_URL . '/uploads/qr/' . $qrFilename . "\n\n";
+            $body .= "Código de registro: " . $registrationCode . "\n\n";
+            $body .= "Te esperamos!\n\n";
+            $body .= "Cámara de Comercio de Querétaro\n";
+            $body .= BASE_URL;
+            
+            // Send email
+            $headers = "From: " . ($this->configModel->get('smtp_from_name', 'CRM CCQ')) . " <noreply@camaradecomercioqro.mx>\r\n";
+            $headers .= "Reply-To: " . ($this->configModel->get('contact_email', 'info@camaradecomercioqro.mx')) . "\r\n";
+            $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+            
+            mail($to, $subject, $body, $headers);
+            
+            // Update QR sent flag
+            $this->eventModel->updateQRSent($registrationId);
+        } catch (Exception $e) {
+            // Log error but don't fail
+            error_log("Error generating/sending QR code: " . $e->getMessage());
+        }
     }
 }

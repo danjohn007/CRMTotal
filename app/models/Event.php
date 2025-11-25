@@ -8,7 +8,8 @@ class Event extends Model {
         'title', 'description', 'event_type', 'category', 'start_date',
         'end_date', 'location', 'address', 'google_maps_url', 'is_online',
         'online_url', 'max_capacity', 'is_paid', 'price', 'member_price',
-        'registration_url', 'image', 'status', 'target_audiences', 'created_by'
+        'free_for_affiliates', 'registration_url', 'image', 'status', 
+        'target_audiences', 'created_by'
     ];
     
     public function getUpcoming(int $limit = 10): array {
@@ -55,10 +56,62 @@ class Event extends Model {
     }
     
     public function registerAttendee(int $eventId, array $data): int {
+        // Generate unique registration code
+        $registrationCode = $this->generateRegistrationCode();
+        
         return $this->db->insert('event_registrations', array_merge(
             $data,
-            ['event_id' => $eventId]
+            [
+                'event_id' => $eventId,
+                'registration_code' => $registrationCode
+            ]
         ));
+    }
+    
+    public function generateRegistrationCode(): string {
+        do {
+            $code = 'REG-' . strtoupper(substr(uniqid(), -8));
+            $exists = $this->db->query(
+                "SELECT id FROM event_registrations WHERE registration_code = :code",
+                ['code' => $code]
+            );
+        } while (!empty($exists));
+        
+        return $code;
+    }
+    
+    public function getRegistrationByCode(string $code): ?array {
+        $sql = "SELECT er.*, e.title as event_title, e.start_date, e.location
+                FROM event_registrations er
+                JOIN events e ON er.event_id = e.id
+                WHERE er.registration_code = :code";
+        return $this->rawOne($sql, ['code' => $code]);
+    }
+    
+    public function updateQRSent(int $registrationId): int {
+        return $this->db->update('event_registrations', [
+            'qr_sent' => 1,
+            'qr_sent_at' => date('Y-m-d H:i:s')
+        ], 'id = :id', ['id' => $registrationId]);
+    }
+    
+    public function updateConfirmationSent(int $registrationId): int {
+        return $this->db->update('event_registrations', [
+            'confirmation_sent' => 1,
+            'confirmation_sent_at' => date('Y-m-d H:i:s')
+        ], 'id = :id', ['id' => $registrationId]);
+    }
+    
+    public function isActiveAffiliate(string $email): bool {
+        $sql = "SELECT COUNT(*) as count 
+                FROM contacts c
+                JOIN affiliations a ON c.id = a.contact_id
+                WHERE c.corporate_email = :email 
+                AND c.contact_type = 'afiliado'
+                AND a.status = 'active'
+                AND a.expiration_date >= CURDATE()";
+        $result = $this->rawOne($sql, ['email' => $email]);
+        return ($result['count'] ?? 0) > 0;
     }
     
     public function markAttendance(int $registrationId, bool $attended = true): int {
