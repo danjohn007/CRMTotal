@@ -196,7 +196,7 @@
 <script>
 <?php if (!empty($byCategory)): ?>
 // Category Chart
-const categoryData = <?php echo json_encode($byCategory); ?>;
+const categoryData = <?php echo json_encode($byCategory, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 const incomeColors = ['#10B981', '#34D399', '#6EE7B7', '#A7F3D0', '#D1FAE5'];
 const expenseColors = ['#EF4444', '#F87171', '#FCA5A5', '#FECACA', '#FEE2E2'];
 
