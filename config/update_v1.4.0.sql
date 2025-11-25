@@ -11,7 +11,6 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- FINANCIAL CATEGORIES TABLE
 -- =============================================
 
--- Categories for financial transactions (income/expense types)
 CREATE TABLE IF NOT EXISTS `financial_categories` (
     `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `name` VARCHAR(100) NOT NULL,
@@ -23,7 +22,6 @@ CREATE TABLE IF NOT EXISTS `financial_categories` (
     INDEX `idx_active` (`is_active`)
 ) ENGINE=InnoDB;
 
--- Insert default financial categories
 INSERT INTO `financial_categories` (`name`, `type`, `description`) VALUES
 ('Membresías', 'ingreso', 'Pagos por membresías y afiliaciones'),
 ('Servicios', 'ingreso', 'Ingresos por servicios adicionales'),
@@ -43,7 +41,6 @@ ON DUPLICATE KEY UPDATE `description` = VALUES(`description`);
 -- FINANCIAL TRANSACTIONS TABLE
 -- =============================================
 
--- Transactions for tracking income/expense movements
 CREATE TABLE IF NOT EXISTS `financial_transactions` (
     `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `category_id` INT UNSIGNED NOT NULL,
@@ -65,7 +62,6 @@ CREATE TABLE IF NOT EXISTS `financial_transactions` (
 -- REQUIREMENT CATEGORIES TABLE
 -- =============================================
 
--- Categories for commercial requirements
 CREATE TABLE IF NOT EXISTS `requirement_categories` (
     `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `name` VARCHAR(100) NOT NULL,
@@ -77,7 +73,6 @@ CREATE TABLE IF NOT EXISTS `requirement_categories` (
     INDEX `idx_active` (`is_active`)
 ) ENGINE=InnoDB;
 
--- Insert default requirement categories
 INSERT INTO `requirement_categories` (`name`, `code`, `description`) VALUES
 ('Nueva Membresía', 'membresia', 'Solicitudes para nuevas membresías'),
 ('Renovación', 'renovacion', 'Renovaciones de membresías existentes'),
@@ -93,16 +88,14 @@ ON DUPLICATE KEY UPDATE `description` = VALUES(`description`);
 -- INDEXES FOR IMPROVED SEARCH PERFORMANCE
 -- =============================================
 
--- Add indexes for search functionality on contacts table
-CREATE INDEX IF NOT EXISTS `idx_contacts_whatsapp` ON `contacts` (`whatsapp`);
-CREATE INDEX IF NOT EXISTS `idx_contacts_corporate_email` ON `contacts` (`corporate_email`);
-CREATE INDEX IF NOT EXISTS `idx_contacts_phone` ON `contacts` (`phone`);
+CREATE INDEX `idx_contacts_whatsapp` ON `contacts` (`whatsapp`);
+CREATE INDEX `idx_contacts_corporate_email` ON `contacts` (`corporate_email`);
+CREATE INDEX `idx_contacts_phone` ON `contacts` (`phone`);
 
 -- =============================================
 -- AUDIT LOG FOR SCHEMA CHANGE
 -- =============================================
 
--- Insert audit log entry for schema update (uses first available user or NULL)
 INSERT INTO `audit_log` (`user_id`, `action`, `table_name`, `record_id`, `new_values`, `ip_address`, `created_at`)
 SELECT 
     COALESCE((SELECT id FROM users ORDER BY id LIMIT 1), NULL),
@@ -119,25 +112,17 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- VERIFICATION QUERIES
 -- =============================================
 
--- Verify financial_categories table exists
 -- SHOW TABLES LIKE 'financial_categories';
 -- SELECT COUNT(*) FROM financial_categories;
-
--- Verify financial_transactions table exists
 -- SHOW TABLES LIKE 'financial_transactions';
-
--- Verify requirement_categories table exists
 -- SHOW TABLES LIKE 'requirement_categories';
 -- SELECT COUNT(*) FROM requirement_categories;
-
--- Verify indexes on contacts table
 -- SHOW INDEX FROM contacts WHERE Key_name LIKE 'idx_contacts_%';
 
 -- =============================================
 -- SAMPLE TRANSACTIONS (optional - for testing)
 -- =============================================
 
--- Uncomment to insert sample transactions for testing
 -- INSERT INTO `financial_transactions` (`category_id`, `description`, `amount`, `transaction_date`, `reference`, `created_by`)
 -- SELECT 1, 'Pago membresía ejemplo', 5000.00, CURDATE(), 'FAC-001', 1
 -- WHERE EXISTS (SELECT 1 FROM financial_categories WHERE id = 1);
