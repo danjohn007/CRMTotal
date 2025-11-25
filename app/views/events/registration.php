@@ -102,7 +102,10 @@
                 <p class="text-sm text-gray-600 mb-3">
                     <strong>Importante:</strong> Presenta este código QR al llegar al evento para registrar tu asistencia.
                 </p>
-                <?php if (isset($registrationCode) && !empty($registrationCode)): ?>
+                <?php 
+                // Validate registration code format before using in path
+                if (isset($registrationCode) && !empty($registrationCode) && preg_match('/^REG-[A-Z0-9]{8}$/', $registrationCode)): 
+                ?>
                 <a href="<?php echo BASE_URL; ?>/uploads/qr/qr_<?php echo htmlspecialchars($registrationCode); ?>.png" 
                    download 
                    target="_blank"
@@ -175,7 +178,7 @@
                     })
                     .catch(function(error) {
                         console.error('Error:', error);
-                        alert('El pago fue exitoso pero hubo un error al confirmar. Por favor, contacta a soporte con tu ID de orden: ' + data.orderID);
+                        alert('El pago fue exitoso pero hubo un error al confirmar. Por favor, contacta a soporte:\nTeléfono: 442 212 0035\nEmail: info@camaradecomercioqro.mx\nID de orden: ' + data.orderID);
                     });
                 });
             },
