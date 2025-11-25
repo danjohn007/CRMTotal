@@ -466,8 +466,9 @@
         }
     }
     
-    // Form validation
+    // Form validation - consolidated validation on submit
     document.getElementById('registration-form')?.addEventListener('submit', function(e) {
+        // Validate phone
         const phone = document.getElementById('phone').value;
         if (phone && !/^\d{10}$/.test(phone)) {
             e.preventDefault();
@@ -475,6 +476,7 @@
             return false;
         }
         
+        // Validate WhatsApp asistente
         const whatsappAsistente = document.getElementById('whatsapp_asistente').value;
         if (whatsappAsistente && !/^\d{10}$/.test(whatsappAsistente)) {
             e.preventDefault();
@@ -482,7 +484,10 @@
             return false;
         }
         
-        const rfc = document.getElementById('rfc').value.trim();
+        // Validate RFC using same logic as validateRFC() for consistency
+        const rfcInput = document.getElementById('rfc');
+        const rfc = rfcInput.value.toUpperCase().trim();
+        
         if (!rfc) {
             e.preventDefault();
             alert('El RFC es obligatorio.');
@@ -490,12 +495,29 @@
         }
         
         const length = rfc.length;
-        if (length !== 12 && length !== 13) {
+        let isValid = false;
+        
+        if (length === 13) {
+            isValid = /^[A-Z]{4}[0-9]{6}[A-Z0-9]{3}$/.test(rfc);
+            if (!isValid) {
+                e.preventDefault();
+                alert('RFC de Persona Física inválido. Formato: 4 letras + 6 dígitos + 3 caracteres');
+                return false;
+            }
+        } else if (length === 12) {
+            isValid = /^[A-Z]{3}[0-9]{6}[A-Z0-9]{3}$/.test(rfc);
+            if (!isValid) {
+                e.preventDefault();
+                alert('RFC de Persona Moral inválido. Formato: 3 letras + 6 dígitos + 3 caracteres');
+                return false;
+            }
+        } else {
             e.preventDefault();
-            alert('El RFC debe tener 12 o 13 caracteres.');
+            alert('El RFC debe tener 12 caracteres (Persona Moral) o 13 caracteres (Persona Física).');
             return false;
         }
         
+        // Validate nombre asistente
         const nombreAsistente = document.getElementById('nombre_asistente').value.trim();
         if (!nombreAsistente) {
             e.preventDefault();
@@ -503,7 +525,7 @@
             return false;
         }
         
-        // Check if guest fields are visible and categoria is required
+        // Validate categoria asistente if guest fields are visible
         const guestFields = document.getElementById('guest-fields');
         if (!guestFields.classList.contains('hidden')) {
             const categoria = document.getElementById('categoria_asistente').value;

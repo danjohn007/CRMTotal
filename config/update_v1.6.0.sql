@@ -163,15 +163,27 @@ PREPARE stmt FROM @alter; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 -- AUDIT LOG FOR SCHEMA CHANGE
 -- =============================================
 
-INSERT INTO `audit_log` (`user_id`, `action`, `table_name`, `record_id`, `new_values`, `ip_address`, `created_at`)
-SELECT
-    COALESCE((SELECT id FROM users ORDER BY id LIMIT 1), NULL),
-    'schema_update',
-    NULL,
-    NULL,
-    '{"version": "1.6.0", "changes": ["event_registrations.razon_social", "event_registrations.nombre_empresario_representante", "event_registrations.nombre_asistente", "event_registrations.categoria_asistente", "event_registrations.email_asistente", "event_registrations.whatsapp_asistente", "event_registrations.requiere_pago", "indexes_for_performance"]}',
-    '127.0.0.1',
-    NOW();
+-- Check if audit_log table exists before inserting
+SET @audit_exists := (
+  SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'audit_log'
+);
+
+SET @audit_insert := IF(
+  @audit_exists > 0,
+  'INSERT INTO `audit_log` (`user_id`, `action`, `table_name`, `record_id`, `new_values`, `ip_address`, `created_at`)
+   SELECT
+       COALESCE((SELECT id FROM users ORDER BY id LIMIT 1), NULL),
+       ''schema_update'',
+       NULL,
+       NULL,
+       ''{"version": "1.6.0", "changes": ["event_registrations.razon_social", "event_registrations.nombre_empresario_representante", "event_registrations.nombre_asistente", "event_registrations.categoria_asistente", "event_registrations.email_asistente", "event_registrations.whatsapp_asistente", "event_registrations.requiere_pago", "indexes_for_performance"]}'',
+       ''127.0.0.1'',
+       NOW();',
+  'SELECT ''Audit log table does not exist, skipping...'';'
+);
+
+PREPARE stmt FROM @audit_insert; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET FOREIGN_KEY_CHECKS = 1;
 

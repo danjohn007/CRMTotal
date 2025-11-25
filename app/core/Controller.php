@@ -94,4 +94,13 @@ abstract class Controller {
         $token = $this->getInput('csrf_token');
         return $token && hash_equals($_SESSION['csrf_token'] ?? '', $token);
     }
+    
+    /**
+     * Validate Mexican phone number (10 digits)
+     * @param string $phone Phone number to validate
+     * @return bool True if valid, false otherwise
+     */
+    protected function isValidPhone(string $phone): bool {
+        return !empty($phone) && preg_match('/^\d{10}$/', $phone);
+    }
 }

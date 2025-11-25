@@ -265,10 +265,12 @@ class EventsController extends Controller {
                     $error = 'El nombre del asistente es obligatorio para la emisión del boleto.';
                 }
                 
-                // Check if attendee is different from owner/representative
+                // Check if attendee is a guest (different from owner) - additional fields required
                 $attendeeName = strtolower(trim($registrationData['nombre_asistente']));
                 $ownerName = strtolower(trim($registrationData['nombre_empresario_representante']));
                 $isGuest = !empty($ownerName) && ($attendeeName !== $ownerName);
+                
+                // Note: Payment requirement logic is handled automatically in Event->registerAttendee()
                 
                 // If attendee is a guest, require additional fields
                 if ($isGuest) {
@@ -282,12 +284,12 @@ class EventsController extends Controller {
                 }
                 
                 // Validate phone (10 digits)
-                if (!empty($registrationData['guest_phone']) && !preg_match('/^\d{10}$/', $registrationData['guest_phone'])) {
+                if (!empty($registrationData['guest_phone']) && !$this->isValidPhone($registrationData['guest_phone'])) {
                     $error = 'El teléfono debe tener exactamente 10 dígitos.';
                 }
                 
                 // Validate WhatsApp if provided (10 digits)
-                if (!empty($registrationData['whatsapp_asistente']) && !preg_match('/^\d{10}$/', $registrationData['whatsapp_asistente'])) {
+                if (!empty($registrationData['whatsapp_asistente']) && !$this->isValidPhone($registrationData['whatsapp_asistente'])) {
                     $error = 'El WhatsApp del asistente debe tener exactamente 10 dígitos.';
                 }
                 
