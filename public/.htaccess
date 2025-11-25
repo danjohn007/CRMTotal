@@ -1,4 +1,5 @@
 RewriteEngine On
+RewriteBase /public/
 
 # Handle Authorization Header
 RewriteCond %{HTTP:Authorization} .
