@@ -240,18 +240,58 @@ class EventsController extends Controller {
             } else {
                 $tickets = max(1, min(5, (int) $this->getInput('tickets', 1)));
                 
+                // Get RFC and validate it (now required)
+                $rfc = strtoupper(trim($this->sanitize($this->getInput('rfc', ''))));
+                $rfcValidation = $this->eventModel->validateRFC($rfc);
+                
+                if (!$rfcValidation['valid']) {
+                    $error = $rfcValidation['error'];
+                }
+                
                 $registrationData = [
                     'guest_name' => $this->sanitize($this->getInput('name', '')),
                     'guest_email' => $this->sanitize($this->getInput('email', '')),
                     'guest_phone' => $this->sanitize($this->getInput('phone', '')),
-                    'guest_rfc' => $this->sanitize($this->getInput('rfc', '')),
+                    'guest_rfc' => $rfc,
+                    'razon_social' => $this->sanitize($this->getInput('razon_social', '')),
+                    'nombre_empresario_representante' => $this->sanitize($this->getInput('nombre_empresario_representante', '')),
+                    'nombre_asistente' => $this->sanitize($this->getInput('nombre_asistente', '')),
                     'tickets' => $tickets,
                     'payment_status' => $event['is_paid'] ? 'pending' : 'free'
                 ];
                 
+                // Validate required fields
+                if (empty($registrationData['nombre_asistente'])) {
+                    $error = 'El nombre del asistente es obligatorio para la emisión del boleto.';
+                }
+                
+                // Check if attendee is a guest (different from owner) - additional fields required
+                $attendeeName = strtolower(trim($registrationData['nombre_asistente']));
+                $ownerName = strtolower(trim($registrationData['nombre_empresario_representante']));
+                $isGuest = !empty($ownerName) && ($attendeeName !== $ownerName);
+                
+                // Note: The payment requirement flag (requiere_pago) is automatically calculated
+                // in Event->registerAttendee() by comparing nombre_asistente with nombre_empresario_representante
+                
+                // If attendee is a guest, require additional categorization fields
+                if ($isGuest) {
+                    $registrationData['categoria_asistente'] = $this->sanitize($this->getInput('categoria_asistente', ''));
+                    $registrationData['email_asistente'] = $this->sanitize($this->getInput('email_asistente', ''));
+                    $registrationData['whatsapp_asistente'] = $this->sanitize($this->getInput('whatsapp_asistente', ''));
+                    
+                    if (empty($registrationData['categoria_asistente'])) {
+                        $error = 'Debe seleccionar la categoría del asistente.';
+                    }
+                }
+                
                 // Validate phone (10 digits)
-                if (!empty($registrationData['guest_phone']) && !preg_match('/^\d{10}$/', $registrationData['guest_phone'])) {
+                if (!empty($registrationData['guest_phone']) && !$this->isValidPhone($registrationData['guest_phone'])) {
                     $error = 'El teléfono debe tener exactamente 10 dígitos.';
+                }
+                
+                // Validate WhatsApp if provided (10 digits)
+                if (!empty($registrationData['whatsapp_asistente']) && !$this->isValidPhone($registrationData['whatsapp_asistente'])) {
+                    $error = 'El WhatsApp del asistente debe tener exactamente 10 dígitos.';
                 }
                 
                 if (!$error) {

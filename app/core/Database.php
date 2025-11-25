@@ -9,8 +9,15 @@ class Database {
     
     private function __construct() {
         try {
+            // Increase max execution time for database operations
+            @set_time_limit(120);
+            
             $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
             $this->pdo = new PDO($dsn, DB_USER, DB_PASS, DB_OPTIONS);
+            
+            // Set session variables to optimize performance
+            $this->pdo->exec("SET SESSION wait_timeout=120");
+            $this->pdo->exec("SET SESSION interactive_timeout=120");
         } catch (PDOException $e) {
             throw new Exception("Database connection failed: " . $e->getMessage());
         }

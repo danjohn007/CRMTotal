@@ -59,11 +59,21 @@ class Event extends Model {
         // Generate unique registration code
         $registrationCode = $this->generateRegistrationCode();
         
+        // Determine if payment is required based on attendee vs owner comparison
+        $requiresPayment = false;
+        if (!empty($data['nombre_asistente']) && !empty($data['nombre_empresario_representante'])) {
+            // Compare normalized names (case-insensitive, trimmed)
+            $attendeeName = strtolower(trim($data['nombre_asistente']));
+            $ownerName = strtolower(trim($data['nombre_empresario_representante']));
+            $requiresPayment = ($attendeeName !== $ownerName);
+        }
+        
         return $this->db->insert('event_registrations', array_merge(
             $data,
             [
                 'event_id' => $eventId,
-                'registration_code' => $registrationCode
+                'registration_code' => $registrationCode,
+                'requiere_pago' => $requiresPayment ? 1 : 0
             ]
         ));
     }
@@ -187,5 +197,38 @@ class Event extends Model {
             $data['notes'] = 'PayPal Order ID: ' . $safeReference;
         }
         return $this->db->update('event_registrations', $data, 'id = :id', ['id' => $registrationId]);
+    }
+    
+    /**
+     * Validate RFC format
+     * @param string $rfc RFC to validate
+     * @return array ['valid' => bool, 'type' => 'fisica'|'moral'|null, 'error' => string|null]
+     */
+    public function validateRFC(string $rfc): array {
+        $rfc = strtoupper(trim($rfc));
+        
+        if (empty($rfc)) {
+            return ['valid' => false, 'type' => null, 'error' => 'RFC es obligatorio'];
+        }
+        
+        $length = strlen($rfc);
+        
+        // Persona Física: 13 caracteres (e.g., FOBL910724G35)
+        // Persona Moral: 12 caracteres (e.g., SMM040902AD3)
+        if ($length === 13) {
+            // Validate Persona Física format: 4 letters + 6 digits + 3 alphanumeric
+            if (!preg_match('/^[A-Z]{4}[0-9]{6}[A-Z0-9]{3}$/', $rfc)) {
+                return ['valid' => false, 'type' => null, 'error' => 'Formato inválido para RFC de Persona Física'];
+            }
+            return ['valid' => true, 'type' => 'fisica', 'error' => null];
+        } elseif ($length === 12) {
+            // Validate Persona Moral format: 3 letters + 6 digits + 3 alphanumeric
+            if (!preg_match('/^[A-Z]{3}[0-9]{6}[A-Z0-9]{3}$/', $rfc)) {
+                return ['valid' => false, 'type' => null, 'error' => 'Formato inválido para RFC de Persona Moral'];
+            }
+            return ['valid' => true, 'type' => 'moral', 'error' => null];
+        } else {
+            return ['valid' => false, 'type' => null, 'error' => 'RFC debe tener 12 caracteres (Persona Moral) o 13 caracteres (Persona Física)'];
+        }
     }
 }
