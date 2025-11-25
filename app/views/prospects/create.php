@@ -33,6 +33,7 @@
                 <div>
                     <label for="whatsapp" class="block text-sm font-medium text-gray-700">WhatsApp *</label>
                     <input type="text" name="whatsapp" id="whatsapp" required
+                           maxlength="10" pattern="[0-9]{10}" title="Ingrese exactamente 10 dígitos"
                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
                            placeholder="10 dígitos">
                 </div>
@@ -66,6 +67,8 @@
                 <div>
                     <label for="phone" class="block text-sm font-medium text-gray-700">Teléfono</label>
                     <input type="text" name="phone" id="phone"
+                           maxlength="10" pattern="[0-9]{10}" title="Ingrese exactamente 10 dígitos"
+                           placeholder="10 dígitos"
                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
                 </div>
                 <div>

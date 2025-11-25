@@ -74,8 +74,10 @@
                 </div>
                 
                 <div>
-                    <label for="whatsapp" class="block text-sm font-medium text-gray-700">WhatsApp Principal</label>
-                    <input type="text" id="whatsapp" name="whatsapp" 
+                    <label for="whatsapp" class="block text-sm font-medium text-gray-700">WhatsApp Principal *</label>
+                    <input type="text" id="whatsapp" name="whatsapp" required
+                           maxlength="10" pattern="[0-9]{10}" title="Ingrese exactamente 10 dígitos"
+                           placeholder="10 dígitos"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
                 
@@ -112,6 +114,8 @@
                 <div>
                     <label for="phone" class="block text-sm font-medium text-gray-700">Teléfono</label>
                     <input type="text" id="phone" name="phone" 
+                           maxlength="10" pattern="[0-9]{10}" title="Ingrese exactamente 10 dígitos"
+                           placeholder="10 dígitos"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
             </div>

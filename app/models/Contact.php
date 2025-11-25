@@ -99,20 +99,30 @@ class Contact extends Model {
         $term = '%' . $term . '%';
         
         // Base query - affiliates only
+        // Searches by: Name (business/commercial), RFC, Phone, WhatsApp, Email
         $sql = "SELECT c.id, c.business_name, c.commercial_name, c.industry,
-                       c.products_sells, c.city, c.phone, c.website, c.contact_type
+                       c.products_sells, c.city, c.phone, c.website, c.contact_type,
+                       c.rfc, c.whatsapp, c.corporate_email
                 FROM {$this->table} c 
                 WHERE c.contact_type = 'afiliado'
                 AND (c.business_name LIKE :term1 
                      OR c.commercial_name LIKE :term2 
-                     OR c.industry LIKE :term3
-                     OR JSON_SEARCH(c.products_sells, 'one', :term4) IS NOT NULL)";
+                     OR c.rfc LIKE :term3
+                     OR c.phone LIKE :term4
+                     OR c.whatsapp LIKE :term5
+                     OR c.corporate_email LIKE :term6
+                     OR c.industry LIKE :term7
+                     OR JSON_SEARCH(c.products_sells, 'one', :term8) IS NOT NULL)";
         
         $params = [
             'term1' => $term,
             'term2' => $term,
             'term3' => $term,
-            'term4' => $term
+            'term4' => $term,
+            'term5' => $term,
+            'term6' => $term,
+            'term7' => $term,
+            'term8' => $term
         ];
         
         $sql .= " ORDER BY c.business_name LIMIT 50";

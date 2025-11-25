@@ -58,13 +58,9 @@
                 <select id="category" name="category" required
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                     <option value="">Seleccionar...</option>
-                    <option value="membresia">Nueva Membresía</option>
-                    <option value="renovacion">Renovación</option>
-                    <option value="servicio">Servicio Adicional</option>
-                    <option value="evento">Evento</option>
-                    <option value="capacitacion">Capacitación</option>
-                    <option value="marketing">Marketing</option>
-                    <option value="otro">Otro</option>
+                    <?php foreach ($categories as $code => $name): ?>
+                    <option value="<?php echo htmlspecialchars($code); ?>"><?php echo htmlspecialchars($name); ?></option>
+                    <?php endforeach; ?>
                 </select>
             </div>
             
