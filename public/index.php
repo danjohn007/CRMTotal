@@ -102,11 +102,50 @@ $router->add('configuracion/pagos', ['controller' => 'config', 'action' => 'paym
 $router->add('configuracion/api', ['controller' => 'config', 'action' => 'api']);
 $router->add('configuracion/usuarios', ['controller' => 'config', 'action' => 'users']);
 
+// Profile Management
+$router->add('perfil', ['controller' => 'profile', 'action' => 'index']);
+$router->add('perfil/actualizar', ['controller' => 'profile', 'action' => 'update']);
+$router->add('perfil/password', ['controller' => 'profile', 'action' => 'changePassword']);
+
 // Users Management
 $router->add('usuarios', ['controller' => 'users', 'action' => 'index']);
 $router->add('usuarios/nuevo', ['controller' => 'users', 'action' => 'create']);
 $router->add('usuarios/{id}', ['controller' => 'users', 'action' => 'show']);
 $router->add('usuarios/{id}/editar', ['controller' => 'users', 'action' => 'edit']);
+
+// Memberships
+$router->add('membresias', ['controller' => 'memberships', 'action' => 'index']);
+$router->add('membresias/nuevo', ['controller' => 'memberships', 'action' => 'create']);
+$router->add('membresias/{id}', ['controller' => 'memberships', 'action' => 'show']);
+$router->add('membresias/{id}/editar', ['controller' => 'memberships', 'action' => 'edit']);
+
+// Financial Module
+$router->add('financiero', ['controller' => 'financial', 'action' => 'index']);
+$router->add('financiero/pagos', ['controller' => 'financial', 'action' => 'payments']);
+$router->add('financiero/facturas', ['controller' => 'financial', 'action' => 'invoices']);
+$router->add('financiero/reporte', ['controller' => 'financial', 'action' => 'report']);
+$router->add('financiero/registrar-pago', ['controller' => 'financial', 'action' => 'recordPayment']);
+$router->add('financiero/generar-factura', ['controller' => 'financial', 'action' => 'generateInvoice']);
+
+// Import Module
+$router->add('importar', ['controller' => 'import', 'action' => 'index']);
+$router->add('importar/procesar', ['controller' => 'import', 'action' => 'process']);
+$router->add('importar/plantilla', ['controller' => 'import', 'action' => 'template']);
+
+// Audit Module
+$router->add('auditoria', ['controller' => 'audit', 'action' => 'index']);
+$router->add('auditoria/buscar', ['controller' => 'audit', 'action' => 'search']);
+$router->add('auditoria/actividad', ['controller' => 'audit', 'action' => 'activity']);
+$router->add('auditoria/usuario/{id}', ['controller' => 'audit', 'action' => 'byUser']);
+$router->add('auditoria/tabla', ['controller' => 'audit', 'action' => 'byTable']);
+
+// Commercial Requirements
+$router->add('requerimientos', ['controller' => 'requirements', 'action' => 'index']);
+$router->add('requerimientos/nuevo', ['controller' => 'requirements', 'action' => 'create']);
+$router->add('requerimientos/mis-requerimientos', ['controller' => 'requirements', 'action' => 'myRequirements']);
+$router->add('requerimientos/actualizar-estado', ['controller' => 'requirements', 'action' => 'updateStatus']);
+$router->add('requerimientos/{id}', ['controller' => 'requirements', 'action' => 'show']);
+$router->add('requerimientos/{id}/editar', ['controller' => 'requirements', 'action' => 'edit']);
 
 // API Endpoints
 $router->add('api/prospectos', ['controller' => 'api', 'action' => 'prospects']);

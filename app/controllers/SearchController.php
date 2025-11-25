@@ -49,7 +49,7 @@ class SearchController extends Controller {
         $results = $this->contactModel->search($term, $searcherType);
         
         // Log the search
-        $this->searchLog->log($term, count($results), $searcherType, $contactId);
+        $this->searchLog->logSearch($term, count($results), $searcherType, $contactId);
         
         // If no results, create notification for affiliators
         if (empty($results)) {
