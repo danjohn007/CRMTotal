@@ -95,7 +95,7 @@
             <p class="text-sm text-gray-500 mb-4">RFC: <span id="invoiceRfc" class="font-medium"></span></p>
             
             <form method="POST" action="<?php echo BASE_URL; ?>/financiero/generar-factura">
-                <input type="hidden" name="csrf_token" value="<?php echo $this->csrfToken(); ?>">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
                 <input type="hidden" name="affiliation_id" id="invoiceAffiliationId">
                 
                 <div>

@@ -44,11 +44,11 @@
                         <div class="flex text-sm text-gray-600">
                             <label for="excel_file" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none">
                                 <span>Selecciona un archivo</span>
-                                <input id="excel_file" name="excel_file" type="file" accept=".csv,.xls,.xlsx" required class="sr-only">
+                                <input id="excel_file" name="excel_file" type="file" accept=".csv" required class="sr-only">
                             </label>
                             <p class="pl-1">o arrastra y suelta</p>
                         </div>
-                        <p class="text-xs text-gray-500">CSV, XLS, XLSX hasta 5MB</p>
+                        <p class="text-xs text-gray-500">Archivo CSV (separado por comas) hasta 5MB</p>
                     </div>
                 </div>
                 <p id="file-name" class="mt-2 text-sm text-gray-600"></p>

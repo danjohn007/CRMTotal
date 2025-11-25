@@ -44,21 +44,14 @@ class ImportController extends Controller {
         $file = $_FILES['excel_file'];
         $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         
-        if (!in_array($extension, ['csv', 'xls', 'xlsx'])) {
-            $_SESSION['flash_error'] = 'Formato de archivo no válido. Use CSV, XLS o XLSX.';
+        if (!in_array($extension, ['csv'])) {
+            $_SESSION['flash_error'] = 'Solo archivos CSV están soportados. Para XLS/XLSX, exporte primero a CSV desde Excel.';
             $this->redirect('importar');
         }
         
         try {
-            // Process file
-            if ($extension === 'csv') {
-                $data = $this->parseCSV($file['tmp_name']);
-            } else {
-                // For XLS/XLSX, we'll convert to CSV first (simple approach)
-                // In production, you'd use a library like PhpSpreadsheet
-                $_SESSION['flash_error'] = 'Para archivos XLS/XLSX, por favor convierta a CSV primero.';
-                $this->redirect('importar');
-            }
+            // Process CSV file
+            $data = $this->parseCSV($file['tmp_name']);
             
             if (empty($data)) {
                 $_SESSION['flash_error'] = 'El archivo está vacío o no tiene el formato correcto.';

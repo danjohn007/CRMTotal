@@ -62,22 +62,29 @@ ALTER TABLE `users`
 ADD COLUMN IF NOT EXISTS `avatar` VARCHAR(255) AFTER `whatsapp`;
 
 -- =============================================
--- INSERT SAMPLE COMMERCIAL REQUIREMENTS
+-- INSERT SAMPLE COMMERCIAL REQUIREMENTS (Optional - only if users exist)
 -- =============================================
 
-INSERT INTO `commercial_requirements` (`title`, `description`, `contact_id`, `user_id`, `priority`, `status`, `due_date`, `budget`, `category`) VALUES
-('Renovación membresía PYME - Comercializadora del Centro', 'Seguimiento a renovación de membresía próxima a vencer', 1, 2, 'high', 'pending', DATE_ADD(CURDATE(), INTERVAL 15 DAY), 5000.00, 'renovacion'),
-('Interés en capacitación - TecQro', 'El cliente mostró interés en curso de marketing digital', 2, 2, 'medium', 'in_progress', DATE_ADD(CURDATE(), INTERVAL 30 DAY), 3500.00, 'capacitacion'),
-('Propuesta patrocinio evento', 'Propuesta de patrocinio para evento de networking', 5, 3, 'high', 'pending', DATE_ADD(CURDATE(), INTERVAL 7 DAY), 25000.00, 'evento'),
-('Servicio de gestoría - Nuevo prospecto', 'Prospecto interesado en servicio de gestoría', NULL, 2, 'low', 'pending', DATE_ADD(CURDATE(), INTERVAL 45 DAY), 4000.00, 'servicio');
+-- Only insert sample data if the required users and contacts exist
+-- This prevents foreign key constraint violations
+INSERT INTO `commercial_requirements` (`title`, `description`, `contact_id`, `user_id`, `priority`, `status`, `due_date`, `budget`, `category`)
+SELECT 'Renovación membresía PYME - Comercializadora del Centro', 'Seguimiento a renovación de membresía próxima a vencer', 
+       c.id, u.id, 'high', 'pending', DATE_ADD(CURDATE(), INTERVAL 15 DAY), 5000.00, 'renovacion'
+FROM users u, contacts c WHERE u.id = 2 AND c.id = 1 LIMIT 1;
+
+INSERT INTO `commercial_requirements` (`title`, `description`, `contact_id`, `user_id`, `priority`, `status`, `due_date`, `budget`, `category`)
+SELECT 'Servicio de gestoría - Nuevo prospecto', 'Prospecto interesado en servicio de gestoría', 
+       NULL, u.id, 'low', 'pending', DATE_ADD(CURDATE(), INTERVAL 45 DAY), 4000.00, 'servicio'
+FROM users u WHERE u.id = 2 LIMIT 1;
 
 -- =============================================
 -- ADD AUDIT LOG ENTRIES FOR NEW ACTIONS
 -- =============================================
 
--- Insert initial audit log entry for system update
-INSERT INTO `audit_log` (`user_id`, `action`, `table_name`, `record_id`, `new_values`, `ip_address`, `created_at`) VALUES
-(1, 'system_update', NULL, NULL, '{"version": "1.1.0", "modules_added": ["memberships", "financial", "import", "audit", "requirements"]}', '127.0.0.1', NOW());
+-- Insert initial audit log entry for system update (only if admin user exists)
+INSERT INTO `audit_log` (`user_id`, `action`, `table_name`, `record_id`, `new_values`, `ip_address`, `created_at`)
+SELECT u.id, 'system_update', NULL, NULL, '{"version": "1.1.0", "modules_added": ["memberships", "financial", "import", "audit", "requirements"]}', '127.0.0.1', NOW()
+FROM users u WHERE u.id = 1 LIMIT 1;
 
 -- =============================================
 -- ADD NEW CONFIG ENTRIES

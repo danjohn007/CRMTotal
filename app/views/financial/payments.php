@@ -93,7 +93,7 @@
             <p class="text-sm text-gray-500 mb-4">Monto: <span id="modalAmount" class="font-medium"></span></p>
             
             <form method="POST" action="<?php echo BASE_URL; ?>/financiero/registrar-pago">
-                <input type="hidden" name="csrf_token" value="<?php echo $this->csrfToken(); ?>">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
                 <input type="hidden" name="affiliation_id" id="modalAffiliationId">
                 
                 <div class="space-y-4">
