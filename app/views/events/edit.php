@@ -1,13 +1,13 @@
-<!-- Event Create View -->
+<!-- Event Edit View -->
 <div class="space-y-6">
     <!-- Header -->
     <div class="flex items-center justify-between">
         <div>
-            <h2 class="text-2xl font-bold text-gray-900">Nuevo Evento</h2>
-            <p class="mt-1 text-sm text-gray-500">Crea un nuevo evento interno, externo o de terceros</p>
+            <h2 class="text-2xl font-bold text-gray-900">Editar Evento</h2>
+            <p class="mt-1 text-sm text-gray-500">Modifica la información del evento</p>
         </div>
-        <a href="<?php echo BASE_URL; ?>/eventos" class="text-blue-600 hover:text-blue-800">
-            ← Volver a Eventos
+        <a href="<?php echo BASE_URL; ?>/eventos/<?php echo $event['id']; ?>" class="text-blue-600 hover:text-blue-800">
+            ← Volver al Evento
         </a>
     </div>
     
@@ -17,7 +17,7 @@
     </div>
     <?php endif; ?>
     
-    <!-- Create Form -->
+    <!-- Edit Form -->
     <form method="POST" enctype="multipart/form-data" class="bg-white rounded-lg shadow-sm p-6">
         <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
         
@@ -28,13 +28,14 @@
                 <div class="md:col-span-2">
                     <label for="title" class="block text-sm font-medium text-gray-700">Título del Evento *</label>
                     <input type="text" id="title" name="title" required
+                           value="<?php echo htmlspecialchars($event['title']); ?>"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
                 
                 <div class="md:col-span-2">
                     <label for="description" class="block text-sm font-medium text-gray-700">Descripción</label>
                     <textarea id="description" name="description" rows="4"
-                              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"></textarea>
+                              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"><?php echo htmlspecialchars($event['description'] ?? ''); ?></textarea>
                 </div>
                 
                 <div>
@@ -42,38 +43,36 @@
                     <select id="event_type" name="event_type" required
                             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                         <?php foreach ($eventTypes as $value => $label): ?>
-                        <option value="<?php echo $value; ?>"><?php echo htmlspecialchars($label); ?></option>
+                        <option value="<?php echo $value; ?>" <?php echo $event['event_type'] === $value ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($label); ?>
+                        </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
                 
                 <div>
                     <label for="category" class="block text-sm font-medium text-gray-700">Categoría</label>
-                    <select id="category" name="category"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
-                        <option value="">Seleccionar categoría...</option>
-                        <?php foreach ($eventCategories as $cat): ?>
-                        <option value="<?php echo htmlspecialchars($cat['name']); ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
-                        <?php endforeach; ?>
-                        <option value="__other__">Otra (especificar)</option>
-                    </select>
-                    <input type="text" id="category_other" name="category_other" 
-                           placeholder="Especifica la categoría"
-                           class="mt-2 hidden block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    <input type="text" id="category" name="category" 
+                           value="<?php echo htmlspecialchars($event['category'] ?? ''); ?>"
+                           placeholder="Ej: Networking, Capacitación, Conferencia"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
                 
                 <div>
                     <label for="status" class="block text-sm font-medium text-gray-700">Estado</label>
                     <select id="status" name="status"
                             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
-                        <option value="draft">Borrador</option>
-                        <option value="published">Publicado</option>
+                        <option value="draft" <?php echo $event['status'] === 'draft' ? 'selected' : ''; ?>>Borrador</option>
+                        <option value="published" <?php echo $event['status'] === 'published' ? 'selected' : ''; ?>>Publicado</option>
+                        <option value="cancelled" <?php echo $event['status'] === 'cancelled' ? 'selected' : ''; ?>>Cancelado</option>
+                        <option value="completed" <?php echo $event['status'] === 'completed' ? 'selected' : ''; ?>>Completado</option>
                     </select>
                 </div>
                 
                 <div>
                     <label for="max_capacity" class="block text-sm font-medium text-gray-700">Capacidad Máxima</label>
                     <input type="number" id="max_capacity" name="max_capacity" min="0"
+                           value="<?php echo $event['max_capacity']; ?>"
                            placeholder="0 = Sin límite"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
@@ -83,13 +82,20 @@
         <!-- Image Upload -->
         <div class="mb-8">
             <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Imagen del Evento</h3>
-            <div class="grid grid-cols-1 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                     <label for="image" class="block text-sm font-medium text-gray-700">Adjuntar Imagen</label>
                     <input type="file" id="image" name="image" accept="image/*"
                            class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
                     <p class="mt-1 text-xs text-gray-500">Formatos permitidos: JPG, PNG, GIF. Tamaño máximo: 5MB</p>
                 </div>
+                <?php if (!empty($event['image'])): ?>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Imagen Actual</label>
+                    <img src="<?php echo BASE_URL; ?>/uploads/events/<?php echo htmlspecialchars($event['image']); ?>" 
+                         alt="Imagen actual" class="h-32 w-auto rounded-lg shadow-sm">
+                </div>
+                <?php endif; ?>
             </div>
         </div>
         
@@ -98,18 +104,17 @@
             <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">URL Pública</h3>
             <div class="grid grid-cols-1 gap-6">
                 <div>
-                    <label for="registration_url" class="block text-sm font-medium text-gray-700">URL Amigable (opcional)</label>
+                    <label for="registration_url" class="block text-sm font-medium text-gray-700">URL Amigable</label>
                     <div class="mt-1 flex rounded-md shadow-sm">
                         <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
                             <?php echo BASE_URL; ?>/evento/
                         </span>
                         <input type="text" id="registration_url" name="registration_url"
+                               value="<?php echo htmlspecialchars($event['registration_url'] ?? ''); ?>"
                                pattern="[a-z0-9\-]+"
-                               placeholder="mi-evento-2025"
                                class="flex-1 block w-full rounded-none rounded-r-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 p-2 border">
                     </div>
-                    <p class="mt-1 text-xs text-gray-500">Solo letras minúsculas, números y guiones. Se generará automáticamente si se deja vacío.</p>
-                    <p id="url-validation-message" class="mt-1 text-xs hidden"></p>
+                    <p class="mt-1 text-xs text-gray-500">Solo letras minúsculas, números y guiones. Ejemplo: mi-evento-2025</p>
                 </div>
             </div>
         </div>
@@ -121,12 +126,14 @@
                 <div>
                     <label for="start_date" class="block text-sm font-medium text-gray-700">Fecha y Hora de Inicio *</label>
                     <input type="datetime-local" id="start_date" name="start_date" required
+                           value="<?php echo date('Y-m-d\TH:i', strtotime($event['start_date'])); ?>"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
                 
                 <div>
                     <label for="end_date" class="block text-sm font-medium text-gray-700">Fecha y Hora de Fin *</label>
                     <input type="datetime-local" id="end_date" name="end_date" required
+                           value="<?php echo date('Y-m-d\TH:i', strtotime($event['end_date'])); ?>"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
             </div>
@@ -139,34 +146,39 @@
                 <div class="md:col-span-2">
                     <label class="flex items-center">
                         <input type="checkbox" id="is_online" name="is_online" value="1"
+                               <?php echo $event['is_online'] ? 'checked' : ''; ?>
                                class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                         <span class="ml-2 text-sm text-gray-700">Evento en línea</span>
                     </label>
                 </div>
                 
-                <div id="physical-location">
+                <div id="physical-location" class="<?php echo $event['is_online'] ? 'hidden' : ''; ?>">
                     <label for="location" class="block text-sm font-medium text-gray-700">Lugar</label>
                     <input type="text" id="location" name="location" 
+                           value="<?php echo htmlspecialchars($event['location'] ?? ''); ?>"
                            placeholder="Ej: Salón Principal CCQ"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
                 
-                <div id="physical-address">
+                <div id="physical-address" class="<?php echo $event['is_online'] ? 'hidden' : ''; ?>">
                     <label for="address" class="block text-sm font-medium text-gray-700">Dirección</label>
                     <input type="text" id="address" name="address"
+                           value="<?php echo htmlspecialchars($event['address'] ?? ''); ?>"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
                 
-                <div id="online-url" class="hidden md:col-span-2">
+                <div id="online-url" class="<?php echo $event['is_online'] ? '' : 'hidden'; ?> md:col-span-2">
                     <label for="online_url" class="block text-sm font-medium text-gray-700">URL del Evento Online</label>
                     <input type="url" id="online_url" name="online_url" 
+                           value="<?php echo htmlspecialchars($event['online_url'] ?? ''); ?>"
                            placeholder="https://zoom.us/..."
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
                 
-                <div>
+                <div class="<?php echo $event['is_online'] ? 'hidden' : ''; ?>">
                     <label for="google_maps_url" class="block text-sm font-medium text-gray-700">URL Google Maps</label>
                     <input type="url" id="google_maps_url" name="google_maps_url"
+                           value="<?php echo htmlspecialchars($event['google_maps_url'] ?? ''); ?>"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
             </div>
@@ -179,20 +191,23 @@
                 <div>
                     <label class="flex items-center">
                         <input type="checkbox" id="is_paid" name="is_paid" value="1"
+                               <?php echo $event['is_paid'] ? 'checked' : ''; ?>
                                class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                         <span class="ml-2 text-sm text-gray-700">Evento de pago</span>
                     </label>
                 </div>
                 
-                <div id="price-field" class="hidden">
+                <div id="price-field" class="<?php echo $event['is_paid'] ? '' : 'hidden'; ?>">
                     <label for="price" class="block text-sm font-medium text-gray-700">Precio General</label>
                     <input type="number" id="price" name="price" min="0" step="0.01"
+                           value="<?php echo $event['price']; ?>"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
                 
-                <div id="member-price-field" class="hidden">
+                <div id="member-price-field" class="<?php echo $event['is_paid'] ? '' : 'hidden'; ?>">
                     <label for="member_price" class="block text-sm font-medium text-gray-700">Precio Afiliados</label>
                     <input type="number" id="member_price" name="member_price" min="0" step="0.01"
+                           value="<?php echo $event['member_price']; ?>"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
             </div>
@@ -201,10 +216,12 @@
         <!-- Target Audiences -->
         <div class="mb-8">
             <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Público Objetivo</h3>
+            <?php $selectedAudiences = json_decode($event['target_audiences'] ?? '[]', true) ?: []; ?>
             <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <?php foreach ($audiences as $value => $label): ?>
                 <label class="flex items-center">
                     <input type="checkbox" name="target_audiences[]" value="<?php echo $value; ?>"
+                           <?php echo in_array($value, $selectedAudiences) ? 'checked' : ''; ?>
                            class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                     <span class="ml-2 text-sm text-gray-700"><?php echo htmlspecialchars($label); ?></span>
                 </label>
@@ -214,12 +231,12 @@
         
         <!-- Submit -->
         <div class="flex justify-end space-x-3">
-            <a href="<?php echo BASE_URL; ?>/eventos" 
+            <a href="<?php echo BASE_URL; ?>/eventos/<?php echo $event['id']; ?>" 
                class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
                 Cancelar
             </a>
             <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                Crear Evento
+                Guardar Cambios
             </button>
         </div>
     </form>
@@ -229,65 +246,17 @@
 document.getElementById('is_online').addEventListener('change', function() {
     const physicalFields = ['physical-location', 'physical-address'];
     const onlineField = document.getElementById('online-url');
+    const mapsField = document.querySelector('[for="google_maps_url"]')?.parentElement;
     
     physicalFields.forEach(id => {
-        document.getElementById(id).classList.toggle('hidden', this.checked);
+        document.getElementById(id)?.classList.toggle('hidden', this.checked);
     });
     onlineField.classList.toggle('hidden', !this.checked);
+    if (mapsField) mapsField.classList.toggle('hidden', this.checked);
 });
 
 document.getElementById('is_paid').addEventListener('change', function() {
     document.getElementById('price-field').classList.toggle('hidden', !this.checked);
     document.getElementById('member-price-field').classList.toggle('hidden', !this.checked);
-});
-
-// Category dropdown - show text input if "Other" is selected
-document.getElementById('category').addEventListener('change', function() {
-    const otherInput = document.getElementById('category_other');
-    if (this.value === '__other__') {
-        otherInput.classList.remove('hidden');
-        otherInput.required = true;
-    } else {
-        otherInput.classList.add('hidden');
-        otherInput.required = false;
-        otherInput.value = '';
-    }
-});
-
-// URL validation
-let urlTimeout;
-document.getElementById('registration_url').addEventListener('input', function() {
-    const url = this.value.trim();
-    const messageEl = document.getElementById('url-validation-message');
-    
-    // Clear previous timeout
-    clearTimeout(urlTimeout);
-    
-    if (!url) {
-        messageEl.classList.add('hidden');
-        return;
-    }
-    
-    // Validate format
-    if (!/^[a-z0-9\-]+$/.test(url)) {
-        messageEl.textContent = '✗ Solo se permiten letras minúsculas, números y guiones.';
-        messageEl.className = 'mt-1 text-xs text-red-600';
-        return;
-    }
-    
-    // Check availability after 500ms
-    urlTimeout = setTimeout(function() {
-        fetch('<?php echo BASE_URL; ?>/api/eventos/verificar-url?url=' + encodeURIComponent(url))
-            .then(response => response.json())
-            .then(data => {
-                if (data.available) {
-                    messageEl.textContent = '✓ URL disponible';
-                    messageEl.className = 'mt-1 text-xs text-green-600';
-                } else {
-                    messageEl.textContent = '✗ Esta URL ya está en uso. Por favor, elige otra.';
-                    messageEl.className = 'mt-1 text-xs text-red-600';
-                }
-            });
-    }, 500);
 });
 </script>

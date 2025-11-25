@@ -6,7 +6,7 @@ class User extends Model {
     protected string $table = 'users';
     protected array $fillable = [
         'role_id', 'email', 'password', 'name', 'phone', 
-        'whatsapp', 'avatar', 'is_active', 'reset_token', 'reset_token_expires'
+        'whatsapp', 'address', 'avatar', 'is_active', 'reset_token', 'reset_token_expires'
     ];
     
     public function findByEmail(string $email): ?array {

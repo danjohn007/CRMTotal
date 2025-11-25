@@ -119,4 +119,81 @@ class ApiController extends Controller {
             'total' => count($results)
         ]);
     }
+    
+    public function searchCompany(): void {
+        // Public API - search company by WhatsApp or RFC
+        $identifier = $this->sanitize($this->getInput('q', ''));
+        
+        if (strlen($identifier) < 3) {
+            $this->json([
+                'success' => false,
+                'message' => 'Identifier too short',
+                'company' => null
+            ]);
+            return;
+        }
+        
+        $contactModel = new Contact();
+        $company = $contactModel->identify($identifier);
+        
+        if ($company) {
+            // Return only safe fields for public access
+            $this->json([
+                'success' => true,
+                'company' => [
+                    'id' => $company['id'],
+                    'business_name' => $company['business_name'],
+                    'commercial_name' => $company['commercial_name'],
+                    'owner_name' => $company['owner_name'],
+                    'corporate_email' => $company['corporate_email'],
+                    'phone' => $company['phone'],
+                    'whatsapp' => $company['whatsapp'],
+                    'rfc' => $company['rfc']
+                ]
+            ]);
+        } else {
+            $this->json([
+                'success' => false,
+                'company' => null
+            ]);
+        }
+    }
+    
+    public function verifyEventUrl(): void {
+        // Check if event URL is available
+        $url = $this->sanitize($this->getInput('url', ''));
+        $excludeId = (int) $this->getInput('exclude_id', 0);
+        
+        if (empty($url)) {
+            $this->json(['available' => false]);
+            return;
+        }
+        
+        $eventModel = new Event();
+        $existing = $eventModel->findByRegistrationUrl($url);
+        
+        // URL is available if not found or if it belongs to the current event being edited
+        $available = !$existing || ($excludeId > 0 && $existing['id'] == $excludeId);
+        
+        $this->json(['available' => $available]);
+    }
+    
+    public function confirmEventPayment(): void {
+        // Receive payment confirmation from PayPal
+        $input = json_decode(file_get_contents('php://input'), true);
+        
+        $registrationId = (int) ($input['registration_id'] ?? 0);
+        $orderId = $this->sanitize($input['order_id'] ?? '');
+        $payerEmail = $this->sanitize($input['payer_email'] ?? '');
+        
+        if (!$registrationId || !$orderId) {
+            $this->json(['success' => false, 'message' => 'Invalid data'], 400);
+            return;
+        }
+        
+        $eventModel = new Event();
+        $eventModel->updatePaymentStatus($registrationId, 'paid', $orderId);
+        
+        $this->json(['success' => true]);
+    }
 }
