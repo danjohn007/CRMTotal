@@ -382,6 +382,34 @@
             });
     }
     
+    // Shared RFC validation function - used by both real-time and submit validation
+    function performRFCValidation(rfc) {
+        const length = rfc.length;
+        let isValid = false;
+        let type = '';
+        let message = '';
+        
+        if (length === 13) {
+            // Persona Física: 4 letters + 6 digits + 3 alphanumeric
+            isValid = /^[A-Z]{4}[0-9]{6}[A-Z0-9]{3}$/.test(rfc);
+            type = 'Persona Física';
+            message = isValid 
+                ? '✓ RFC válido (Persona Física)' 
+                : '✗ Formato inválido. Debe ser: 4 letras + 6 dígitos + 3 caracteres';
+        } else if (length === 12) {
+            // Persona Moral: 3 letters + 6 digits + 3 alphanumeric
+            isValid = /^[A-Z]{3}[0-9]{6}[A-Z0-9]{3}$/.test(rfc);
+            type = 'Persona Moral';
+            message = isValid 
+                ? '✓ RFC válido (Persona Moral)' 
+                : '✗ Formato inválido. Debe ser: 3 letras + 6 dígitos + 3 caracteres';
+        } else {
+            message = '✗ RFC debe tener 12 caracteres (Persona Moral) o 13 (Persona Física)';
+        }
+        
+        return { isValid, type, message };
+    }
+    
     function validateRFC() {
         const rfcInput = document.getElementById('rfc');
         const feedback = document.getElementById('rfc-feedback');
@@ -394,32 +422,14 @@
             return;
         }
         
-        const length = rfc.length;
-        let isValid = false;
-        let message = '';
+        const result = performRFCValidation(rfc);
         
-        if (length === 13) {
-            // Persona Física: 4 letters + 6 digits + 3 alphanumeric
-            isValid = /^[A-Z]{4}[0-9]{6}[A-Z0-9]{3}$/.test(rfc);
-            message = isValid 
-                ? '✓ RFC válido (Persona Física)' 
-                : '✗ Formato inválido. Debe ser: 4 letras + 6 dígitos + 3 caracteres';
-        } else if (length === 12) {
-            // Persona Moral: 3 letters + 6 digits + 3 alphanumeric
-            isValid = /^[A-Z]{3}[0-9]{6}[A-Z0-9]{3}$/.test(rfc);
-            message = isValid 
-                ? '✓ RFC válido (Persona Moral)' 
-                : '✗ Formato inválido. Debe ser: 3 letras + 6 dígitos + 3 caracteres';
-        } else {
-            message = '✗ RFC debe tener 12 caracteres (Persona Moral) o 13 (Persona Física)';
-        }
-        
-        feedback.textContent = message;
-        feedback.className = 'text-xs mt-1 ' + (isValid ? 'text-green-600' : 'text-red-600');
+        feedback.textContent = result.message;
+        feedback.className = 'text-xs mt-1 ' + (result.isValid ? 'text-green-600' : 'text-red-600');
         feedback.classList.remove('hidden');
         
         rfcInput.classList.remove('border-red-500', 'border-green-500');
-        rfcInput.classList.add(isValid ? 'border-green-500' : 'border-red-500');
+        rfcInput.classList.add(result.isValid ? 'border-green-500' : 'border-red-500');
     }
     
     function checkAttendeeMatch() {
@@ -484,7 +494,7 @@
             return false;
         }
         
-        // Validate RFC using same logic as validateRFC() for consistency
+        // Validate RFC using shared validation function
         const rfcInput = document.getElementById('rfc');
         const rfc = rfcInput.value.toUpperCase().trim();
         
@@ -494,26 +504,10 @@
             return false;
         }
         
-        const length = rfc.length;
-        let isValid = false;
-        
-        if (length === 13) {
-            isValid = /^[A-Z]{4}[0-9]{6}[A-Z0-9]{3}$/.test(rfc);
-            if (!isValid) {
-                e.preventDefault();
-                alert('RFC de Persona Física inválido. Formato: 4 letras + 6 dígitos + 3 caracteres');
-                return false;
-            }
-        } else if (length === 12) {
-            isValid = /^[A-Z]{3}[0-9]{6}[A-Z0-9]{3}$/.test(rfc);
-            if (!isValid) {
-                e.preventDefault();
-                alert('RFC de Persona Moral inválido. Formato: 3 letras + 6 dígitos + 3 caracteres');
-                return false;
-            }
-        } else {
+        const rfcResult = performRFCValidation(rfc);
+        if (!rfcResult.isValid) {
             e.preventDefault();
-            alert('El RFC debe tener 12 caracteres (Persona Moral) o 13 caracteres (Persona Física).');
+            alert(rfcResult.message.replace(/✗\s*/, ''));
             return false;
         }
         

@@ -270,9 +270,10 @@ class EventsController extends Controller {
                 $ownerName = strtolower(trim($registrationData['nombre_empresario_representante']));
                 $isGuest = !empty($ownerName) && ($attendeeName !== $ownerName);
                 
-                // Note: Payment requirement logic is handled automatically in Event->registerAttendee()
+                // Note: The payment requirement flag (requiere_pago) is automatically calculated
+                // in Event->registerAttendee() by comparing nombre_asistente with nombre_empresario_representante
                 
-                // If attendee is a guest, require additional fields
+                // If attendee is a guest, require additional categorization fields
                 if ($isGuest) {
                     $registrationData['categoria_asistente'] = $this->sanitize($this->getInput('categoria_asistente', ''));
                     $registrationData['email_asistente'] = $this->sanitize($this->getInput('email_asistente', ''));
