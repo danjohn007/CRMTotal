@@ -194,6 +194,106 @@ class ApiController extends Controller {
         $eventModel = new Event();
         $eventModel->updatePaymentStatus($registrationId, 'paid', $orderId);
         
+        // Get registration and event details
+        $registration = $this->db->queryOne(
+            "SELECT er.*, e.title, e.start_date, e.location, e.is_online 
+             FROM event_registrations er 
+             JOIN events e ON er.event_id = e.id 
+             WHERE er.id = :id",
+            ['id' => $registrationId]
+        );
+        
+        if ($registration) {
+            // Generate and send QR code after payment confirmation
+            $this->generateAndSendQR($registrationId, [
+                'title' => $registration['title'],
+                'start_date' => $registration['start_date'],
+                'location' => $registration['location'],
+                'is_online' => $registration['is_online']
+            ], [
+                'guest_name' => $registration['guest_name'],
+                'guest_email' => $registration['guest_email'],
+                'tickets' => $registration['tickets']
+            ]);
+        }
+        
         $this->json(['success' => true]);
+    }
+    
+    private function generateAndSendQR(int $registrationId, array $event, array $registrationData): void {
+        try {
+            $configModel = new Config();
+            
+            // Get registration code
+            $registration = $this->db->queryOne(
+                "SELECT registration_code FROM event_registrations WHERE id = :id", 
+                ['id' => $registrationId]
+            );
+            
+            if (!$registration) {
+                return;
+            }
+            
+            $registrationCode = $registration['registration_code'];
+            
+            // Generate QR code using Google Charts API
+            $qrData = BASE_URL . '/evento/verificar/' . $registrationCode;
+            $qrImageUrl = "https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=" . urlencode($qrData);
+            
+            // Download QR code image
+            $qrDir = PUBLIC_PATH . '/uploads/qr/';
+            if (!is_dir($qrDir)) {
+                mkdir($qrDir, 0750, true);
+            }
+            
+            $qrFilename = 'qr_' . $registrationCode . '.png';
+            $qrPath = $qrDir . $qrFilename;
+            
+            // Download and save QR code
+            $qrContent = @file_get_contents($qrImageUrl);
+            if ($qrContent) {
+                file_put_contents($qrPath, $qrContent);
+                
+                // Update database with QR filename
+                $this->db->update('event_registrations', [
+                    'qr_code' => $qrFilename
+                ], 'id = :id', ['id' => $registrationId]);
+            }
+            
+            // Send QR code email
+            $to = $registrationData['guest_email'];
+            $subject = "Código QR de Acceso - " . $event['title'];
+            
+            $body = "Hola " . htmlspecialchars($registrationData['guest_name']) . ",\n\n";
+            $body .= "¡Tu pago ha sido confirmado!\n\n";
+            $body .= "Adjunto encontrarás tu código QR de acceso al evento:\n\n";
+            $body .= "📅 " . htmlspecialchars($event['title']) . "\n";
+            $body .= "📍 " . ($event['is_online'] ? 'Evento en línea' : htmlspecialchars($event['location'] ?? '')) . "\n";
+            $body .= "🕐 " . date('d/m/Y H:i', strtotime($event['start_date'])) . " hrs\n";
+            $body .= "🎫 Boletos: " . $registrationData['tickets'] . "\n\n";
+            $body .= "Presenta este código QR en el evento para registrar tu asistencia.\n\n";
+            $body .= "También puedes descargar tu QR desde:\n";
+            $body .= BASE_URL . '/uploads/qr/' . $qrFilename . "\n\n";
+            $body .= "Código de registro: " . $registrationCode . "\n\n";
+            $body .= "Te esperamos!\n\n";
+            $body .= "Cámara de Comercio de Querétaro\n";
+            $body .= BASE_URL;
+            
+            // Send email
+            $headers = "From: " . ($configModel->get('smtp_from_name', 'CRM CCQ')) . " <noreply@camaradecomercioqro.mx>\r\n";
+            $headers .= "Reply-To: " . ($configModel->get('contact_email', 'info@camaradecomercioqro.mx')) . "\r\n";
+            $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+            
+            mail($to, $subject, $body, $headers);
+            
+            // Update QR sent flag
+            $this->db->update('event_registrations', [
+                'qr_sent' => 1,
+                'qr_sent_at' => date('Y-m-d H:i:s')
+            ], 'id = :id', ['id' => $registrationId]);
+        } catch (Exception $e) {
+            // Log error but don't fail
+            error_log("Error generating/sending QR code: " . $e->getMessage());
+        }
     }
 }

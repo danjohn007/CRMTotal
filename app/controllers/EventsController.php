@@ -458,11 +458,18 @@ class EventsController extends Controller {
     
     private function sendConfirmationEmail(int $registrationId, array $event, array $registrationData): void {
         try {
-            // Get registration code
-            $registration = $this->eventModel->getRegistrationByCode(
-                $this->db->queryOne("SELECT registration_code FROM event_registrations WHERE id = :id", 
-                ['id' => $registrationId])['registration_code'] ?? ''
+            // Get registration code from database
+            $regCodeResult = $this->db->query(
+                "SELECT registration_code FROM event_registrations WHERE id = :id", 
+                ['id' => $registrationId]
             );
+            
+            if (empty($regCodeResult)) {
+                return;
+            }
+            
+            $registrationCode = $regCodeResult[0]['registration_code'];
+            $registration = $this->eventModel->getRegistrationByCode($registrationCode);
             
             if (!$registration) {
                 return;
@@ -510,17 +517,17 @@ class EventsController extends Controller {
     
     private function generateAndSendQR(int $registrationId, array $event, array $registrationData): void {
         try {
-            // Get registration code
-            $registration = $this->eventModel->getRegistrationByCode(
-                $this->db->queryOne("SELECT registration_code FROM event_registrations WHERE id = :id", 
-                ['id' => $registrationId])['registration_code'] ?? ''
+            // Get registration code from database
+            $regCodeResult = $this->db->query(
+                "SELECT registration_code FROM event_registrations WHERE id = :id", 
+                ['id' => $registrationId]
             );
             
-            if (!$registration) {
+            if (empty($regCodeResult)) {
                 return;
             }
             
-            $registrationCode = $registration['registration_code'];
+            $registrationCode = $regCodeResult[0]['registration_code'];
             
             // Generate QR code using a free API or library
             // For this implementation, we'll use the Google Charts API (deprecated but still works)
