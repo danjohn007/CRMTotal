@@ -201,7 +201,7 @@ class FinancialController extends Controller {
                         try {
                             // Check if category has transactions
                             $sql = "SELECT COUNT(*) as count FROM financial_transactions WHERE category_id = :id";
-                            $result = $this->db->fetchOne($sql, ['id' => $id]);
+                            $result = $this->db->fetch($sql, ['id' => $id]);
                             if ($result && $result['count'] > 0) {
                                 $error = 'No se puede eliminar una categoría con transacciones.';
                             } else {
@@ -454,7 +454,7 @@ class FinancialController extends Controller {
                     JOIN financial_categories c ON t.category_id = c.id
                     WHERE MONTH(t.transaction_date) = MONTH(CURDATE()) 
                     AND YEAR(t.transaction_date) = YEAR(CURDATE())";
-            $result = $this->db->fetchOne($sql);
+            $result = $this->db->fetch($sql);
             return $result ?: ['total_income' => 0, 'total_expense' => 0, 'total_count' => 0];
         } catch (Exception $e) {
             return ['total_income' => 0, 'total_expense' => 0, 'total_count' => 0];
@@ -470,7 +470,7 @@ class FinancialController extends Controller {
                     FROM financial_transactions t
                     JOIN financial_categories c ON t.category_id = c.id
                     WHERE t.transaction_date BETWEEN :date_from AND :date_to";
-            $result = $this->db->fetchOne($sql, ['date_from' => $dateFrom, 'date_to' => $dateTo]);
+            $result = $this->db->fetch($sql, ['date_from' => $dateFrom, 'date_to' => $dateTo]);
             return $result ?: ['total_income' => 0, 'total_expense' => 0, 'total_count' => 0];
         } catch (Exception $e) {
             return ['total_income' => 0, 'total_expense' => 0, 'total_count' => 0];
