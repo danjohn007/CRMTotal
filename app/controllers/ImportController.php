@@ -37,7 +37,18 @@ class ImportController extends Controller {
         }
         
         if (!isset($_FILES['excel_file']) || $_FILES['excel_file']['error'] !== UPLOAD_ERR_OK) {
-            $_SESSION['flash_error'] = 'Error al subir el archivo.';
+            $errorMessages = [
+                UPLOAD_ERR_INI_SIZE => 'El archivo excede el tamaño máximo permitido por el servidor.',
+                UPLOAD_ERR_FORM_SIZE => 'El archivo excede el tamaño máximo permitido por el formulario.',
+                UPLOAD_ERR_PARTIAL => 'El archivo solo se subió parcialmente.',
+                UPLOAD_ERR_NO_FILE => 'No se seleccionó ningún archivo.',
+                UPLOAD_ERR_NO_TMP_DIR => 'Falta la carpeta temporal del servidor.',
+                UPLOAD_ERR_CANT_WRITE => 'Error al escribir el archivo en el disco.',
+                UPLOAD_ERR_EXTENSION => 'Una extensión de PHP detuvo la subida del archivo.'
+            ];
+            $errorCode = $_FILES['excel_file']['error'] ?? UPLOAD_ERR_NO_FILE;
+            $errorMessage = $errorMessages[$errorCode] ?? 'Error al subir el archivo.';
+            $_SESSION['flash_error'] = $errorMessage;
             $this->redirect('importar');
         }
         
