@@ -18,9 +18,11 @@
         <!-- Event Header -->
         <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
             <?php if (!empty($event['image'])): ?>
-            <img src="<?php echo BASE_URL; ?>/uploads/events/<?php echo htmlspecialchars($event['image']); ?>" 
-                 alt="<?php echo htmlspecialchars($event['title']); ?>"
-                 class="w-full h-48 object-cover">
+            <div class="w-full aspect-square relative overflow-hidden">
+                <img src="<?php echo BASE_URL; ?>/uploads/events/<?php echo htmlspecialchars($event['image']); ?>" 
+                     alt="<?php echo htmlspecialchars($event['title']); ?>"
+                     class="absolute inset-0 w-full h-full object-cover">
+            </div>
             <?php endif; ?>
             <div class="p-6">
                 <div class="flex items-center space-x-2 mb-2">

@@ -211,6 +211,22 @@
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
             </div>
+            
+            <!-- Free access for affiliates -->
+            <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <label class="flex items-start">
+                    <input type="checkbox" id="free_for_affiliates" name="free_for_affiliates" value="1"
+                           <?php echo ($event['free_for_affiliates'] ?? 1) ? 'checked' : ''; ?>
+                           class="mt-1 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <div class="ml-3">
+                        <span class="text-sm font-medium text-gray-900">Acceso gratuito para afiliados vigentes</span>
+                        <p class="text-xs text-gray-600 mt-1">
+                            Los afiliados con membresía activa obtienen 1 acceso gratis automáticamente. 
+                            Desactiva esta opción si el evento no incluye esta cortesía.
+                        </p>
+                    </div>
+                </label>
+            </div>
         </div>
         
         <!-- Target Audiences -->
