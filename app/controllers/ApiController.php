@@ -237,6 +237,8 @@ class ApiController extends Controller {
             $registrationCode = $registration['registration_code'];
             
             // Generate QR code using Google Charts API
+            // NOTE: This API is deprecated. For production, migrate to endroid/qr-code
+            // TODO: Extract QR generation to a shared service class
             $qrData = BASE_URL . '/evento/verificar/' . $registrationCode;
             $qrImageUrl = "https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=" . urlencode($qrData);
             

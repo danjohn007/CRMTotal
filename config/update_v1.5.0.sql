@@ -60,10 +60,6 @@ WHERE `registration_code` IS NULL;
 -- UPDATE INDEXES FOR BETTER PERFORMANCE
 -- =============================================
 
--- Remove unique constraint on email if it exists (to allow multiple registrations)
--- Note: This may fail if the constraint doesn't exist, which is fine
--- ALTER TABLE `event_registrations` DROP INDEX `unique_email_event`;
-
 -- Add index for better search performance
 CREATE INDEX `idx_guest_email` ON `event_registrations` (`guest_email`);
 CREATE INDEX `idx_guest_rfc` ON `event_registrations` (`guest_rfc`);

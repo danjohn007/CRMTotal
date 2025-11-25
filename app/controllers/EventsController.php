@@ -262,42 +262,40 @@ class EventsController extends Controller {
                         $registrationData['payment_status'] = 'free';
                     }
                     
-                    // Allow multiple registrations from same email/RFC
-                    if (true) {
-                        try {
-                            $registrationId = $this->eventModel->registerAttendee($id, $registrationData);
-                            
-                            // Check if this email belongs to a contact - convert to prospect
-                            $contactModel = new Contact();
-                            $existingContact = $contactModel->findBy('corporate_email', $registrationData['guest_email']);
-                            
-                            if (!$existingContact && $registrationData['guest_rfc']) {
-                                // Create new prospect from registration
-                                $contactModel->create([
-                                    'rfc' => $registrationData['guest_rfc'],
-                                    'corporate_email' => $registrationData['guest_email'],
-                                    'phone' => $registrationData['guest_phone'],
-                                    'owner_name' => $registrationData['guest_name'],
-                                    'contact_type' => 'prospecto',
-                                    'source_channel' => $event['is_paid'] ? 'evento_pagado' : 'evento_gratuito',
-                                    'profile_completion' => 25,
-                                    'completion_stage' => 'A'
-                                ]);
-                            }
-                            
-                            // Send confirmation email
-                            $this->sendConfirmationEmail($registrationId, $event, $registrationData);
-                            
-                            // If payment is free, generate and send QR code immediately
-                            if ($registrationData['payment_status'] === 'free') {
-                                $this->generateAndSendQR($registrationId, $event, $registrationData);
-                                $success = '¡Registro exitoso! Te hemos enviado un correo con tu código QR de acceso.';
-                            } else {
-                                $success = '¡Registro exitoso! Te hemos enviado un correo de confirmación con el enlace de pago.';
-                            }
-                        } catch (Exception $e) {
-                            $error = 'Error en el registro: ' . $e->getMessage();
+                    // Multiple registrations are now allowed
+                    try {
+                        $registrationId = $this->eventModel->registerAttendee($id, $registrationData);
+                        
+                        // Check if this email belongs to a contact - convert to prospect
+                        $contactModel = new Contact();
+                        $existingContact = $contactModel->findBy('corporate_email', $registrationData['guest_email']);
+                        
+                        if (!$existingContact && $registrationData['guest_rfc']) {
+                            // Create new prospect from registration
+                            $contactModel->create([
+                                'rfc' => $registrationData['guest_rfc'],
+                                'corporate_email' => $registrationData['guest_email'],
+                                'phone' => $registrationData['guest_phone'],
+                                'owner_name' => $registrationData['guest_name'],
+                                'contact_type' => 'prospecto',
+                                'source_channel' => $event['is_paid'] ? 'evento_pagado' : 'evento_gratuito',
+                                'profile_completion' => 25,
+                                'completion_stage' => 'A'
+                            ]);
                         }
+                        
+                        // Send confirmation email
+                        $this->sendConfirmationEmail($registrationId, $event, $registrationData);
+                        
+                        // If payment is free, generate and send QR code immediately
+                        if ($registrationData['payment_status'] === 'free') {
+                            $this->generateAndSendQR($registrationId, $event, $registrationData);
+                            $success = '¡Registro exitoso! Te hemos enviado un correo con tu código QR de acceso.';
+                        } else {
+                            $success = '¡Registro exitoso! Te hemos enviado un correo de confirmación con el enlace de pago.';
+                        }
+                    } catch (Exception $e) {
+                        $error = 'Error en el registro: ' . $e->getMessage();
                     }
                 }
             }
@@ -529,9 +527,10 @@ class EventsController extends Controller {
             
             $registrationCode = $regCodeResult[0]['registration_code'];
             
-            // Generate QR code using a free API or library
-            // For this implementation, we'll use the Google Charts API (deprecated but still works)
-            // In production, consider using a PHP QR code library like endroid/qr-code
+            // Generate QR code using Google Charts API
+            // NOTE: This API is deprecated. For production, migrate to endroid/qr-code:
+            // composer require endroid/qr-code
+            // See: https://github.com/endroid/qr-code
             $qrData = BASE_URL . '/evento/verificar/' . $registrationCode;
             $qrImageUrl = "https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=" . urlencode($qrData);
             
