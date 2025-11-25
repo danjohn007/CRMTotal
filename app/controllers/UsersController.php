@@ -217,6 +217,13 @@ class UsersController extends Controller {
             return false;
         }
         
+        // Sanitize name for use in email body
+        $safeName = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+        
+        // Sanitize from name to prevent header injection
+        $safeFromName = preg_replace('/[\r\n]/', '', $fromName);
+        $safeFromName = preg_replace('/[^\p{L}\p{N}\s\-\_\.]/u', '', $safeFromName);
+        
         $subject = "Bienvenido al CRM CCQ - Credenciales de acceso";
         $body = "
         <html>
@@ -224,14 +231,14 @@ class UsersController extends Controller {
             <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
                 <h2 style='color: #1e40af;'>¡Bienvenido al CRM de la Cámara de Comercio de Querétaro!</h2>
                 
-                <p>Hola <strong>{$name}</strong>,</p>
+                <p>Hola <strong>{$safeName}</strong>,</p>
                 
                 <p>Tu cuenta ha sido creada exitosamente. A continuación, encontrarás tus credenciales de acceso:</p>
                 
                 <div style='background-color: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;'>
-                    <p><strong>URL de acceso:</strong> " . BASE_URL . "/login</p>
-                    <p><strong>Correo electrónico:</strong> {$email}</p>
-                    <p><strong>Contraseña temporal:</strong> {$password}</p>
+                    <p><strong>URL de acceso:</strong> " . htmlspecialchars(BASE_URL, ENT_QUOTES, 'UTF-8') . "/login</p>
+                    <p><strong>Correo electrónico:</strong> " . htmlspecialchars($email, ENT_QUOTES, 'UTF-8') . "</p>
+                    <p><strong>Contraseña temporal:</strong> " . htmlspecialchars($password, ENT_QUOTES, 'UTF-8') . "</p>
                 </div>
                 
                 <p style='color: #dc2626;'><strong>Importante:</strong> Por seguridad, te recomendamos cambiar tu contraseña después del primer inicio de sesión.</p>
@@ -250,12 +257,12 @@ class UsersController extends Controller {
         </html>
         ";
         
-        // Use PHP's mail function or a mail library
+        // Use PHP's mail function with sanitized headers
         $headers = [
             'MIME-Version: 1.0',
             'Content-type: text/html; charset=UTF-8',
-            'From: ' . $fromName . ' <' . $smtpUser . '>',
-            'Reply-To: ' . $smtpUser,
+            'From: ' . $safeFromName . ' <' . filter_var($smtpUser, FILTER_SANITIZE_EMAIL) . '>',
+            'Reply-To: ' . filter_var($smtpUser, FILTER_SANITIZE_EMAIL),
             'X-Mailer: PHP/' . phpversion()
         ];
         

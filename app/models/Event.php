@@ -129,7 +129,9 @@ class Event extends Model {
     public function updatePaymentStatus(int $registrationId, string $status, ?string $paymentReference = null): int {
         $data = ['payment_status' => $status];
         if ($paymentReference) {
-            $data['notes'] = 'PayPal Order ID: ' . $paymentReference;
+            // Sanitize payment reference - only allow alphanumeric, dashes and underscores
+            $safeReference = preg_replace('/[^a-zA-Z0-9\-\_]/', '', $paymentReference);
+            $data['notes'] = 'PayPal Order ID: ' . $safeReference;
         }
         return $this->db->update('event_registrations', $data, 'id = :id', ['id' => $registrationId]);
     }

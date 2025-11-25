@@ -293,8 +293,27 @@
 <script>
 function copyToClipboard() {
     const input = document.getElementById('registration-url');
+    const text = input.value;
+    
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+            alert('URL copiada al portapapeles');
+        }).catch(function(err) {
+            fallbackCopy(input);
+        });
+    } else {
+        fallbackCopy(input);
+    }
+}
+
+function fallbackCopy(input) {
     input.select();
-    document.execCommand('copy');
-    alert('URL copiada al portapapeles');
+    input.setSelectionRange(0, 99999);
+    try {
+        document.execCommand('copy');
+        alert('URL copiada al portapapeles');
+    } catch (err) {
+        alert('No se pudo copiar. Por favor, selecciona y copia manualmente.');
+    }
 }
 </script>

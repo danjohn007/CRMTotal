@@ -352,6 +352,7 @@ class EventsController extends Controller {
     
     private function handleImageUpload(array $file): array {
         $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
         $maxSize = 5 * 1024 * 1024; // 5MB
         
         if (!in_array($file['type'], $allowedTypes)) {
@@ -362,15 +363,30 @@ class EventsController extends Controller {
             return ['success' => false, 'error' => 'La imagen excede el tamaño máximo de 5MB.'];
         }
         
-        // Create upload directory if not exists
-        $uploadDir = PUBLIC_PATH . '/uploads/events/';
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
+        // Validate file extension from original filename
+        $originalExtension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!in_array($originalExtension, $allowedExtensions)) {
+            return ['success' => false, 'error' => 'Extensión de archivo no permitida.'];
         }
         
-        // Generate unique filename
-        $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
-        $filename = 'event_' . time() . '_' . bin2hex(random_bytes(8)) . '.' . $extension;
+        // Create upload directory if not exists with restrictive permissions
+        $uploadDir = PUBLIC_PATH . '/uploads/events/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0750, true);
+        }
+        
+        // Map MIME type to safe extension
+        $extensionMap = [
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/gif' => 'gif'
+        ];
+        
+        // Use extension based on detected MIME type, not user input
+        $safeExtension = $extensionMap[$file['type']] ?? 'jpg';
+        
+        // Generate unique filename with safe extension
+        $filename = 'event_' . time() . '_' . bin2hex(random_bytes(8)) . '.' . $safeExtension;
         $destination = $uploadDir . $filename;
         
         if (move_uploaded_file($file['tmp_name'], $destination)) {

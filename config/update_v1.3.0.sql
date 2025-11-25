@@ -42,7 +42,7 @@ INSERT INTO `event_type_catalog` (`code`, `name`, `description`) VALUES
 ('interno', 'Evento Interno CCQ', 'Eventos organizados internamente por la Cámara de Comercio'),
 ('externo', 'Evento Externo', 'Eventos externos donde participa la Cámara'),
 ('terceros', 'Evento de Terceros', 'Eventos organizados por terceros')
-ON DUPLICATE KEY UPDATE `name` = VALUES(`name`);
+ON DUPLICATE KEY UPDATE `name` = `name`;
 
 -- Insert default event categories
 INSERT INTO `event_categories` (`name`, `description`) VALUES
@@ -54,7 +54,7 @@ INSERT INTO `event_categories` (`name`, `description`) VALUES
 ('Exposición', 'Ferias y exposiciones comerciales'),
 ('Asamblea', 'Asambleas y reuniones institucionales'),
 ('Social', 'Eventos sociales y celebraciones')
-ON DUPLICATE KEY UPDATE `description` = VALUES(`description`);
+ON DUPLICATE KEY UPDATE `description` = `description`;
 
 -- =============================================
 -- EVENT REGISTRATIONS ENHANCEMENTS

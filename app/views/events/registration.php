@@ -91,44 +91,44 @@
                 </p>
             </div>
             <div id="paypal-button-container"></div>
-            <script>
-                paypal.Buttons({
-                    createOrder: function(data, actions) {
-                        return actions.order.create({
-                            purchase_units: [{
-                                description: '<?php echo addslashes($event['title']); ?>',
-                                amount: {
-                                    value: '<?php echo $event['price']; ?>',
-                                    currency_code: 'MXN'
-                                }
-                            }]
-                        });
-                    },
-                    onApprove: function(data, actions) {
-                        return actions.order.capture().then(function(details) {
-                            // Send payment confirmation to server
-                            fetch('<?php echo BASE_URL; ?>/api/eventos/confirmar-pago', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({
-                                    registration_id: <?php echo $registrationId; ?>,
-                                    order_id: data.orderID,
-                                    payer_email: details.payer.email_address
-                                })
-                            }).then(function(response) {
-                                alert('¡Pago completado exitosamente! Recibirás un correo de confirmación.');
-                                window.location.reload();
-                            });
-                        });
-                    },
-                    onError: function(err) {
-                        console.error(err);
-                        alert('Hubo un error al procesar el pago. Por favor, intenta de nuevo.');
-                    }
-                }).render('#paypal-button-container');
-            </script>
+    <script>
+        paypal.Buttons({
+            createOrder: function(data, actions) {
+                return actions.order.create({
+                    purchase_units: [{
+                        description: <?php echo json_encode($event['title'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>,
+                        amount: {
+                            value: <?php echo json_encode((string)$event['price']); ?>,
+                            currency_code: 'MXN'
+                        }
+                    }]
+                });
+            },
+            onApprove: function(data, actions) {
+                return actions.order.capture().then(function(details) {
+                    // Send payment confirmation to server
+                    fetch(<?php echo json_encode(BASE_URL . '/api/eventos/confirmar-pago'); ?>, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            registration_id: <?php echo (int)$registrationId; ?>,
+                            order_id: data.orderID,
+                            payer_email: details.payer.email_address
+                        })
+                    }).then(function(response) {
+                        alert('¡Pago completado exitosamente! Recibirás un correo de confirmación.');
+                        window.location.reload();
+                    });
+                });
+            },
+            onError: function(err) {
+                console.error(err);
+                alert('Hubo un error al procesar el pago. Por favor, intenta de nuevo.');
+            }
+        }).render('#paypal-button-container');
+    </script>
         </div>
         <?php endif; ?>
         <?php else: ?>
