@@ -71,7 +71,7 @@
                 <div class="flex items-center space-x-3">
                     <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
                         <span class="text-primary-700 font-semibold">
-                            <?php echo substr($_SESSION['user_name'] ?? 'U', 0, 1); ?>
+                            <?php echo mb_substr($_SESSION['user_name'] ?? 'U', 0, 1, 'UTF-8'); ?>
                         </span>
                     </div>
                     <div>

@@ -16,6 +16,9 @@ class Contact extends Model {
         'assigned_affiliate_id', 'source_channel', 'notes', 'is_validated', 'validated_by'
     ];
     
+    // Threshold for complete profile (65% completion is considered full)
+    private const FULL_PROFILE_THRESHOLD = 65;
+    
     public function findByRfc(string $rfc): ?array {
         return $this->findBy('rfc', $rfc);
     }
@@ -143,7 +146,9 @@ class Contact extends Model {
         if (!empty($contact['google_maps_url'])) $completion += 5;
         
         // Bonus for full profile
-        if ($completion >= 65) $completion = 100;
+        if ($completion >= self::FULL_PROFILE_THRESHOLD) {
+            $completion = 100;
+        }
         
         return min(100, $completion);
     }
