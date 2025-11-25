@@ -74,13 +74,23 @@
             </div>
         </div>
         
-        <!-- Test Email Button -->
+        <!-- Test Email Section -->
         <div class="mt-6 p-4 bg-gray-50 rounded-lg">
             <h3 class="text-sm font-medium text-gray-700 mb-2">Probar configuración</h3>
             <p class="text-xs text-gray-500 mb-3">Envía un correo de prueba para verificar la configuración.</p>
-            <button type="button" onclick="testEmail()" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition">
-                Enviar Correo de Prueba
-            </button>
+            <div class="flex items-end gap-3">
+                <div class="flex-1">
+                    <label for="test_email" class="block text-xs font-medium text-gray-600">Correo de destino</label>
+                    <input type="email" id="test_email" 
+                           value="<?php echo htmlspecialchars($config['smtp_user'] ?? ''); ?>"
+                           placeholder="correo@destino.com"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border text-sm">
+                </div>
+                <button type="button" onclick="testEmail()" id="test_email_btn" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition">
+                    Enviar Correo de Prueba
+                </button>
+            </div>
+            <div id="test_result" class="mt-3 hidden"></div>
         </div>
         
         <div class="mt-6 flex justify-end">
@@ -92,7 +102,42 @@
 </div>
 
 <script>
-function testEmail() {
-    alert('Funcionalidad de prueba de correo - Por implementar');
+async function testEmail() {
+    const btn = document.getElementById('test_email_btn');
+    const resultDiv = document.getElementById('test_result');
+    const testEmailInput = document.getElementById('test_email');
+    
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+    resultDiv.classList.add('hidden');
+    
+    try {
+        const formData = new FormData();
+        formData.append('csrf_token', '<?php echo $csrf_token; ?>');
+        formData.append('test_email', testEmailInput.value);
+        
+        const response = await fetch('<?php echo BASE_URL; ?>/configuracion/correo/probar', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        resultDiv.classList.remove('hidden');
+        if (data.success) {
+            resultDiv.className = 'mt-3 p-3 bg-green-100 border border-green-400 text-green-700 rounded text-sm';
+            resultDiv.textContent = data.message;
+        } else {
+            resultDiv.className = 'mt-3 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm';
+            resultDiv.textContent = data.message;
+        }
+    } catch (error) {
+        resultDiv.classList.remove('hidden');
+        resultDiv.className = 'mt-3 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm';
+        resultDiv.textContent = 'Error de conexión: ' + error.message;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Enviar Correo de Prueba';
+    }
 }
 </script>

@@ -6,7 +6,7 @@ class User extends Model {
     protected string $table = 'users';
     protected array $fillable = [
         'role_id', 'email', 'password', 'name', 'phone', 
-        'whatsapp', 'avatar', 'is_active'
+        'whatsapp', 'avatar', 'is_active', 'reset_token', 'reset_token_expires'
     ];
     
     public function findByEmail(string $email): ?array {
@@ -59,6 +59,24 @@ class User extends Model {
     public function updatePassword(int $id, string $newPassword): int {
         return $this->update($id, [
             'password' => password_hash($newPassword, PASSWORD_DEFAULT)
+        ]);
+    }
+    
+    public function setResetToken(int $id, string $token, string $expires): int {
+        return $this->update($id, [
+            'reset_token' => $token,
+            'reset_token_expires' => $expires
+        ]);
+    }
+    
+    public function findByResetToken(string $token): ?array {
+        return $this->findBy('reset_token', $token);
+    }
+    
+    public function clearResetToken(int $id): int {
+        return $this->update($id, [
+            'reset_token' => null,
+            'reset_token_expires' => null
         ]);
     }
 }

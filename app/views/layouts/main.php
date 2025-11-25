@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $pageTitle ?? APP_NAME; ?></title>
     
+    <?php
+    // Load system configuration for styles
+    $configModel = new Config();
+    $sysConfig = $configModel->getAll();
+    $primaryColor = $sysConfig['primary_color'] ?? '#1e40af';
+    $secondaryColor = $sysConfig['secondary_color'] ?? '#3b82f6';
+    $accentColor = $sysConfig['accent_color'] ?? '#10b981';
+    $siteLogo = $sysConfig['site_logo'] ?? null;
+    $siteName = $sysConfig['site_name'] ?? 'CRM CCQ';
+    ?>
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -42,7 +53,13 @@
     <!-- Custom Styles -->
     <style>
         [x-cloak] { display: none !important; }
-        .sidebar-link.active { background-color: rgba(59, 130, 246, 0.1); color: #2563eb; }
+        .sidebar-link.active { background-color: <?php echo htmlspecialchars($primaryColor); ?>20; color: <?php echo htmlspecialchars($primaryColor); ?>; }
+        .sidebar-header { background-color: <?php echo htmlspecialchars($primaryColor); ?>; }
+        .btn-primary { background-color: <?php echo htmlspecialchars($primaryColor); ?>; }
+        .btn-primary:hover { background-color: <?php echo htmlspecialchars($secondaryColor); ?>; }
+        .btn-accent { background-color: <?php echo htmlspecialchars($accentColor); ?>; }
+        .text-primary { color: <?php echo htmlspecialchars($primaryColor); ?>; }
+        .bg-primary { background-color: <?php echo htmlspecialchars($primaryColor); ?>; }
     </style>
     
     <!-- Alpine.js for interactivity -->
@@ -60,9 +77,13 @@
             :class="{'translate-x-0': mobileMenuOpen, '-translate-x-full': !mobileMenuOpen}"
         >
             <!-- Logo -->
-            <div class="flex items-center justify-center h-16 bg-primary-800">
-                <a href="<?php echo BASE_URL; ?>/dashboard" class="text-white font-bold text-xl">
-                    CRM CCQ
+            <div class="flex items-center justify-center h-16 sidebar-header">
+                <a href="<?php echo BASE_URL; ?>/dashboard" class="flex items-center">
+                    <?php if ($siteLogo): ?>
+                    <img src="<?php echo BASE_URL . $siteLogo; ?>" alt="Logo" class="h-10 object-contain">
+                    <?php else: ?>
+                    <span class="text-white font-bold text-xl"><?php echo htmlspecialchars($siteName); ?></span>
+                    <?php endif; ?>
                 </a>
             </div>
             

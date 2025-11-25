@@ -32,6 +32,8 @@ $router->add('', ['controller' => 'home', 'action' => 'index']);
 $router->add('login', ['controller' => 'auth', 'action' => 'login']);
 $router->add('logout', ['controller' => 'auth', 'action' => 'logout']);
 $router->add('register', ['controller' => 'auth', 'action' => 'register']);
+$router->add('recuperar-password', ['controller' => 'auth', 'action' => 'forgotPassword']);
+$router->add('restablecer-password', ['controller' => 'auth', 'action' => 'resetPassword']);
 
 // Dashboard
 $router->add('dashboard', ['controller' => 'dashboard', 'action' => 'index']);
@@ -97,6 +99,7 @@ $router->add('reportes/operativos', ['controller' => 'reports', 'action' => 'ope
 $router->add('configuracion', ['controller' => 'config', 'action' => 'index']);
 $router->add('configuracion/sitio', ['controller' => 'config', 'action' => 'site']);
 $router->add('configuracion/correo', ['controller' => 'config', 'action' => 'email']);
+$router->add('configuracion/correo/probar', ['controller' => 'config', 'action' => 'testEmail']);
 $router->add('configuracion/estilos', ['controller' => 'config', 'action' => 'styles']);
 $router->add('configuracion/pagos', ['controller' => 'config', 'action' => 'payments']);
 $router->add('configuracion/api', ['controller' => 'config', 'action' => 'api']);
