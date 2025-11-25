@@ -5,9 +5,9 @@
  */
 
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'crm_ccq');
-define('DB_USER', 'root');
-define('DB_PASS', '');
+define('DB_NAME', 'enlaceca_total');
+define('DB_USER', 'enlaceca_total');
+define('DB_PASS', '~0=2,&gdgS%s');
 define('DB_CHARSET', 'utf8mb4');
 
 // PDO Options
