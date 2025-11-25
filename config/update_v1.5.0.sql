@@ -63,7 +63,7 @@ WHERE `registration_code` IS NULL;
 -- Add index for better search performance
 CREATE INDEX `idx_guest_email` ON `event_registrations` (`guest_email`);
 CREATE INDEX `idx_guest_rfc` ON `event_registrations` (`guest_rfc`);
-CREATE INDEX `idx_registration_code` ON `event_registrations` (`registration_code`);
+-- Note: registration_code already has an index due to UNIQUE constraint
 CREATE INDEX `idx_payment_status` ON `event_registrations` (`payment_status`);
 
 -- =============================================

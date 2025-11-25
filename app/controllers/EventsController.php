@@ -467,15 +467,9 @@ class EventsController extends Controller {
             }
             
             $registrationCode = $regCodeResult[0]['registration_code'];
-            $registration = $this->eventModel->getRegistrationByCode($registrationCode);
-            
-            if (!$registration) {
-                return;
-            }
             
             $to = $registrationData['guest_email'];
             $subject = "Confirmación de Registro - " . $event['title'];
-            $registrationCode = $registration['registration_code'];
             
             // Build email body
             $body = "Hola " . htmlspecialchars($registrationData['guest_name']) . ",\n\n";
@@ -525,13 +519,13 @@ class EventsController extends Controller {
                 return;
             }
             
-            $registrationCode = $regCodeResult[0]['registration_code'];
+            $qrRegistrationCode = $regCodeResult[0]['registration_code'];
             
             // Generate QR code using Google Charts API
             // NOTE: This API is deprecated. For production, migrate to endroid/qr-code:
             // composer require endroid/qr-code
             // See: https://github.com/endroid/qr-code
-            $qrData = BASE_URL . '/evento/verificar/' . $registrationCode;
+            $qrData = BASE_URL . '/evento/verificar/' . $qrRegistrationCode;
             $qrImageUrl = "https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=" . urlencode($qrData);
             
             // Download QR code image
@@ -540,7 +534,7 @@ class EventsController extends Controller {
                 mkdir($qrDir, 0750, true);
             }
             
-            $qrFilename = 'qr_' . $registrationCode . '.png';
+            $qrFilename = 'qr_' . $qrRegistrationCode . '.png';
             $qrPath = $qrDir . $qrFilename;
             
             // Download and save QR code
@@ -568,7 +562,7 @@ class EventsController extends Controller {
             $body .= "Presenta este código QR en el evento para registrar tu asistencia.\n\n";
             $body .= "También puedes descargar tu QR desde:\n";
             $body .= BASE_URL . '/uploads/qr/' . $qrFilename . "\n\n";
-            $body .= "Código de registro: " . $registrationCode . "\n\n";
+            $body .= "Código de registro: " . $qrRegistrationCode . "\n\n";
             $body .= "Te esperamos!\n\n";
             $body .= "Cámara de Comercio de Querétaro\n";
             $body .= BASE_URL;
