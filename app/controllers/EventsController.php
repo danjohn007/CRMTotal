@@ -425,6 +425,54 @@ class EventsController extends Controller {
         ]);
     }
     
+    /**
+     * Display payment page for a registration
+     * Public access - no auth required
+     */
+    public function payment(): void {
+        $code = $this->params['code'] ?? '';
+        
+        // Sanitize registration code - only allow alphanumeric characters and dashes
+        $code = preg_replace('/[^a-zA-Z0-9\-]/', '', $code);
+        
+        if (empty($code)) {
+            $_SESSION['flash_error'] = 'Código de registro inválido.';
+            $this->redirect('');
+        }
+        
+        // Get registration with event details
+        $registration = $this->eventModel->getRegistrationByCode($code);
+        
+        if (!$registration) {
+            $_SESSION['flash_error'] = 'Registro no encontrado.';
+            $this->redirect('');
+        }
+        
+        // Get full event details
+        $event = $this->eventModel->find($registration['event_id']);
+        
+        if (!$event) {
+            $_SESSION['flash_error'] = 'Evento no encontrado.';
+            $this->redirect('');
+        }
+        
+        // Check if already paid
+        if ($registration['payment_status'] === 'paid' || $registration['payment_status'] === 'free') {
+            // Redirect to ticket page
+            $this->redirect('evento/boleto/' . $code);
+        }
+        
+        // Get PayPal configuration
+        $paypalClientId = $this->configModel->get('paypal_client_id', '');
+        
+        $this->view('events/payment', [
+            'pageTitle' => 'Completar Pago - ' . $event['title'],
+            'event' => $event,
+            'registration' => $registration,
+            'paypalClientId' => $paypalClientId
+        ]);
+    }
+    
     private function handleImageUpload(array $file): array {
         $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
         $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
