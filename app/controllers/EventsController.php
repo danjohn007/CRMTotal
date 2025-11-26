@@ -507,6 +507,69 @@ class EventsController extends Controller {
         }
     }
     
+    /**
+     * Send email with file attachment using PHP mail()
+     * 
+     * @param string $to Recipient email
+     * @param string $subject Email subject
+     * @param string $body Email body (plain text)
+     * @param string $attachmentPath Full path to attachment file
+     * @param string $attachmentName Filename for attachment
+     * @param string $attachmentMimeType MIME type of attachment
+     * @return bool Whether the email was sent successfully
+     */
+    private function sendEmailWithAttachment(
+        string $to, 
+        string $subject, 
+        string $body, 
+        string $attachmentPath, 
+        string $attachmentName, 
+        string $attachmentMimeType = 'application/octet-stream'
+    ): bool {
+        // Validate attachment exists
+        if (!file_exists($attachmentPath)) {
+            error_log("Attachment file not found: " . $attachmentPath);
+            return false;
+        }
+        
+        // Read and encode attachment
+        $attachmentContent = file_get_contents($attachmentPath);
+        if ($attachmentContent === false) {
+            error_log("Failed to read attachment: " . $attachmentPath);
+            return false;
+        }
+        $attachmentEncoded = chunk_split(base64_encode($attachmentContent));
+        
+        // Generate boundary
+        $boundary = md5(time());
+        
+        // Prepare headers
+        $fromName = $this->configModel->get('smtp_from_name', 'CRM CCQ');
+        $replyTo = $this->configModel->get('contact_email', 'info@camaradecomercioqro.mx');
+        
+        $headers = "From: {$fromName} <noreply@camaradecomercioqro.mx>\r\n";
+        $headers .= "Reply-To: {$replyTo}\r\n";
+        $headers .= "MIME-Version: 1.0\r\n";
+        $headers .= "Content-Type: multipart/mixed; boundary=\"{$boundary}\"\r\n";
+        
+        // Build email message with attachment
+        $message = "--{$boundary}\r\n";
+        $message .= "Content-Type: text/plain; charset=UTF-8\r\n";
+        $message .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
+        $message .= $body . "\r\n\r\n";
+        
+        // Add attachment
+        $message .= "--{$boundary}\r\n";
+        $message .= "Content-Type: {$attachmentMimeType}; name=\"{$attachmentName}\"\r\n";
+        $message .= "Content-Transfer-Encoding: base64\r\n";
+        $message .= "Content-Disposition: attachment; filename=\"{$attachmentName}\"\r\n\r\n";
+        $message .= $attachmentEncoded . "\r\n";
+        $message .= "--{$boundary}--";
+        
+        // Send email
+        return mail($to, $subject, $message, $headers);
+    }
+    
     private function generateAndSendQR(int $registrationId, array $event, array $registrationData): void {
         try {
             // Get registration code from database
@@ -539,40 +602,45 @@ class EventsController extends Controller {
             
             // Download and save QR code
             $qrContent = @file_get_contents($qrImageUrl);
-            if ($qrContent) {
-                file_put_contents($qrPath, $qrContent);
-                
-                // Update database with QR filename
-                $this->db->update('event_registrations', [
-                    'qr_code' => $qrFilename
-                ], 'id = :id', ['id' => $registrationId]);
+            if (!$qrContent || !file_put_contents($qrPath, $qrContent)) {
+                error_log("Failed to generate QR code for registration: " . $registrationId);
+                return;
             }
             
-            // Send QR code email
+            // Update database with QR filename
+            $this->db->update('event_registrations', [
+                'qr_code' => $qrFilename
+            ], 'id = :id', ['id' => $registrationId]);
+            
+            // Send QR code email with attachment
             $to = $registrationData['guest_email'];
             $subject = "Código QR de Acceso - " . $event['title'];
             
-            $body = "Hola " . htmlspecialchars($registrationData['guest_name']) . ",\n\n";
-            $body .= "¡Tu pago ha sido confirmado!\n\n";
-            $body .= "Adjunto encontrarás tu código QR de acceso al evento:\n\n";
-            $body .= "📅 " . htmlspecialchars($event['title']) . "\n";
-            $body .= "📍 " . ($event['is_online'] ? 'Evento en línea' : htmlspecialchars($event['location'] ?? '')) . "\n";
-            $body .= "🕐 " . date('d/m/Y H:i', strtotime($event['start_date'])) . " hrs\n";
-            $body .= "🎫 Boletos: " . $registrationData['tickets'] . "\n\n";
-            $body .= "Presenta este código QR en el evento para registrar tu asistencia.\n\n";
-            $body .= "También puedes descargar tu QR desde:\n";
-            $body .= BASE_URL . '/uploads/qr/' . $qrFilename . "\n\n";
-            $body .= "Código de registro: " . $qrRegistrationCode . "\n\n";
-            $body .= "Te esperamos!\n\n";
-            $body .= "Cámara de Comercio de Querétaro\n";
-            $body .= BASE_URL;
+            // Create email body
+            $emailBody = "Hola " . htmlspecialchars($registrationData['guest_name']) . ",\n\n";
+            $emailBody .= "¡Tu pago ha sido confirmado!\n\n";
+            $emailBody .= "Adjunto encontrarás tu código QR de acceso al evento:\n\n";
+            $emailBody .= "📅 " . htmlspecialchars($event['title']) . "\n";
+            $emailBody .= "📍 " . ($event['is_online'] ? 'Evento en línea' : htmlspecialchars($event['location'] ?? '')) . "\n";
+            $emailBody .= "🕐 " . date('d/m/Y H:i', strtotime($event['start_date'])) . " hrs\n";
+            $emailBody .= "🎫 Boletos: " . $registrationData['tickets'] . "\n\n";
+            $emailBody .= "Presenta este código QR en el evento para registrar tu asistencia.\n\n";
+            $emailBody .= "También puedes descargar tu QR desde:\n";
+            $emailBody .= BASE_URL . '/uploads/qr/' . $qrFilename . "\n\n";
+            $emailBody .= "Código de registro: " . $qrRegistrationCode . "\n\n";
+            $emailBody .= "Te esperamos!\n\n";
+            $emailBody .= "Cámara de Comercio de Querétaro\n";
+            $emailBody .= BASE_URL;
             
-            // Send email
-            $headers = "From: " . ($this->configModel->get('smtp_from_name', 'CRM CCQ')) . " <noreply@camaradecomercioqro.mx>\r\n";
-            $headers .= "Reply-To: " . ($this->configModel->get('contact_email', 'info@camaradecomercioqro.mx')) . "\r\n";
-            $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
-            
-            mail($to, $subject, $body, $headers);
+            // Send email with QR code attachment
+            $this->sendEmailWithAttachment(
+                $to,
+                $subject,
+                $emailBody,
+                $qrPath,
+                $qrFilename,
+                'image/png'
+            );
             
             // Update QR sent flag
             $this->eventModel->updateQRSent($registrationId);
