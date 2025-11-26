@@ -69,13 +69,29 @@ class Event extends Model {
     }
     
     public function generateRegistrationCode(): string {
+        $maxAttempts = 10;
+        $attempt = 0;
+        
         do {
-            $code = 'REG-' . strtoupper(substr(uniqid(), -8));
+            // Generate a more unique code using timestamp and random bytes
+            // Format: REG-YYYYMMDD-XXXXXX (where X is random alphanumeric)
+            $timestamp = date('Ymd');
+            $randomPart = strtoupper(substr(bin2hex(random_bytes(3)), 0, 6));
+            $code = "REG-{$timestamp}-{$randomPart}";
+            
             $exists = $this->db->query(
                 "SELECT id FROM event_registrations WHERE registration_code = :code",
                 ['code' => $code]
             );
-        } while (!empty($exists));
+            
+            $attempt++;
+            
+            // If we've tried too many times, append the attempt number to ensure uniqueness
+            if ($attempt >= $maxAttempts && !empty($exists)) {
+                $code = "REG-{$timestamp}-{$randomPart}-{$attempt}";
+                break;
+            }
+        } while (!empty($exists) && $attempt < $maxAttempts);
         
         return $code;
     }
