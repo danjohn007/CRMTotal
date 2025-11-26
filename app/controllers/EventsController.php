@@ -457,7 +457,7 @@ class EventsController extends Controller {
     private function sendConfirmationEmail(int $registrationId, array $event, array $registrationData): void {
         try {
             // Get registration code from database
-            $regCodeResult = $this->db->query(
+            $regCodeResult = $this->db->fetch(
                 "SELECT registration_code FROM event_registrations WHERE id = :id", 
                 ['id' => $registrationId]
             );
@@ -466,7 +466,7 @@ class EventsController extends Controller {
                 return;
             }
             
-            $registrationCode = $regCodeResult[0]['registration_code'];
+            $registrationCode = $regCodeResult['registration_code'];
             
             $to = $registrationData['guest_email'];
             $subject = "Confirmación de Registro - " . $event['title'];
@@ -510,7 +510,7 @@ class EventsController extends Controller {
     private function generateAndSendQR(int $registrationId, array $event, array $registrationData): void {
         try {
             // Get registration code from database
-            $regCodeResult = $this->db->query(
+            $regCodeResult = $this->db->fetch(
                 "SELECT registration_code FROM event_registrations WHERE id = :id", 
                 ['id' => $registrationId]
             );
@@ -519,7 +519,7 @@ class EventsController extends Controller {
                 return;
             }
             
-            $qrRegistrationCode = $regCodeResult[0]['registration_code'];
+            $qrRegistrationCode = $regCodeResult['registration_code'];
             
             // Generate QR code using Google Charts API
             // NOTE: This API is deprecated. For production, migrate to endroid/qr-code:

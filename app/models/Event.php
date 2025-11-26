@@ -79,10 +79,11 @@ class Event extends Model {
             $randomPart = strtoupper(bin2hex(random_bytes(3)));
             $code = "REG-{$timestamp}-{$randomPart}";
             
-            $exists = $this->db->query(
+            $stmt = $this->db->query(
                 "SELECT id FROM event_registrations WHERE registration_code = :code",
                 ['code' => $code]
             );
+            $exists = $stmt->fetch();
             
             $attempt++;
         } while (!empty($exists) && $attempt < $maxAttempts);
