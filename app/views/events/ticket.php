@@ -186,10 +186,6 @@
                     </span>
                     <?php endif; ?>
                 </div>
-                
-                <div class="mt-2">
-                    <a href="#" class="text-gray-500 hover:text-gray-700">Política de Privacidad</a>
-                </div>
             </div>
         </div>
         

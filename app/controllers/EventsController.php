@@ -386,6 +386,9 @@ class EventsController extends Controller {
     public function ticket(): void {
         $code = $this->params['code'] ?? '';
         
+        // Sanitize registration code - only allow alphanumeric characters and dashes
+        $code = preg_replace('/[^a-zA-Z0-9\-]/', '', $code);
+        
         if (empty($code)) {
             $_SESSION['flash_error'] = 'Código de registro inválido.';
             $this->redirect('');
