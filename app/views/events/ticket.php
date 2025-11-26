@@ -155,7 +155,7 @@
                                 $qrData = BASE_URL . '/evento/boleto/' . $registration['registration_code'];
                                 $qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" . urlencode($qrData);
                                 ?>
-                                <img src="<?php echo $qrUrl; ?>" 
+                                <img src="<?php echo htmlspecialchars($qrUrl); ?>" 
                                      alt="QR Code" 
                                      class="w-48 h-48 mx-auto">
                                 <?php endif; ?>
@@ -165,7 +165,7 @@
                                 $qrData = BASE_URL . '/evento/boleto/' . $registration['registration_code'];
                                 $qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" . urlencode($qrData);
                                 ?>
-                                <img src="<?php echo $qrUrl; ?>" 
+                                <img src="<?php echo htmlspecialchars($qrUrl); ?>" 
                                      alt="QR Code" 
                                      class="w-48 h-48 mx-auto">
                             <?php endif; ?>
