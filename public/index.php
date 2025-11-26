@@ -70,6 +70,9 @@ $router->add('eventos/{id}/asistencia', ['controller' => 'events', 'action' => '
 // Ticket/Boleto page (public) - must be before the generic evento/{url} route
 $router->add('evento/boleto/{code}', ['controller' => 'events', 'action' => 'ticket']);
 
+// Payment page (public) - must be before the generic evento/{url} route
+$router->add('evento/pago/{code}', ['controller' => 'events', 'action' => 'payment']);
+
 // Public Event Registration (friendly URL)
 $router->add('evento/{url}', ['controller' => 'events', 'action' => 'publicRegistration']);
 

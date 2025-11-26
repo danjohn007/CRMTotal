@@ -140,18 +140,32 @@
                     <div class="text-center">
                         <h3 class="text-lg font-bold text-gray-900 mb-4 uppercase">CÓDIGO QR</h3>
                         
-                        <div class="inline-block p-3 border-4 border-green-700 rounded-lg">
+                        <div class="inline-block p-3 border-4 border-green-700 rounded-lg bg-white">
                             <?php if (!empty($registration['qr_code'])): ?>
+                                <?php 
+                                $qrPath = PUBLIC_PATH . '/uploads/qr/' . $registration['qr_code'];
+                                if (file_exists($qrPath)): 
+                                ?>
                                 <img src="<?php echo BASE_URL; ?>/uploads/qr/<?php echo htmlspecialchars($registration['qr_code']); ?>" 
                                      alt="QR Code" 
                                      class="w-48 h-48 mx-auto">
+                                <?php else: ?>
+                                <!-- Fallback: Generate QR on the fly using QR Server API -->
+                                <?php 
+                                $qrData = BASE_URL . '/evento/boleto/' . $registration['registration_code'];
+                                $qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" . urlencode($qrData);
+                                ?>
+                                <img src="<?php echo $qrUrl; ?>" 
+                                     alt="QR Code" 
+                                     class="w-48 h-48 mx-auto">
+                                <?php endif; ?>
                             <?php else: ?>
                                 <!-- Generate QR on the fly using QR Server API -->
                                 <?php 
-                                $qrData = BASE_URL . '/evento/boleto/' . htmlspecialchars($registration['registration_code']);
+                                $qrData = BASE_URL . '/evento/boleto/' . $registration['registration_code'];
                                 $qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" . urlencode($qrData);
                                 ?>
-                                <img src="<?php echo htmlspecialchars($qrUrl); ?>" 
+                                <img src="<?php echo $qrUrl; ?>" 
                                      alt="QR Code" 
                                      class="w-48 h-48 mx-auto">
                             <?php endif; ?>
