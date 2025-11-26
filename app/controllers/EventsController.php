@@ -524,7 +524,7 @@ class EventsController extends Controller {
         string $body, 
         string $attachmentPath, 
         string $attachmentName, 
-        string $attachmentMimeType = 'application/octet-stream'
+        string $attachmentMimeType = 'image/png'
     ): bool {
         // Validate attachment exists
         if (!file_exists($attachmentPath)) {
@@ -540,8 +540,8 @@ class EventsController extends Controller {
         }
         $attachmentEncoded = chunk_split(base64_encode($attachmentContent));
         
-        // Generate boundary
-        $boundary = md5(time());
+        // Generate boundary with better entropy
+        $boundary = uniqid('boundary_', true);
         
         // Prepare headers
         $fromName = $this->configModel->get('smtp_from_name', 'CRM CCQ');

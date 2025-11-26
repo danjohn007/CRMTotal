@@ -255,8 +255,8 @@ class ApiController extends Controller {
         }
         $attachmentEncoded = chunk_split(base64_encode($attachmentContent));
         
-        // Generate boundary
-        $boundary = md5(time());
+        // Generate boundary with better entropy
+        $boundary = uniqid('boundary_', true);
         
         // Prepare headers
         $fromName = $configModel->get('smtp_from_name', 'CRM CCQ');
