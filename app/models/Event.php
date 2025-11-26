@@ -69,7 +69,7 @@ class Event extends Model {
     }
     
     public function generateRegistrationCode(): string {
-        $maxAttempts = 10;
+        $maxAttempts = 10; // Maximum number of attempts before using fallback
         $attempt = 0;
         
         do {
