@@ -162,13 +162,33 @@
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="md:col-span-2">
-                        <label for="name" class="block text-sm font-medium text-gray-700">Nombre Completo / Empresa *</label>
-                        <input type="text" id="name" name="name" required
+                        <label for="razon_social" class="block text-sm font-medium text-gray-700">Razón social *</label>
+                        <input type="text" id="razon_social" name="razon_social" required
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label for="nombre_empresario" class="block text-sm font-medium text-gray-700">Nombre del empresario (en caso de ser persona física) / Nombre del representante (en caso de ser persona moral) *</label>
+                        <input type="text" id="nombre_empresario" name="nombre_empresario" required
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label for="nombre_asistente" class="block text-sm font-medium text-gray-700">Nombre del asistente al evento *</label>
+                        <input type="text" id="nombre_asistente" name="nombre_asistente" required
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label for="rfc" class="block text-sm font-medium text-gray-700">RFC *</label>
+                        <input type="text" id="rfc" name="rfc" required
+                               maxlength="13" pattern="[A-Za-z0-9]{12,13}"
+                               placeholder="12-13 caracteres"
                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                     </div>
                     
                     <div>
-                        <label for="email" class="block text-sm font-medium text-gray-700">Correo Electrónico *</label>
+                        <label for="email" class="block text-sm font-medium text-gray-700">Correo *</label>
                         <input type="email" id="email" name="email" required
                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                     </div>
@@ -181,15 +201,7 @@
                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                     </div>
                     
-                    <div>
-                        <label for="rfc" class="block text-sm font-medium text-gray-700">RFC (Opcional)</label>
-                        <input type="text" id="rfc" name="rfc"
-                               maxlength="13" pattern="[A-Za-z0-9]{12,13}"
-                               placeholder="12-13 caracteres"
-                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
-                    </div>
-                    
-                    <div>
+                    <div class="md:col-span-2">
                         <label for="tickets" class="block text-sm font-medium text-gray-700">Número de Boletos</label>
                         <select id="tickets" name="tickets"
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
@@ -266,7 +278,8 @@
             .then(data => {
                 if (data.success && data.company) {
                     // Autocomplete form fields
-                    document.getElementById('name').value = data.company.business_name || data.company.owner_name || '';
+                    document.getElementById('razon_social').value = data.company.business_name || '';
+                    document.getElementById('nombre_empresario').value = data.company.owner_name || '';
                     document.getElementById('email').value = data.company.corporate_email || '';
                     document.getElementById('phone').value = data.company.phone || data.company.whatsapp || '';
                     document.getElementById('rfc').value = data.company.rfc || '';
