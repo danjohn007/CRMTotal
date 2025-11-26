@@ -262,6 +262,9 @@ class ApiController extends Controller {
                 ], 'id = :id', ['id' => $registrationId]);
             }
             
+            // Build ticket URL
+            $ticketUrl = BASE_URL . '/evento/boleto/' . $registrationCode;
+            
             // Send QR code email
             $to = $registrationData['guest_email'];
             $subject = "Código QR de Acceso - " . $event['title'];
@@ -274,8 +277,8 @@ class ApiController extends Controller {
             $body .= "🕐 " . date('d/m/Y H:i', strtotime($event['start_date'])) . " hrs\n";
             $body .= "🎫 Boletos: " . $registrationData['tickets'] . "\n\n";
             $body .= "Presenta este código QR en el evento para registrar tu asistencia.\n\n";
-            $body .= "También puedes descargar tu QR desde:\n";
-            $body .= BASE_URL . '/uploads/qr/' . $qrFilename . "\n\n";
+            $body .= "También puedes ver y descargar tu boleto desde:\n";
+            $body .= $ticketUrl . "\n\n";
             $body .= "Código de registro: " . $registrationCode . "\n\n";
             $body .= "Te esperamos!\n\n";
             $body .= "Cámara de Comercio de Querétaro\n";

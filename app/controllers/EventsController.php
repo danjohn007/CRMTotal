@@ -379,6 +379,47 @@ class EventsController extends Controller {
         ]);
     }
     
+    /**
+     * Display ticket/boleto page for a registration
+     * Public access - no auth required
+     */
+    public function ticket(): void {
+        $code = $this->params['code'] ?? '';
+        
+        if (empty($code)) {
+            $_SESSION['flash_error'] = 'Código de registro inválido.';
+            $this->redirect('');
+        }
+        
+        // Get registration with event details
+        $registration = $this->eventModel->getRegistrationByCode($code);
+        
+        if (!$registration) {
+            $_SESSION['flash_error'] = 'Registro no encontrado.';
+            $this->redirect('');
+        }
+        
+        // Get full event details
+        $event = $this->eventModel->find($registration['event_id']);
+        
+        if (!$event) {
+            $_SESSION['flash_error'] = 'Evento no encontrado.';
+            $this->redirect('');
+        }
+        
+        // Get configuration for contact info
+        $contactEmail = $this->configModel->get('contact_email', 'contacto@camaradecomercioqro.mx');
+        $contactPhone = $this->configModel->get('contact_phone', '4425375301');
+        
+        $this->view('events/ticket', [
+            'pageTitle' => 'Boleto de Acceso - ' . $event['title'],
+            'event' => $event,
+            'registration' => $registration,
+            'contactEmail' => $contactEmail,
+            'contactPhone' => $contactPhone
+        ]);
+    }
+    
     private function handleImageUpload(array $file): array {
         $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
         $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
@@ -570,6 +611,9 @@ class EventsController extends Controller {
                 ], 'id = :id', ['id' => $registrationId]);
             }
             
+            // Build ticket URL
+            $ticketUrl = BASE_URL . '/evento/boleto/' . $qrRegistrationCode;
+            
             // Send QR code email
             $to = $registrationData['guest_email'];
             $subject = "Código QR de Acceso - " . $event['title'];
@@ -582,8 +626,8 @@ class EventsController extends Controller {
             $body .= "🕐 " . date('d/m/Y H:i', strtotime($event['start_date'])) . " hrs\n";
             $body .= "🎫 Boletos: " . $registrationData['tickets'] . "\n\n";
             $body .= "Presenta este código QR en el evento para registrar tu asistencia.\n\n";
-            $body .= "También puedes descargar tu QR desde:\n";
-            $body .= BASE_URL . '/uploads/qr/' . $qrFilename . "\n\n";
+            $body .= "También puedes ver y descargar tu boleto desde:\n";
+            $body .= $ticketUrl . "\n\n";
             $body .= "Código de registro: " . $qrRegistrationCode . "\n\n";
             $body .= "Te esperamos!\n\n";
             $body .= "Cámara de Comercio de Querétaro\n";
