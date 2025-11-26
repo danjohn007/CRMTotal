@@ -410,16 +410,18 @@ class EventsController extends Controller {
             $this->redirect('');
         }
         
-        // Get configuration for contact info
+        // Get configuration for contact info and logo
         $contactEmail = $this->configModel->get('contact_email', 'contacto@camaradecomercioqro.mx');
         $contactPhone = $this->configModel->get('contact_phone', '4425375301');
+        $siteLogo = $this->configModel->get('site_logo', '');
         
         $this->view('events/ticket', [
             'pageTitle' => 'Boleto de Acceso - ' . $event['title'],
             'event' => $event,
             'registration' => $registration,
             'contactEmail' => $contactEmail,
-            'contactPhone' => $contactPhone
+            'contactPhone' => $contactPhone,
+            'siteLogo' => $siteLogo
         ]);
     }
     
@@ -587,12 +589,12 @@ class EventsController extends Controller {
             
             $qrRegistrationCode = $regCodeResult['registration_code'];
             
-            // Generate QR code using Google Charts API
-            // NOTE: This API is deprecated. For production, migrate to endroid/qr-code:
+            // Generate QR code using QR Server API
+            // NOTE: For production, consider using endroid/qr-code:
             // composer require endroid/qr-code
             // See: https://github.com/endroid/qr-code
             $qrData = BASE_URL . '/evento/verificar/' . $qrRegistrationCode;
-            $qrImageUrl = "https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=" . urlencode($qrData);
+            $qrImageUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" . urlencode($qrData);
             
             // Download QR code image
             $qrDir = PUBLIC_PATH . '/uploads/qr/';

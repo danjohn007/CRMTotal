@@ -43,8 +43,9 @@
             <div class="p-6 border-b-2 border-green-700">
                 <div class="flex justify-between items-start">
                     <div>
-                        <!-- Logo placeholder - you can replace with actual logo -->
-                        <img src="<?php echo BASE_URL; ?>/img/logo.png" alt="Logo" class="h-12 mb-2" onerror="this.style.display='none'">
+                        <?php if (!empty($siteLogo) && strpos($siteLogo, '/') === 0): ?>
+                        <img src="<?php echo BASE_URL . htmlspecialchars($siteLogo); ?>" alt="Logo" class="h-12 mb-2" onerror="this.style.display='none'">
+                        <?php endif; ?>
                     </div>
                     <div class="text-right">
                         <h1 class="text-2xl font-bold text-green-800">BOLETO DE ACCESO</h1>
@@ -145,10 +146,10 @@
                                      alt="QR Code" 
                                      class="w-48 h-48 mx-auto">
                             <?php else: ?>
-                                <!-- Generate QR on the fly using Google Charts API -->
+                                <!-- Generate QR on the fly using QR Server API -->
                                 <?php 
                                 $qrData = BASE_URL . '/evento/boleto/' . htmlspecialchars($registration['registration_code']);
-                                $qrUrl = "https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=" . urlencode($qrData);
+                                $qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" . urlencode($qrData);
                                 ?>
                                 <img src="<?php echo htmlspecialchars($qrUrl); ?>" 
                                      alt="QR Code" 
