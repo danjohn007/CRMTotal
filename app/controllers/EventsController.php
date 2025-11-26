@@ -258,8 +258,16 @@ class EventsController extends Controller {
                 ];
                 
                 // Validate required fields
-                if (empty($registrationData['guest_rfc'])) {
+                if (empty($razonSocial)) {
+                    $error = 'La razón social es obligatoria.';
+                } elseif (empty($nombreEmpresario)) {
+                    $error = 'El nombre del empresario/representante es obligatorio.';
+                } elseif (empty($nombreAsistente)) {
+                    $error = 'El nombre del asistente al evento es obligatorio.';
+                } elseif (empty($registrationData['guest_rfc'])) {
                     $error = 'El RFC es obligatorio.';
+                } elseif (!preg_match('/^[A-Za-z0-9]{12,13}$/', $registrationData['guest_rfc'])) {
+                    $error = 'El RFC debe tener entre 12 y 13 caracteres alfanuméricos.';
                 }
                 
                 // Validate phone (10 digits)
