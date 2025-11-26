@@ -77,7 +77,13 @@ class Event extends Model {
             // Format: REG-YYYYMMDD-XXXXXX (where X is random alphanumeric)
             $timestamp = date('Ymd');
             $randomPart = strtoupper(substr(bin2hex(random_bytes(3)), 0, 6));
-            $code = "REG-{$timestamp}-{$randomPart}";
+            
+            // If we've reached max attempts, append counter to guarantee uniqueness
+            if ($attempt >= $maxAttempts) {
+                $code = "REG-{$timestamp}-{$randomPart}-" . time();
+            } else {
+                $code = "REG-{$timestamp}-{$randomPart}";
+            }
             
             $exists = $this->db->query(
                 "SELECT id FROM event_registrations WHERE registration_code = :code",
@@ -85,13 +91,7 @@ class Event extends Model {
             );
             
             $attempt++;
-            
-            // If we've tried too many times, append the attempt number to ensure uniqueness
-            if ($attempt >= $maxAttempts && !empty($exists)) {
-                $code = "REG-{$timestamp}-{$randomPart}-{$attempt}";
-                break;
-            }
-        } while (!empty($exists) && $attempt < $maxAttempts);
+        } while (!empty($exists) && $attempt <= $maxAttempts);
         
         return $code;
     }
