@@ -240,17 +240,30 @@ class EventsController extends Controller {
             } else {
                 $tickets = max(1, min(5, (int) $this->getInput('tickets', 1)));
                 
+                // Get new individual fields
+                $razonSocial = $this->sanitize($this->getInput('razon_social', ''));
+                $nombreEmpresario = $this->sanitize($this->getInput('nombre_empresario', ''));
+                $nombreAsistente = $this->sanitize($this->getInput('nombre_asistente', ''));
+                
                 $registrationData = [
-                    'guest_name' => $this->sanitize($this->getInput('name', '')),
+                    'guest_name' => $nombreAsistente, // Use attendee name as main guest_name
                     'guest_email' => $this->sanitize($this->getInput('email', '')),
                     'guest_phone' => $this->sanitize($this->getInput('phone', '')),
                     'guest_rfc' => $this->sanitize($this->getInput('rfc', '')),
+                    'razon_social' => $razonSocial,
+                    'nombre_empresario' => $nombreEmpresario,
+                    'nombre_asistente' => $nombreAsistente,
                     'tickets' => $tickets,
                     'payment_status' => $event['is_paid'] ? 'pending' : 'free'
                 ];
                 
+                // Validate required fields
+                if (empty($registrationData['guest_rfc'])) {
+                    $error = 'El RFC es obligatorio.';
+                }
+                
                 // Validate phone (10 digits)
-                if (!empty($registrationData['guest_phone']) && !preg_match('/^\d{10}$/', $registrationData['guest_phone'])) {
+                if (!$error && !empty($registrationData['guest_phone']) && !preg_match('/^\d{10}$/', $registrationData['guest_phone'])) {
                     $error = 'El teléfono debe tener exactamente 10 dígitos.';
                 }
                 
@@ -276,7 +289,8 @@ class EventsController extends Controller {
                                 'rfc' => $registrationData['guest_rfc'],
                                 'corporate_email' => $registrationData['guest_email'],
                                 'phone' => $registrationData['guest_phone'],
-                                'owner_name' => $registrationData['guest_name'],
+                                'business_name' => $registrationData['razon_social'],
+                                'owner_name' => $registrationData['nombre_empresario'],
                                 'contact_type' => 'prospecto',
                                 'source_channel' => $event['is_paid'] ? 'evento_pagado' : 'evento_gratuito',
                                 'profile_completion' => 25,
