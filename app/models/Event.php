@@ -87,9 +87,10 @@ class Event extends Model {
             $attempt++;
         } while (!empty($exists) && $attempt < $maxAttempts);
         
-        // If collision persists after max attempts, append Unix timestamp for guaranteed uniqueness
-        if (!empty($exists) && $attempt >= $maxAttempts) {
-            $code = "REG-{$timestamp}-{$randomPart}-" . time();
+        // If collision persists after max attempts, use Unix timestamp for guaranteed uniqueness
+        // This extremely rare scenario only occurs if random_bytes produces 10 consecutive collisions
+        if (!empty($exists)) {
+            $code = "REG-{$timestamp}-" . strtoupper(bin2hex(random_bytes(4))) . "-" . time();
         }
         
         return $code;
