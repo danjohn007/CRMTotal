@@ -76,15 +76,16 @@
         <?php endif; ?>
         
         <?php if (isset($success)): ?>
+        <?php $shouldShowPayment = $event['is_paid'] && isset($registrationId) && (!isset($paymentStatus) || $paymentStatus !== 'free'); ?>
         <div class="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
             <?php echo htmlspecialchars($success); ?>
-            <?php if ($event['is_paid'] && isset($registrationId) && (!isset($paymentStatus) || $paymentStatus !== 'free')): ?>
+            <?php if ($shouldShowPayment): ?>
             <p class="mt-2 font-medium">Por favor, completa el pago para confirmar tu registro.</p>
             <?php endif; ?>
         </div>
         
         <!-- PayPal Payment Section (only shown after successful registration for paid events, not for free affiliate tickets) -->
-        <?php if ($event['is_paid'] && isset($registrationId) && !empty($paypalClientId) && (!isset($paymentStatus) || $paymentStatus !== 'free')): ?>
+        <?php if ($shouldShowPayment && !empty($paypalClientId)): ?>
         <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Completar Pago</h2>
             <div class="mb-4 p-4 bg-blue-50 rounded-lg">

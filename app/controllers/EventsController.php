@@ -323,7 +323,7 @@ class EventsController extends Controller {
             }
         }
         
-        // Determine payment status for the view
+        // Determine payment status for the view (null if registration didn't happen or $registrationData is not set)
         $paymentStatus = isset($registrationData) ? ($registrationData['payment_status'] ?? null) : null;
         
         $this->view('events/registration', [
