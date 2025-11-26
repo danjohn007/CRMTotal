@@ -43,8 +43,8 @@
             <div class="p-6 border-b-2 border-green-700">
                 <div class="flex justify-between items-start">
                     <div>
-                        <?php if (!empty($siteLogo)): ?>
-                        <img src="<?php echo BASE_URL . htmlspecialchars($siteLogo); ?>" alt="Logo" class="h-12 mb-2">
+                        <?php if (!empty($siteLogo) && strpos($siteLogo, '/') === 0): ?>
+                        <img src="<?php echo BASE_URL . htmlspecialchars($siteLogo); ?>" alt="Logo" class="h-12 mb-2" onerror="this.style.display='none'">
                         <?php endif; ?>
                     </div>
                     <div class="text-right">
