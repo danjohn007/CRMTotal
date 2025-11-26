@@ -76,7 +76,7 @@ class Event extends Model {
             // Generate a more unique code using timestamp and random bytes
             // Format: REG-YYYYMMDD-XXXXXX (where X is random alphanumeric)
             $timestamp = date('Ymd');
-            $randomPart = strtoupper(substr(bin2hex(random_bytes(3)), 0, 6));
+            $randomPart = strtoupper(bin2hex(random_bytes(3)));
             $code = "REG-{$timestamp}-{$randomPart}";
             
             $exists = $this->db->query(
@@ -87,8 +87,10 @@ class Event extends Model {
             $attempt++;
         } while (!empty($exists) && $attempt < $maxAttempts);
         
-        // If we still have a collision after max attempts, append Unix timestamp for guaranteed uniqueness
+        // If we still have a collision after max attempts, generate fresh values with Unix timestamp for guaranteed uniqueness
         if (!empty($exists)) {
+            $timestamp = date('Ymd');
+            $randomPart = strtoupper(bin2hex(random_bytes(3)));
             $code = "REG-{$timestamp}-{$randomPart}-" . time();
         }
         
