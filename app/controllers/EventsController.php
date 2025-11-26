@@ -323,12 +323,16 @@ class EventsController extends Controller {
             }
         }
         
+        // Determine payment status for the view
+        $paymentStatus = isset($registrationData) ? ($registrationData['payment_status'] ?? null) : null;
+        
         $this->view('events/registration', [
             'pageTitle' => 'Registro - ' . $event['title'],
             'event' => $event,
             'error' => $error,
             'success' => $success,
             'registrationId' => $registrationId,
+            'paymentStatus' => $paymentStatus,
             'paypalClientId' => $paypalClientId,
             'csrf_token' => $this->csrfToken()
         ]);
@@ -641,7 +645,8 @@ class EventsController extends Controller {
             // NOTE: For production, consider using endroid/qr-code:
             // composer require endroid/qr-code
             // See: https://github.com/endroid/qr-code
-            $qrData = BASE_URL . '/evento/verificar/' . $qrRegistrationCode;
+            // QR code points to the ticket page for verification
+            $qrData = BASE_URL . '/evento/boleto/' . $qrRegistrationCode;
             $qrImageUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" . urlencode($qrData);
             
             // Download QR code image
