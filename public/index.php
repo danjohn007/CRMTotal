@@ -62,6 +62,7 @@ $router->add('afiliados/exafiliados', ['controller' => 'affiliates', 'action' =>
 // Events
 $router->add('eventos', ['controller' => 'events', 'action' => 'index']);
 $router->add('eventos/nuevo', ['controller' => 'events', 'action' => 'create']);
+$router->add('eventos/categorias', ['controller' => 'events', 'action' => 'categories']);
 $router->add('eventos/{id}', ['controller' => 'events', 'action' => 'show']);
 $router->add('eventos/{id}/editar', ['controller' => 'events', 'action' => 'edit']);
 $router->add('eventos/{id}/registro', ['controller' => 'events', 'action' => 'registration']);
@@ -168,9 +169,6 @@ $router->add('api/buscar-empresa', ['controller' => 'api', 'action' => 'searchCo
 $router->add('api/eventos/verificar-url', ['controller' => 'api', 'action' => 'verifyEventUrl']);
 $router->add('api/eventos/confirmar-pago', ['controller' => 'api', 'action' => 'confirmEventPayment']);
 $router->add('api/eventos/validar-qr', ['controller' => 'api', 'action' => 'validateEventQR']);
-
-// Events Categories
-$router->add('eventos/categorias', ['controller' => 'events', 'action' => 'categories']);
 
 // Dispatch the route
 $url = $_GET['url'] ?? '';
