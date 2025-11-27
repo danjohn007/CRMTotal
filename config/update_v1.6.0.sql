@@ -38,11 +38,11 @@ PREPARE stmt FROM @alter; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 -- UPDATE EVENT TYPE ENUM TO INCLUDE 'publico' INSTEAD OF 'externo'
 -- =============================================
 
--- Note: MySQL ENUM modification requires recreating the column
--- This updates existing 'externo' values to 'publico' (semantically correct mapping)
+-- First update existing values
 UPDATE `events` SET `event_type` = 'publico' WHERE `event_type` = 'externo';
 
--- Modify the ENUM to include 'publico'
+-- Then modify the ENUM to include 'publico'
+-- Note: this will fail if there are values other than the allowed ones — ensure migration step above ran
 ALTER TABLE `events` MODIFY COLUMN `event_type` ENUM('interno', 'publico', 'terceros') NOT NULL DEFAULT 'interno';
 
 -- =============================================
@@ -76,6 +76,18 @@ CREATE TABLE IF NOT EXISTS `event_categories` (
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
+
+-- If the table already existed but without the color column, add it
+SET @col := (
+  SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'event_categories' AND COLUMN_NAME = 'color'
+);
+SET @alter := IF(
+  @col = 0,
+  'ALTER TABLE `event_categories` ADD COLUMN `color` VARCHAR(7) DEFAULT ''#3b82f6'' AFTER `description`;',
+  'SELECT ''Column color already exists, skipping...'';'
+);
+PREPARE stmt FROM @alter; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- Insert default categories
 INSERT IGNORE INTO `event_categories` (`name`, `description`, `color`) VALUES
@@ -179,7 +191,7 @@ VALUES (
     'schema_update',
     NULL,
     NULL,
-    '{"version": "1.6.0", "changes": ["events.promo_price", "events.promo_end_date", "events.event_type updated", "contacts.contact_type updated", "event_categories table", "event_type_catalog table", "event_registrations.is_guest", "event_registrations.is_owner_representative", "event_registrations.attendee_name", "event_registrations.attendee_position", "QR and Shelly config settings"]}',
+    '{"version":"1.6.0","changes":["events.promo_price","events.promo_end_date","events.event_type updated","contacts.contact_type updated","event_categories table","event_type_catalog table","event_registrations fields","config additions"]}',
     '127.0.0.1',
     NOW()
 );
@@ -187,7 +199,7 @@ VALUES (
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- =============================================
--- VERIFICATION QUERIES
+-- VERIFICATION QUERIES (descomentar para revisar)
 -- =============================================
 -- DESCRIBE events;
 -- DESCRIBE contacts;
@@ -195,6 +207,7 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- SELECT * FROM event_categories;
 -- SELECT * FROM event_type_catalog;
 -- SELECT * FROM config WHERE config_key LIKE 'qr_%' OR config_key LIKE 'shelly_%';
+-- SELECT * FROM audit_log ORDER BY created_at DESC LIMIT 5;
 
 -- =============================================
 -- ROLLBACK SECTION (USE WITH CAUTION)
@@ -213,10 +226,10 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- =============================================
 -- NOTES FOR DEPLOYMENT
 -- =============================================
--- 1. Backup database before running this script
--- 2. Run after deploying the new PHP code
--- 3. Test event creation with new promo_price and promo_end_date fields
--- 4. Test prospect editing functionality
--- 5. Test affiliate conversion with preloaded data
--- 6. Verify QR validation in event attendance
--- 7. Test API configuration page with new QR and Shelly settings
+-- 1. Backup database before running this script.
+-- 2. Run after deploying the new PHP code.
+-- 3. Test event creation with new promo_price and promo_end_date fields.
+-- 4. Test prospect editing functionality.
+-- 5. Test affiliate conversion with preloaded data.
+-- 6. Verify QR validation in event attendance.
+-- 7. Test API configuration page with new QR and Shelly settings.
