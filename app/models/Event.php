@@ -215,4 +215,18 @@ class Event extends Model {
         }
         return $this->db->update('event_registrations', $data, 'id = :id', ['id' => $registrationId]);
     }
+    
+    public function getRegistrationByCode(string $code): ?array {
+        $sql = "SELECT * FROM event_registrations WHERE registration_code = :code";
+        $result = $this->db->fetch($sql, ['code' => $code]);
+        return $result ?: null;
+    }
+    
+    public function markAttendance(int $registrationId, bool $attended): int {
+        $data = [
+            'attended' => $attended ? 1 : 0,
+            'attendance_time' => $attended ? date('Y-m-d H:i:s') : null
+        ];
+        return $this->db->update('event_registrations', $data, 'id = :id', ['id' => $registrationId]);
+    }
 }

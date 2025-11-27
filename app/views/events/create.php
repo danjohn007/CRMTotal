@@ -4,7 +4,7 @@
     <div class="flex items-center justify-between">
         <div>
             <h2 class="text-2xl font-bold text-gray-900">Nuevo Evento</h2>
-            <p class="mt-1 text-sm text-gray-500">Crea un nuevo evento interno, externo o de terceros</p>
+            <p class="mt-1 text-sm text-gray-500">Crea un nuevo evento interno, público o de terceros</p>
         </div>
         <a href="<?php echo BASE_URL; ?>/eventos" class="text-blue-600 hover:text-blue-800">
             ← Volver a Eventos
@@ -297,12 +297,30 @@ document.getElementById('is_paid').addEventListener('change', function() {
 });
 
 // Validate promo_end_date is before start_date
+function showPromoDateError(message) {
+    const promoEndInput = document.getElementById('promo_end_date');
+    let errorEl = document.getElementById('promo-date-error');
+    if (!errorEl) {
+        errorEl = document.createElement('div');
+        errorEl.id = 'promo-date-error';
+        errorEl.className = 'mt-1 p-2 bg-red-100 border border-red-400 text-red-700 text-xs rounded';
+        promoEndInput.parentNode.appendChild(errorEl);
+    }
+    errorEl.textContent = message;
+    errorEl.classList.remove('hidden');
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        errorEl.classList.add('hidden');
+    }, 5000);
+}
+
 document.getElementById('promo_end_date').addEventListener('change', function() {
     const startDate = document.getElementById('start_date').value;
     const promoEndDate = this.value;
     
     if (startDate && promoEndDate && promoEndDate >= startDate) {
-        alert('La fecha límite de preventa debe ser anterior a la fecha del evento.');
+        showPromoDateError('La fecha límite de preventa debe ser anterior a la fecha del evento.');
         this.value = '';
     }
 });
@@ -312,7 +330,7 @@ document.getElementById('start_date').addEventListener('change', function() {
     const promoEndDate = document.getElementById('promo_end_date').value;
     
     if (startDate && promoEndDate && promoEndDate >= startDate) {
-        alert('La fecha límite de preventa debe ser anterior a la fecha del evento.');
+        showPromoDateError('La fecha límite de preventa debe ser anterior a la fecha del evento.');
         document.getElementById('promo_end_date').value = '';
     }
 });
@@ -375,7 +393,8 @@ document.querySelector('form').addEventListener('submit', function(e) {
     
     if (isPaid && promoEndDate && startDate && promoEndDate >= startDate) {
         e.preventDefault();
-        alert('La fecha límite de preventa debe ser anterior a la fecha del evento.');
+        showPromoDateError('La fecha límite de preventa debe ser anterior a la fecha del evento.');
+        document.getElementById('promo_end_date').scrollIntoView({ behavior: 'smooth', block: 'center' });
         return false;
     }
 });

@@ -163,8 +163,14 @@ function startQRScanner() {
     // For now, show a message suggesting manual entry
     const resultDiv = document.getElementById('validation-result');
     resultDiv.innerHTML = '<div class="p-4 bg-yellow-100 border border-yellow-400 text-yellow-800 rounded-lg">' +
-        '<p>Para habilitar el escaneo de QR, configure la cámara del dispositivo.</p>' +
-        '<p class="mt-2 text-sm">Alternativamente, use la opción "Ingresar Manual" para validar códigos.</p>' +
+        '<p class="font-medium">📷 Escaneo de Cámara</p>' +
+        '<p class="mt-2">Para habilitar el escaneo de QR con cámara, es necesario:</p>' +
+        '<ul class="mt-2 list-disc list-inside text-sm">' +
+        '<li>Acceder desde un dispositivo con cámara (teléfono, tablet o laptop)</li>' +
+        '<li>Permitir el acceso a la cámara cuando el navegador lo solicite</li>' +
+        '<li>Usar HTTPS para conexión segura</li>' +
+        '</ul>' +
+        '<p class="mt-3 text-sm">Alternativamente, use la opción <strong>"Ingresar Manual"</strong> para escribir o pegar el código QR del asistente.</p>' +
         '</div>';
     resultDiv.classList.remove('hidden');
 }

@@ -39,8 +39,8 @@ PREPARE stmt FROM @alter; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 -- =============================================
 
 -- Note: MySQL ENUM modification requires recreating the column
--- This updates existing 'externo' values to 'publico'
-UPDATE `events` SET `event_type` = 'interno' WHERE `event_type` = 'externo';
+-- This updates existing 'externo' values to 'publico' (semantically correct mapping)
+UPDATE `events` SET `event_type` = 'publico' WHERE `event_type` = 'externo';
 
 -- Modify the ENUM to include 'publico'
 ALTER TABLE `events` MODIFY COLUMN `event_type` ENUM('interno', 'publico', 'terceros') NOT NULL DEFAULT 'interno';
@@ -174,14 +174,15 @@ INSERT IGNORE INTO `config` (`config_key`, `config_value`, `config_type`, `descr
 -- =============================================
 
 INSERT INTO `audit_log` (`user_id`, `action`, `table_name`, `record_id`, `new_values`, `ip_address`, `created_at`)
-SELECT
-    COALESCE((SELECT id FROM users ORDER BY id LIMIT 1), NULL),
+VALUES (
+    NULL,
     'schema_update',
     NULL,
     NULL,
     '{"version": "1.6.0", "changes": ["events.promo_price", "events.promo_end_date", "events.event_type updated", "contacts.contact_type updated", "event_categories table", "event_type_catalog table", "event_registrations.is_guest", "event_registrations.is_owner_representative", "event_registrations.attendee_name", "event_registrations.attendee_position", "QR and Shelly config settings"]}',
     '127.0.0.1',
-    NOW();
+    NOW()
+);
 
 SET FOREIGN_KEY_CHECKS = 1;
 

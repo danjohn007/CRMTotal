@@ -88,7 +88,7 @@
                                 </span>
                             </div>
                             <div class="mt-2 flex items-center space-x-2">
-                                <span class="px-2 py-1 text-xs rounded-full bg-<?php echo $event['event_type'] === 'interno' ? 'blue' : ($event['event_type'] === 'externo' ? 'green' : 'purple'); ?>-100 text-<?php echo $event['event_type'] === 'interno' ? 'blue' : ($event['event_type'] === 'externo' ? 'green' : 'purple'); ?>-800">
+                                <span class="px-2 py-1 text-xs rounded-full bg-<?php echo $event['event_type'] === 'interno' ? 'blue' : ($event['event_type'] === 'publico' ? 'green' : 'purple'); ?>-100 text-<?php echo $event['event_type'] === 'interno' ? 'blue' : ($event['event_type'] === 'publico' ? 'green' : 'purple'); ?>-800">
                                     <?php echo $eventTypes[$event['event_type']] ?? $event['event_type']; ?>
                                 </span>
                                 <?php if ($event['is_paid']): ?>
