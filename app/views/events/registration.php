@@ -402,9 +402,10 @@
         
         if (isOwner) {
             attendeeDetails.classList.add('hidden');
-            // Clear required attributes
+            // Clear required attributes and values
             document.querySelectorAll('#attendee-details input').forEach(input => {
                 input.removeAttribute('required');
+                input.value = '';
             });
         } else {
             attendeeDetails.classList.remove('hidden');
@@ -431,31 +432,66 @@
             container.innerHTML = '';
             
             for (let i = 1; i <= additionalCount; i++) {
-                const attendeeHtml = `
-                    <div class="p-4 bg-white rounded-lg border border-green-100 mb-4">
-                        <h4 class="text-sm font-medium text-gray-900 mb-3">Asistente ${i + 1}</h4>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="md:col-span-2">
-                                <label class="block text-sm font-medium text-gray-700">Nombre *</label>
-                                <input type="text" name="additional_attendees[${i}][name]" required
-                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">WhatsApp *</label>
-                                <input type="tel" name="additional_attendees[${i}][phone]" required
-                                       maxlength="10" pattern="[0-9]{10}"
-                                       placeholder="10 dígitos"
-                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Correo *</label>
-                                <input type="email" name="additional_attendees[${i}][email]" required
-                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
-                            </div>
-                        </div>
-                    </div>
-                `;
-                container.innerHTML += attendeeHtml;
+                // Create attendee form using DOM methods for safety
+                const attendeeDiv = document.createElement('div');
+                attendeeDiv.className = 'p-4 bg-white rounded-lg border border-green-100 mb-4';
+                
+                const title = document.createElement('h4');
+                title.className = 'text-sm font-medium text-gray-900 mb-3';
+                title.textContent = 'Asistente ' + (i + 1);
+                attendeeDiv.appendChild(title);
+                
+                const gridDiv = document.createElement('div');
+                gridDiv.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
+                
+                // Name field
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'md:col-span-2';
+                const nameLabel = document.createElement('label');
+                nameLabel.className = 'block text-sm font-medium text-gray-700';
+                nameLabel.textContent = 'Nombre *';
+                const nameInput = document.createElement('input');
+                nameInput.type = 'text';
+                nameInput.name = 'additional_attendees[' + i + '][name]';
+                nameInput.required = true;
+                nameInput.className = 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border';
+                nameDiv.appendChild(nameLabel);
+                nameDiv.appendChild(nameInput);
+                gridDiv.appendChild(nameDiv);
+                
+                // Phone field
+                const phoneDiv = document.createElement('div');
+                const phoneLabel = document.createElement('label');
+                phoneLabel.className = 'block text-sm font-medium text-gray-700';
+                phoneLabel.textContent = 'WhatsApp *';
+                const phoneInput = document.createElement('input');
+                phoneInput.type = 'tel';
+                phoneInput.name = 'additional_attendees[' + i + '][phone]';
+                phoneInput.required = true;
+                phoneInput.maxLength = 10;
+                phoneInput.pattern = '[0-9]{10}';
+                phoneInput.placeholder = '10 dígitos';
+                phoneInput.className = 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border';
+                phoneDiv.appendChild(phoneLabel);
+                phoneDiv.appendChild(phoneInput);
+                gridDiv.appendChild(phoneDiv);
+                
+                // Email field
+                const emailDiv = document.createElement('div');
+                const emailLabel = document.createElement('label');
+                emailLabel.className = 'block text-sm font-medium text-gray-700';
+                emailLabel.textContent = 'Correo *';
+                const emailInput = document.createElement('input');
+                emailInput.type = 'email';
+                emailInput.name = 'additional_attendees[' + i + '][email]';
+                emailInput.required = true;
+                emailInput.className = 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border';
+                emailDiv.appendChild(emailLabel);
+                emailDiv.appendChild(emailInput);
+                gridDiv.appendChild(emailDiv);
+                
+                attendeeDiv.appendChild(gridDiv);
+                container.appendChild(attendeeDiv);
             }
         } else {
             additionalSection.classList.add('hidden');
@@ -569,6 +605,7 @@
         const phone = document.getElementById('phone').value;
         if (phone && !/^\d{10}$/.test(phone)) {
             e.preventDefault();
+            document.getElementById('phone').focus();
             alert('El teléfono debe tener exactamente 10 dígitos.');
             return false;
         }
@@ -578,6 +615,8 @@
         for (let input of additionalInputs) {
             if (input.type === 'tel' && input.value && !/^\d{10}$/.test(input.value)) {
                 e.preventDefault();
+                input.focus();
+                input.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 alert('Todos los teléfonos deben tener exactamente 10 dígitos.');
                 return false;
             }

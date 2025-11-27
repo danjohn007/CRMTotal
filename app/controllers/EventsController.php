@@ -277,7 +277,8 @@ class EventsController extends Controller {
                 }
                 
                 if (!$error) {
-                    // Verify affiliate status on server side
+                    // Always verify affiliate status on server side for security
+                    // Frontend data (is_active_affiliate) cannot be trusted as it can be manipulated
                     $isActiveAffiliate = $this->eventModel->isActiveAffiliate($registrationData['guest_email']);
                     
                     // Calculate total amount
@@ -332,6 +333,8 @@ class EventsController extends Controller {
                         }
                         
                         // Create contact entries for additional attendees as colaborador_empresa
+                        // Note: Using individual inserts here since max 4 additional attendees (5 total tickets limit)
+                        // and we need to check for existing contacts. For larger batches, consider batch insert.
                         if (!empty($additionalAttendees) && is_array($additionalAttendees)) {
                             foreach ($additionalAttendees as $attendee) {
                                 if (!empty($attendee['email'])) {
