@@ -27,7 +27,7 @@
     <form method="POST" class="space-y-6">
         <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
         
-        <!-- QR API -->
+        <!-- QR Code Configuration -->
         <div class="bg-white rounded-lg shadow-sm p-6">
             <div class="flex items-center mb-4">
                 <div class="p-2 bg-purple-100 rounded-lg mr-3">
@@ -36,8 +36,110 @@
                     </svg>
                 </div>
                 <div>
-                    <h3 class="text-lg font-medium text-gray-900">API de Códigos QR</h3>
-                    <p class="text-sm text-gray-500">Para generación masiva de códigos QR</p>
+                    <h3 class="text-lg font-medium text-gray-900">Configuración de Códigos QR</h3>
+                    <p class="text-sm text-gray-500">Para generación de códigos QR en eventos</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="qr_api_provider" class="block text-sm font-medium text-gray-700">API para Generación de QR</label>
+                    <select id="qr_api_provider" name="qr_api_provider"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                        <option value="google" <?php echo ($config['qr_api_provider'] ?? 'google') === 'google' ? 'selected' : ''; ?>>Google Charts API</option>
+                        <option value="qrserver" <?php echo ($config['qr_api_provider'] ?? '') === 'qrserver' ? 'selected' : ''; ?>>QR Server API</option>
+                        <option value="local" <?php echo ($config['qr_api_provider'] ?? '') === 'local' ? 'selected' : ''; ?>>Generación Local (PHP)</option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">Seleccione el proveedor de API para generar códigos QR</p>
+                </div>
+                <div>
+                    <label for="qr_size" class="block text-sm font-medium text-gray-700">Tamaño de QR (píxeles)</label>
+                    <input type="number" id="qr_size" name="qr_size" 
+                           value="<?php echo htmlspecialchars($config['qr_size'] ?? '350'); ?>"
+                           min="100" max="1000" step="50"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    <p class="mt-1 text-xs text-gray-500">Tamaño del código QR para impresión (recomendado: 400px)</p>
+                </div>
+            </div>
+            <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-blue-600 mt-0.5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p class="text-sm text-blue-700">
+                        <strong>Nota:</strong> La configuración de API de QR permite cambiar el proveedor de generación de códigos QR. Un tamaño mayor mejora la calidad de impresión.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Shelly Relay Configuration -->
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <div class="flex items-center mb-4">
+                <div class="p-2 bg-yellow-100 rounded-lg mr-3">
+                    <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900">Shelly Relay API - Control de Acceso</h3>
+                    <p class="text-sm text-gray-500">Permite controlar el acceso a eventos mediante dispositivos Shelly Relay</p>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="flex items-center">
+                    <input type="checkbox" id="shelly_enabled" name="shelly_enabled" value="1"
+                           <?php echo ($config['shelly_enabled'] ?? '0') == '1' ? 'checked' : ''; ?>
+                           class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <span class="ml-2 text-sm text-gray-700">Habilitar integración con Shelly Relay API</span>
+                </label>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="shelly_url" class="block text-sm font-medium text-gray-700">URL de la API de Shelly</label>
+                    <input type="text" id="shelly_url" name="shelly_url" 
+                           value="<?php echo htmlspecialchars($config['shelly_url'] ?? ''); ?>"
+                           placeholder="http://192.168.1.100/relay"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    <p class="mt-1 text-xs text-gray-500">Ejemplo: http://192.168.1.100/relay</p>
+                </div>
+                <div>
+                    <label for="shelly_channel" class="block text-sm font-medium text-gray-700">Canal del Relay</label>
+                    <select id="shelly_channel" name="shelly_channel"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                        <option value="0" <?php echo ($config['shelly_channel'] ?? '0') === '0' ? 'selected' : ''; ?>>Canal 0</option>
+                        <option value="1" <?php echo ($config['shelly_channel'] ?? '') === '1' ? 'selected' : ''; ?>>Canal 1</option>
+                        <option value="2" <?php echo ($config['shelly_channel'] ?? '') === '2' ? 'selected' : ''; ?>>Canal 2</option>
+                        <option value="3" <?php echo ($config['shelly_channel'] ?? '') === '3' ? 'selected' : ''; ?>>Canal 3</option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">Seleccione el canal del relay a controlar</p>
+                </div>
+            </div>
+            
+            <div class="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-yellow-600 mt-0.5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <p class="text-sm text-yellow-700">
+                        <strong>Importante:</strong> Asegúrese de que la URL del dispositivo Shelly sea accesible desde el servidor. Esta función permite activar el relay para el acceso físico a eventos.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- QR API Key (for legacy/mass generation) -->
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <div class="flex items-center mb-4">
+                <div class="p-2 bg-purple-100 rounded-lg mr-3">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900">API Key para QR Masivo</h3>
+                    <p class="text-sm text-gray-500">Para generación masiva de códigos QR (opcional)</p>
                 </div>
             </div>
             <div>

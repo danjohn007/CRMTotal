@@ -7,9 +7,9 @@ class Event extends Model {
     protected array $fillable = [
         'title', 'description', 'event_type', 'category', 'start_date',
         'end_date', 'location', 'address', 'google_maps_url', 'is_online',
-        'online_url', 'max_capacity', 'is_paid', 'price', 'member_price',
-        'free_for_affiliates', 'registration_url', 'image', 'status', 
-        'target_audiences', 'created_by'
+        'online_url', 'max_capacity', 'is_paid', 'price', 'promo_price',
+        'promo_end_date', 'member_price', 'free_for_affiliates', 'registration_url',
+        'image', 'status', 'target_audiences', 'created_by'
     ];
     
     public function getUpcoming(int $limit = 10): array {
@@ -177,6 +177,16 @@ class Event extends Model {
     }
     
     public function getCategories(): array {
+        $sql = "SELECT * FROM event_categories ORDER BY name";
+        try {
+            return $this->raw($sql);
+        } catch (Exception $e) {
+            // Table might not exist yet, return empty array
+            return [];
+        }
+    }
+    
+    public function getActiveCategories(): array {
         $sql = "SELECT * FROM event_categories WHERE is_active = 1 ORDER BY name";
         try {
             return $this->raw($sql);

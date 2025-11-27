@@ -28,10 +28,13 @@ class Contact extends Model {
     }
     
     public function identify(string $identifier): ?array {
-        // Try RFC first, then WhatsApp
+        // Try RFC first, then WhatsApp, then phone
         $contact = $this->findByRfc($identifier);
         if (!$contact) {
             $contact = $this->findByWhatsapp($identifier);
+        }
+        if (!$contact) {
+            $contact = $this->findBy('phone', $identifier);
         }
         return $contact;
     }

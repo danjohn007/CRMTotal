@@ -4,7 +4,7 @@
     <div class="flex items-center justify-between">
         <div>
             <h2 class="text-2xl font-bold text-gray-900">Nuevo Evento</h2>
-            <p class="mt-1 text-sm text-gray-500">Crea un nuevo evento interno, externo o de terceros</p>
+            <p class="mt-1 text-sm text-gray-500">Crea un nuevo evento interno, público o de terceros</p>
         </div>
         <a href="<?php echo BASE_URL; ?>/eventos" class="text-blue-600 hover:text-blue-800">
             ← Volver a Eventos
@@ -173,32 +173,61 @@
         </div>
         
         <!-- Pricing -->
-        <div class="mb-8">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Precios</h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="mb-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b flex items-center">
+                <span class="text-green-600 mr-2">$</span> Configuración de Precios
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label class="flex items-center">
+                    <label class="flex items-center mb-4">
                         <input type="checkbox" id="is_paid" name="is_paid" value="1"
                                class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                         <span class="ml-2 text-sm text-gray-700">Evento de pago</span>
                     </label>
                 </div>
-                
-                <div id="price-field" class="hidden">
-                    <label for="price" class="block text-sm font-medium text-gray-700">Precio General</label>
-                    <input type="number" id="price" name="price" min="0" step="0.01"
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+            </div>
+            
+            <div id="pricing-fields" class="hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label for="price" class="block text-sm font-medium text-gray-700">Costo del Evento (MXN)</label>
+                        <input type="number" id="price" name="price" min="0" step="0.01" value="0.00"
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                        <p class="mt-1 text-xs text-gray-500">Precio regular del boleto</p>
+                    </div>
+                    
+                    <div>
+                        <label for="promo_price" class="block text-sm font-medium text-gray-700">Precio de Preventa (MXN)</label>
+                        <input type="number" id="promo_price" name="promo_price" min="0" step="0.01" value="0.00"
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                        <p class="mt-1 text-xs text-gray-500">Precio especial hasta la fecha límite</p>
+                    </div>
                 </div>
                 
-                <div id="member-price-field" class="hidden">
-                    <label for="member_price" class="block text-sm font-medium text-gray-700">Precio Afiliados</label>
-                    <input type="number" id="member_price" name="member_price" min="0" step="0.01"
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label for="promo_end_date" class="block text-sm font-medium text-gray-700">Fecha Límite de Preventa</label>
+                        <input type="datetime-local" id="promo_end_date" name="promo_end_date"
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                        <div class="mt-1 p-2 bg-blue-100 rounded text-xs text-blue-700 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Después de esta fecha, se cobrará el precio regular
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="member_price" class="block text-sm font-medium text-gray-700">Precio Afiliados (MXN)</label>
+                        <input type="number" id="member_price" name="member_price" min="0" step="0.01" value="0.00"
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                        <p class="mt-1 text-xs text-gray-500">Precio especial para afiliados vigentes</p>
+                    </div>
                 </div>
             </div>
             
             <!-- Free access for affiliates -->
-            <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div class="mt-4 p-4 bg-white rounded-lg border border-blue-200">
                 <label class="flex items-start">
                     <input type="checkbox" id="free_for_affiliates" name="free_for_affiliates" value="1" checked
                            class="mt-1 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
@@ -224,6 +253,18 @@
                     <span class="ml-2 text-sm text-gray-700"><?php echo htmlspecialchars($label); ?></span>
                 </label>
                 <?php endforeach; ?>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-200">
+                <label class="flex items-center">
+                    <input type="checkbox" name="target_audiences[]" value="patrocinador_mesa"
+                           class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <span class="ml-2 text-sm text-gray-700">Patrocinadores/Mesa Directiva</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" name="target_audiences[]" value="colaborador_empresa"
+                           class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <span class="ml-2 text-sm text-gray-700">Colaboradores de Empresas</span>
+                </label>
             </div>
         </div>
         
@@ -252,8 +293,46 @@ document.getElementById('is_online').addEventListener('change', function() {
 });
 
 document.getElementById('is_paid').addEventListener('change', function() {
-    document.getElementById('price-field').classList.toggle('hidden', !this.checked);
-    document.getElementById('member-price-field').classList.toggle('hidden', !this.checked);
+    document.getElementById('pricing-fields').classList.toggle('hidden', !this.checked);
+});
+
+// Validate promo_end_date is before start_date
+function showPromoDateError(message) {
+    const promoEndInput = document.getElementById('promo_end_date');
+    let errorEl = document.getElementById('promo-date-error');
+    if (!errorEl) {
+        errorEl = document.createElement('div');
+        errorEl.id = 'promo-date-error';
+        errorEl.className = 'mt-1 p-2 bg-red-100 border border-red-400 text-red-700 text-xs rounded';
+        promoEndInput.parentNode.appendChild(errorEl);
+    }
+    errorEl.textContent = message;
+    errorEl.classList.remove('hidden');
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        errorEl.classList.add('hidden');
+    }, 5000);
+}
+
+document.getElementById('promo_end_date').addEventListener('change', function() {
+    const startDate = document.getElementById('start_date').value;
+    const promoEndDate = this.value;
+    
+    if (startDate && promoEndDate && promoEndDate >= startDate) {
+        showPromoDateError('La fecha límite de preventa debe ser anterior a la fecha del evento.');
+        this.value = '';
+    }
+});
+
+document.getElementById('start_date').addEventListener('change', function() {
+    const startDate = this.value;
+    const promoEndDate = document.getElementById('promo_end_date').value;
+    
+    if (startDate && promoEndDate && promoEndDate >= startDate) {
+        showPromoDateError('La fecha límite de preventa debe ser anterior a la fecha del evento.');
+        document.getElementById('promo_end_date').value = '';
+    }
 });
 
 // Category dropdown - show text input if "Other" is selected
@@ -304,5 +383,19 @@ document.getElementById('registration_url').addEventListener('input', function()
                 }
             });
     }, 500);
+});
+
+// Form validation before submit
+document.querySelector('form').addEventListener('submit', function(e) {
+    const startDate = document.getElementById('start_date').value;
+    const promoEndDate = document.getElementById('promo_end_date').value;
+    const isPaid = document.getElementById('is_paid').checked;
+    
+    if (isPaid && promoEndDate && startDate && promoEndDate >= startDate) {
+        e.preventDefault();
+        showPromoDateError('La fecha límite de preventa debe ser anterior a la fecha del evento.');
+        document.getElementById('promo_end_date').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return false;
+    }
 });
 </script>

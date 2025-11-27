@@ -198,6 +198,7 @@ class ProspectsController extends Controller {
             'state' => $this->sanitize($this->getInput('state', 'Querétaro')),
             'postal_code' => $this->sanitize($this->getInput('postal_code', '')),
             'website' => $this->sanitize($this->getInput('website', '')),
+            'google_maps_url' => $this->sanitize($this->getInput('google_maps_url', '')),
             'source_channel' => $this->sanitize($this->getInput('source_channel', 'alta_directa')),
             'assigned_affiliate_id' => (int) $this->getInput('assigned_affiliate_id', $_SESSION['user_id']),
             'notes' => $this->sanitize($this->getInput('notes', ''))

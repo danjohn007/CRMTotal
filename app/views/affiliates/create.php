@@ -4,7 +4,13 @@
     <div class="flex items-center justify-between">
         <div>
             <h2 class="text-2xl font-bold text-gray-900">Nuevo Afiliado</h2>
-            <p class="mt-1 text-sm text-gray-500">Registra un nuevo afiliado en el sistema</p>
+            <p class="mt-1 text-sm text-gray-500">
+                <?php if (isset($prospect) && $prospect): ?>
+                Convirtiendo prospecto: <?php echo htmlspecialchars($prospect['business_name'] ?? $prospect['owner_name'] ?? ''); ?>
+                <?php else: ?>
+                Registra un nuevo afiliado en el sistema
+                <?php endif; ?>
+            </p>
         </div>
         <a href="<?php echo BASE_URL; ?>/afiliados" class="text-blue-600 hover:text-blue-800">
             ← Volver a Afiliados
@@ -14,6 +20,17 @@
     <?php if (isset($error)): ?>
     <div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
         <?php echo htmlspecialchars($error); ?>
+    </div>
+    <?php endif; ?>
+    
+    <?php if (isset($prospect) && $prospect): ?>
+    <div class="p-4 bg-blue-50 border border-blue-200 text-blue-800 rounded-lg">
+        <div class="flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Se han precargado los datos del prospecto. Verifica y completa la información antes de guardar.
+        </div>
     </div>
     <?php endif; ?>
     
@@ -69,6 +86,7 @@
                 <div>
                     <label for="rfc" class="block text-sm font-medium text-gray-700">RFC</label>
                     <input type="text" id="rfc" name="rfc" 
+                           value="<?php echo htmlspecialchars($prospect['rfc'] ?? ''); ?>"
                            maxlength="13"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
@@ -76,6 +94,7 @@
                 <div>
                     <label for="whatsapp" class="block text-sm font-medium text-gray-700">WhatsApp Principal *</label>
                     <input type="text" id="whatsapp" name="whatsapp" required
+                           value="<?php echo htmlspecialchars($prospect['whatsapp'] ?? ''); ?>"
                            maxlength="10" pattern="[0-9]{10}" title="Ingrese exactamente 10 dígitos"
                            placeholder="10 dígitos"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
@@ -84,36 +103,42 @@
                 <div>
                     <label for="business_name" class="block text-sm font-medium text-gray-700">Razón Social *</label>
                     <input type="text" id="business_name" name="business_name" required
+                           value="<?php echo htmlspecialchars($prospect['business_name'] ?? ''); ?>"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
                 
                 <div>
                     <label for="commercial_name" class="block text-sm font-medium text-gray-700">Nombre Comercial</label>
                     <input type="text" id="commercial_name" name="commercial_name" 
+                           value="<?php echo htmlspecialchars($prospect['commercial_name'] ?? ''); ?>"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
                 
                 <div>
                     <label for="owner_name" class="block text-sm font-medium text-gray-700">Propietario / Representante</label>
                     <input type="text" id="owner_name" name="owner_name" 
+                           value="<?php echo htmlspecialchars($prospect['owner_name'] ?? ''); ?>"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
                 
                 <div>
                     <label for="legal_representative" class="block text-sm font-medium text-gray-700">Representante Legal</label>
                     <input type="text" id="legal_representative" name="legal_representative" 
+                           value="<?php echo htmlspecialchars($prospect['legal_representative'] ?? ''); ?>"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
                 
                 <div>
                     <label for="corporate_email" class="block text-sm font-medium text-gray-700">Correo Corporativo</label>
                     <input type="email" id="corporate_email" name="corporate_email" 
+                           value="<?php echo htmlspecialchars($prospect['corporate_email'] ?? ''); ?>"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
                 
                 <div>
                     <label for="phone" class="block text-sm font-medium text-gray-700">Teléfono</label>
                     <input type="text" id="phone" name="phone" 
+                           value="<?php echo htmlspecialchars($prospect['phone'] ?? ''); ?>"
                            maxlength="10" pattern="[0-9]{10}" title="Ingrese exactamente 10 dígitos"
                            placeholder="10 dígitos"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
@@ -128,12 +153,14 @@
                 <div>
                     <label for="industry" class="block text-sm font-medium text-gray-700">Giro / Industria</label>
                     <input type="text" id="industry" name="industry" 
+                           value="<?php echo htmlspecialchars($prospect['industry'] ?? ''); ?>"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
                 
                 <div>
                     <label for="niza_classification" class="block text-sm font-medium text-gray-700">Clasificación NIZA</label>
                     <input type="text" id="niza_classification" name="niza_classification" 
+                           value="<?php echo htmlspecialchars($prospect['niza_classification'] ?? ''); ?>"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
                 
@@ -143,7 +170,8 @@
                             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                         <option value="">Seleccionar...</option>
                         <?php foreach ($affiliators as $affiliator): ?>
-                        <option value="<?php echo $affiliator['id']; ?>">
+                        <option value="<?php echo $affiliator['id']; ?>"
+                            <?php echo (($prospect['assigned_affiliate_id'] ?? $_SESSION['user_id'] ?? 0) == $affiliator['id']) ? 'selected' : ''; ?>>
                             <?php echo htmlspecialchars($affiliator['name']); ?>
                         </option>
                         <?php endforeach; ?>
@@ -153,7 +181,7 @@
                 <div>
                     <label for="discount_percentage" class="block text-sm font-medium text-gray-700">Porcentaje de Descuento</label>
                     <input type="number" id="discount_percentage" name="discount_percentage" 
-                           value="0" min="0" max="100" step="0.01"
+                           value="<?php echo htmlspecialchars($prospect['discount_percentage'] ?? 0); ?>" min="0" max="100" step="0.01"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
             </div>
@@ -166,38 +194,40 @@
                 <div class="md:col-span-2">
                     <label for="commercial_address" class="block text-sm font-medium text-gray-700">Dirección Comercial</label>
                     <textarea id="commercial_address" name="commercial_address" rows="2"
-                              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"></textarea>
+                              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"><?php echo htmlspecialchars($prospect['commercial_address'] ?? ''); ?></textarea>
                 </div>
                 
                 <div class="md:col-span-2">
                     <label for="fiscal_address" class="block text-sm font-medium text-gray-700">Dirección Fiscal</label>
                     <textarea id="fiscal_address" name="fiscal_address" rows="2"
-                              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"></textarea>
+                              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"><?php echo htmlspecialchars($prospect['fiscal_address'] ?? ''); ?></textarea>
                 </div>
                 
                 <div>
                     <label for="city" class="block text-sm font-medium text-gray-700">Ciudad</label>
                     <input type="text" id="city" name="city" 
-                           value="Santiago de Querétaro"
+                           value="<?php echo htmlspecialchars($prospect['city'] ?? 'Santiago de Querétaro'); ?>"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
                 
                 <div>
                     <label for="state" class="block text-sm font-medium text-gray-700">Estado</label>
                     <input type="text" id="state" name="state" 
-                           value="Querétaro"
+                           value="<?php echo htmlspecialchars($prospect['state'] ?? 'Querétaro'); ?>"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
                 
                 <div>
                     <label for="postal_code" class="block text-sm font-medium text-gray-700">Código Postal</label>
                     <input type="text" id="postal_code" name="postal_code" 
+                           value="<?php echo htmlspecialchars($prospect['postal_code'] ?? ''); ?>"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
                 
                 <div>
                     <label for="google_maps_url" class="block text-sm font-medium text-gray-700">URL Google Maps</label>
                     <input type="url" id="google_maps_url" name="google_maps_url" 
+                           value="<?php echo htmlspecialchars($prospect['google_maps_url'] ?? ''); ?>"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
             </div>
@@ -210,24 +240,28 @@
                 <div>
                     <label for="website" class="block text-sm font-medium text-gray-700">Sitio Web</label>
                     <input type="url" id="website" name="website" 
+                           value="<?php echo htmlspecialchars($prospect['website'] ?? ''); ?>"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
                 
                 <div>
                     <label for="facebook" class="block text-sm font-medium text-gray-700">Facebook</label>
                     <input type="url" id="facebook" name="facebook" 
+                           value="<?php echo htmlspecialchars($prospect['facebook'] ?? ''); ?>"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
                 
                 <div>
                     <label for="instagram" class="block text-sm font-medium text-gray-700">Instagram</label>
                     <input type="url" id="instagram" name="instagram" 
+                           value="<?php echo htmlspecialchars($prospect['instagram'] ?? ''); ?>"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
                 
                 <div>
                     <label for="linkedin" class="block text-sm font-medium text-gray-700">LinkedIn</label>
                     <input type="url" id="linkedin" name="linkedin" 
+                           value="<?php echo htmlspecialchars($prospect['linkedin'] ?? ''); ?>"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
             </div>
@@ -238,7 +272,7 @@
             <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Notas</h3>
             <div>
                 <textarea id="notes" name="notes" rows="4"
-                          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"></textarea>
+                          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"><?php echo htmlspecialchars($prospect['notes'] ?? ''); ?></textarea>
             </div>
         </div>
         

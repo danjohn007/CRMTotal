@@ -419,6 +419,8 @@ class EventsController extends Controller {
             'max_capacity' => (int) $this->getInput('max_capacity', 0),
             'is_paid' => (int) $this->getInput('is_paid', 0),
             'price' => (float) $this->getInput('price', 0),
+            'promo_price' => (float) $this->getInput('promo_price', 0),
+            'promo_end_date' => $this->getInput('promo_end_date', null),
             'member_price' => (float) $this->getInput('member_price', 0),
             'free_for_affiliates' => (int) $this->getInput('free_for_affiliates', 1),
             'status' => $this->sanitize($this->getInput('status', 'draft'))
@@ -438,7 +440,7 @@ class EventsController extends Controller {
         
         return [
             'interno' => 'Evento Interno CCQ',
-            'externo' => 'Evento Externo',
+            'publico' => 'Evento Público',
             'terceros' => 'Evento de Terceros'
         ];
     }
@@ -580,5 +582,69 @@ class EventsController extends Controller {
             // Log error but don't fail
             error_log("Error generating/sending QR code: " . $e->getMessage());
         }
+    }
+    
+    public function categories(): void {
+        $this->requireAuth();
+        $this->requireRole(['superadmin', 'direccion', 'jefe_comercial']);
+        
+        $error = null;
+        $success = null;
+        
+        // Handle form submission
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!$this->validateCsrf()) {
+                $error = 'Token de seguridad inválido.';
+            } else {
+                $action = $this->getInput('action', '');
+                
+                if ($action === 'create') {
+                    $name = $this->sanitize($this->getInput('name', ''));
+                    $description = $this->sanitize($this->getInput('description', ''));
+                    $color = $this->sanitize($this->getInput('color', '#3b82f6'));
+                    
+                    if (!empty($name)) {
+                        $this->db->insert('event_categories', [
+                            'name' => $name,
+                            'description' => $description,
+                            'color' => $color,
+                            'is_active' => 1
+                        ]);
+                        $success = 'Categoría creada exitosamente.';
+                    } else {
+                        $error = 'El nombre es requerido.';
+                    }
+                } elseif ($action === 'toggle') {
+                    $id = (int) $this->getInput('id', 0);
+                    if ($id > 0) {
+                        $category = $this->db->queryOne("SELECT is_active FROM event_categories WHERE id = :id", ['id' => $id]);
+                        if ($category) {
+                            $this->db->update('event_categories', [
+                                'is_active' => $category['is_active'] ? 0 : 1
+                            ], 'id = :id', ['id' => $id]);
+                            $success = 'Estado de categoría actualizado.';
+                        }
+                    }
+                } elseif ($action === 'delete') {
+                    $id = (int) $this->getInput('id', 0);
+                    if ($id > 0) {
+                        $this->db->delete('event_categories', 'id = :id', ['id' => $id]);
+                        $success = 'Categoría eliminada.';
+                    }
+                }
+            }
+        }
+        
+        // Get all categories
+        $categories = $this->eventModel->getCategories();
+        
+        $this->view('events/categories', [
+            'pageTitle' => 'Categorías de Eventos',
+            'currentPage' => 'eventos',
+            'categories' => $categories,
+            'error' => $error,
+            'success' => $success,
+            'csrf_token' => $this->csrfToken()
+        ]);
     }
 }
