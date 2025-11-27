@@ -200,7 +200,23 @@
                         <label for="promo_price" class="block text-sm font-medium text-gray-700">Precio de Preventa (MXN)</label>
                         <input type="number" id="promo_price" name="promo_price" min="0" step="0.01" value="0.00"
                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
-                        <p class="mt-1 text-xs text-gray-500">Precio especial hasta la fecha límite</p>
+                        <p class="mt-1 text-xs text-gray-500">Precio especial para público general hasta la fecha límite</p>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label for="member_price" class="block text-sm font-medium text-gray-700">Precio Afiliados (MXN)</label>
+                        <input type="number" id="member_price" name="member_price" min="0" step="0.01" value="0.00"
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                        <p class="mt-1 text-xs text-gray-500">Precio especial para afiliados vigentes</p>
+                    </div>
+                    
+                    <div>
+                        <label for="promo_member_price" class="block text-sm font-medium text-gray-700">Precio Preventa Afiliado (MXN)</label>
+                        <input type="number" id="promo_member_price" name="promo_member_price" min="0" step="0.01" value="0.00"
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                        <p class="mt-1 text-xs text-gray-500">Precio de preventa exclusivo para afiliados vigentes</p>
                     </div>
                 </div>
                 
@@ -213,15 +229,8 @@
                             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
-                            Después de esta fecha, se cobrará el precio regular
+                            Después de esta fecha, se cobrarán los precios regulares
                         </div>
-                    </div>
-                    
-                    <div>
-                        <label for="member_price" class="block text-sm font-medium text-gray-700">Precio Afiliados (MXN)</label>
-                        <input type="number" id="member_price" name="member_price" min="0" step="0.01" value="0.00"
-                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
-                        <p class="mt-1 text-xs text-gray-500">Precio especial para afiliados vigentes</p>
                     </div>
                 </div>
             </div>
