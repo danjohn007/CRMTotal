@@ -131,6 +131,41 @@ class Event extends Model {
         return ($result['count'] ?? 0) > 0;
     }
     
+    /**
+     * Check if a company (by email or RFC) already received a courtesy ticket for this event
+     */
+    public function hasCourtesyTicket(int $eventId, string $email, ?string $rfc = null): bool {
+        // Check by email first
+        $sql = "SELECT COUNT(*) as count 
+                FROM event_registrations 
+                WHERE event_id = :event_id 
+                AND guest_email = :email
+                AND is_owner_representative = 1
+                AND is_guest = 0
+                AND payment_status = 'free'";
+        $result = $this->rawOne($sql, ['event_id' => $eventId, 'email' => $email]);
+        if (($result['count'] ?? 0) > 0) {
+            return true;
+        }
+        
+        // Also check by RFC if provided
+        if (!empty($rfc)) {
+            $sql = "SELECT COUNT(*) as count 
+                    FROM event_registrations 
+                    WHERE event_id = :event_id 
+                    AND guest_rfc = :rfc
+                    AND is_owner_representative = 1
+                    AND is_guest = 0
+                    AND payment_status = 'free'";
+            $result = $this->rawOne($sql, ['event_id' => $eventId, 'rfc' => $rfc]);
+            if (($result['count'] ?? 0) > 0) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
     public function markAttendance(int $registrationId, bool $attended = true): int {
         return $this->db->update('event_registrations', [
             'attended' => $attended ? 1 : 0,

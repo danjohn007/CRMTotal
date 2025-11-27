@@ -281,14 +281,33 @@ class EventsController extends Controller {
                     // Frontend data (is_active_affiliate) cannot be trusted as it can be manipulated
                     $isActiveAffiliate = $this->eventModel->isActiveAffiliate($registrationData['guest_email']);
                     
+                    // Get company ID if registering as affiliate (for courtesy ticket check)
+                    $contactModel = new Contact();
+                    $existingContact = $contactModel->findBy('corporate_email', $registrationData['guest_email']);
+                    $companyId = $existingContact['id'] ?? null;
+                    
                     // Calculate total amount
+                    // For active affiliates, use member_price if available
                     $pricePerTicket = (float) ($event['price'] ?? 0);
+                    if ($isActiveAffiliate && !$isGuest) {
+                        $memberPrice = (float) ($event['member_price'] ?? 0);
+                        if ($memberPrice > 0) {
+                            $pricePerTicket = $memberPrice;
+                        }
+                    }
+                    
                     $freeTickets = 0;
                     
                     if ($event['is_paid']) {
                         // Check for courtesy ticket eligibility
+                        // Only owner/representative of active affiliate gets ONE free ticket
+                        // Check if this company already received a courtesy ticket for this event
                         if (!$isGuest && $isActiveAffiliate && ($event['free_for_affiliates'] ?? 1) && $isOwnerRepresentative) {
-                            $freeTickets = 1; // One courtesy ticket for active affiliates
+                            // Check if this company (by RFC or email) already got a courtesy ticket
+                            $hasCourtesyTicket = $this->eventModel->hasCourtesyTicket($id, $registrationData['guest_email'], $registrationData['guest_rfc'] ?? null);
+                            if (!$hasCourtesyTicket) {
+                                $freeTickets = 1; // One courtesy ticket for active affiliates
+                            }
                         }
                         $totalAmount = ($tickets - $freeTickets) * $pricePerTicket;
                         if ($totalAmount < 0) $totalAmount = 0;
@@ -308,28 +327,38 @@ class EventsController extends Controller {
                     try {
                         $registrationId = $this->eventModel->registerAttendee($id, $registrationData);
                         
-                        // Check if this email belongs to a contact - convert to prospect or create collaborator
-                        $contactModel = new Contact();
-                        $existingContact = $contactModel->findBy('corporate_email', $registrationData['guest_email']);
-                        
-                        if (!$existingContact && !$isGuest) {
-                            // Determine contact type based on registration
-                            $contactType = 'prospecto';
-                            if (!$isOwnerRepresentative && isset($registrationData['attendee_name'])) {
-                                $contactType = 'colaborador_empresa';
+                        // Handle contact creation based on registration type
+                        if (!$existingContact) {
+                            if ($isGuest) {
+                                // Create contact entry for guest as 'invitado'
+                                $contactModel->create([
+                                    'corporate_email' => $registrationData['guest_email'],
+                                    'phone' => $registrationData['guest_phone'],
+                                    'owner_name' => $registrationData['guest_name'],
+                                    'contact_type' => 'invitado',
+                                    'source_channel' => $event['is_paid'] ? 'evento_pagado' : 'evento_gratuito',
+                                    'profile_completion' => 15,
+                                    'completion_stage' => 'A'
+                                ]);
+                            } else {
+                                // Determine contact type based on registration
+                                $contactType = 'prospecto';
+                                if (!$isOwnerRepresentative && isset($registrationData['attendee_name'])) {
+                                    $contactType = 'colaborador_empresa';
+                                }
+                                
+                                // Create new contact from registration
+                                $contactModel->create([
+                                    'rfc' => $registrationData['guest_rfc'] ?? null,
+                                    'corporate_email' => $registrationData['guest_email'],
+                                    'phone' => $registrationData['guest_phone'],
+                                    'owner_name' => $registrationData['guest_name'],
+                                    'contact_type' => $contactType,
+                                    'source_channel' => $event['is_paid'] ? 'evento_pagado' : 'evento_gratuito',
+                                    'profile_completion' => 25,
+                                    'completion_stage' => 'A'
+                                ]);
                             }
-                            
-                            // Create new contact from registration
-                            $contactModel->create([
-                                'rfc' => $registrationData['guest_rfc'] ?? null,
-                                'corporate_email' => $registrationData['guest_email'],
-                                'phone' => $registrationData['guest_phone'],
-                                'owner_name' => $registrationData['guest_name'],
-                                'contact_type' => $contactType,
-                                'source_channel' => $event['is_paid'] ? 'evento_pagado' : 'evento_gratuito',
-                                'profile_completion' => 25,
-                                'completion_stage' => 'A'
-                            ]);
                         }
                         
                         // Create contact entries for additional attendees as colaborador_empresa
@@ -568,7 +597,9 @@ class EventsController extends Controller {
                 $body .= "💳 COMPLETAR PAGO\n";
                 $body .= "Para confirmar tu asistencia, completa el pago en el siguiente enlace:\n";
                 $body .= $paymentUrl . "\n\n";
-                $body .= "Monto a pagar: $" . number_format($event['price'] * $registrationData['tickets'], 2) . " MXN\n\n";
+                // Use the calculated total_amount which includes member pricing and courtesy tickets
+                $amountToPay = $registrationData['total_amount'] ?? ($event['price'] * $registrationData['tickets']);
+                $body .= "Monto a pagar: $" . number_format($amountToPay, 2) . " MXN\n\n";
             }
             
             $body .= "Código de registro: " . $registrationCode . "\n\n";
@@ -605,14 +636,10 @@ class EventsController extends Controller {
             
             $qrRegistrationCode = $regCodeResult['registration_code'];
             
-            // Generate QR code using Google Charts API
-            // NOTE: This API is deprecated. For production, migrate to endroid/qr-code:
-            // composer require endroid/qr-code
-            // See: https://github.com/endroid/qr-code
+            // Data to encode in QR
             $qrData = BASE_URL . '/evento/verificar/' . $qrRegistrationCode;
-            $qrImageUrl = "https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=" . urlencode($qrData);
             
-            // Download QR code image
+            // Create QR directory
             $qrDir = PUBLIC_PATH . '/uploads/qr/';
             if (!is_dir($qrDir)) {
                 mkdir($qrDir, 0750, true);
@@ -621,8 +648,31 @@ class EventsController extends Controller {
             $qrFilename = 'qr_' . $qrRegistrationCode . '.png';
             $qrPath = $qrDir . $qrFilename;
             
-            // Download and save QR code
-            $qrContent = @file_get_contents($qrImageUrl);
+            // Get QR provider from config
+            $qrProvider = $this->configModel->get('qr_api_provider', 'local');
+            $qrSize = (int) $this->configModel->get('qr_size', 350);
+            
+            $qrContent = null;
+            
+            // Try multiple QR generation methods
+            if ($qrProvider === 'google' || $qrProvider === 'qrserver') {
+                // Try QR Server API first (more reliable than deprecated Google Charts)
+                $qrServerUrl = "https://api.qrserver.com/v1/create-qr-code/?size={$qrSize}x{$qrSize}&data=" . urlencode($qrData);
+                $qrContent = @file_get_contents($qrServerUrl);
+                
+                // If QR Server fails, try Google Charts as backup
+                if (!$qrContent && $qrProvider === 'google') {
+                    $googleUrl = "https://chart.googleapis.com/chart?cht=qr&chs={$qrSize}x{$qrSize}&chl=" . urlencode($qrData);
+                    $qrContent = @file_get_contents($googleUrl);
+                }
+            }
+            
+            // If API methods fail or provider is 'local', use local PHP generation
+            if (!$qrContent) {
+                $qrContent = $this->generateLocalQR($qrData, $qrSize);
+            }
+            
+            // Save QR code if generated
             if ($qrContent) {
                 file_put_contents($qrPath, $qrContent);
                 
@@ -630,6 +680,9 @@ class EventsController extends Controller {
                 $this->db->update('event_registrations', [
                     'qr_code' => $qrFilename
                 ], 'id = :id', ['id' => $registrationId]);
+            } else {
+                error_log("QR generation failed for registration: " . $qrRegistrationCode);
+                return;
             }
             
             // Send QR code email
@@ -637,8 +690,8 @@ class EventsController extends Controller {
             $subject = "Código QR de Acceso - " . $event['title'];
             
             $body = "Hola " . htmlspecialchars($registrationData['guest_name']) . ",\n\n";
-            $body .= "¡Tu pago ha sido confirmado!\n\n";
-            $body .= "Adjunto encontrarás tu código QR de acceso al evento:\n\n";
+            $body .= "¡Tu registro ha sido confirmado!\n\n";
+            $body .= "Tu código QR de acceso al evento:\n\n";
             $body .= "📅 " . htmlspecialchars($event['title']) . "\n";
             $body .= "📍 " . ($event['is_online'] ? 'Evento en línea' : htmlspecialchars($event['location'] ?? '')) . "\n";
             $body .= "🕐 " . date('d/m/Y H:i', strtotime($event['start_date'])) . " hrs\n";
@@ -664,6 +717,52 @@ class EventsController extends Controller {
             // Log error but don't fail
             error_log("Error generating/sending QR code: " . $e->getMessage());
         }
+    }
+    
+    /**
+     * Generate QR code locally using PHP GD library
+     * This is a simple implementation that doesn't require external libraries
+     */
+    private function generateLocalQR(string $data, int $size = 350): ?string {
+        // Try to use QR Server API as fallback for local generation
+        // since pure PHP QR generation requires additional libraries
+        $qrServerUrl = "https://api.qrserver.com/v1/create-qr-code/?size={$size}x{$size}&data=" . urlencode($data);
+        
+        // Use cURL for more reliable fetching
+        if (function_exists('curl_init')) {
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $qrServerUrl);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            $content = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            
+            if ($httpCode === 200 && $content) {
+                return $content;
+            }
+        }
+        
+        // Fallback to file_get_contents with context
+        $context = stream_context_create([
+            'http' => [
+                'timeout' => 30,
+                'ignore_errors' => false
+            ],
+            'ssl' => [
+                'verify_peer' => true,
+                'verify_peer_name' => true
+            ]
+        ]);
+        
+        $content = @file_get_contents($qrServerUrl, false, $context);
+        if ($content) {
+            return $content;
+        }
+        
+        return null;
     }
     
     public function categories(): void {

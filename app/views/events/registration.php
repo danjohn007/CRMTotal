@@ -166,7 +166,24 @@
                 <input type="hidden" name="contact_id" id="contact_id" value="">
                 <input type="hidden" name="is_active_affiliate" id="is_active_affiliate" value="0">
                 
-                <!-- Guest Mode Selection -->
+                <!-- Company Lookup (hidden in guest mode) -->
+                <div id="company-lookup-section" class="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <p class="text-sm text-gray-600 mb-3">
+                        ¿Ya eres empresa afiliada o registrada? Ingresa tu Email, WhatsApp, RFC o Teléfono para autocompletar tus datos.
+                    </p>
+                    <div class="flex space-x-2">
+                        <input type="text" id="lookup-identifier" 
+                               placeholder="Email, WhatsApp, RFC o Teléfono"
+                               class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                        <button type="button" onclick="lookupCompany()" 
+                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                            Buscar
+                        </button>
+                    </div>
+                    <p id="lookup-result" class="text-sm mt-2 hidden"></p>
+                </div>
+                
+                <!-- Guest Mode Selection (below company search) -->
                 <div class="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-lg">
                     <label class="flex items-center cursor-pointer">
                         <input type="checkbox" id="is_guest" name="is_guest" value="1"
@@ -177,23 +194,6 @@
                     <p class="text-xs text-gray-600 mt-2 ml-6">
                         Selecciona esta opción si no eres empresa afiliada y deseas asistir como invitado al evento.
                     </p>
-                </div>
-                
-                <!-- Company Lookup (hidden in guest mode) -->
-                <div id="company-lookup-section" class="mb-6 p-4 bg-gray-50 rounded-lg">
-                    <p class="text-sm text-gray-600 mb-3">
-                        ¿Ya eres empresa afiliada o registrada? Ingresa tu WhatsApp, RFC o Teléfono para autocompletar tus datos.
-                    </p>
-                    <div class="flex space-x-2">
-                        <input type="text" id="lookup-identifier" 
-                               placeholder="WhatsApp, RFC o Teléfono"
-                               class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
-                        <button type="button" onclick="lookupCompany()" 
-                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                            Buscar
-                        </button>
-                    </div>
-                    <p id="lookup-result" class="text-sm mt-2 hidden"></p>
                 </div>
                 
                 <!-- Main Registration Fields -->
@@ -365,6 +365,7 @@
     const eventConfig = {
         isPaid: <?php echo $event['is_paid'] ? 'true' : 'false'; ?>,
         price: <?php echo (float)($event['price'] ?? 0); ?>,
+        memberPrice: <?php echo (float)($event['member_price'] ?? 0); ?>,
         freeForAffiliates: <?php echo ($event['free_for_affiliates'] ?? 1) ? 'true' : 'false'; ?>
     };
     
@@ -515,6 +516,12 @@
         let total = 0;
         let freeTickets = 0;
         
+        // Determine price per ticket - use member price for active affiliates
+        let pricePerTicket = eventConfig.price;
+        if (isActiveAffiliate && !isGuest && eventConfig.memberPrice > 0) {
+            pricePerTicket = eventConfig.memberPrice;
+        }
+        
         if (!eventConfig.isPaid) {
             // Free event
             total = 0;
@@ -527,12 +534,12 @@
             if (!isGuest && isActiveAffiliate && eventConfig.freeForAffiliates && isOwner) {
                 freeTickets = 1;
                 courtesyRow.classList.remove('hidden');
-                courtesyRow.querySelector('span:last-child').textContent = `-$${eventConfig.price.toFixed(2)}`;
+                courtesyRow.querySelector('span:last-child').textContent = `-$${pricePerTicket.toFixed(2)}`;
             } else {
                 courtesyRow.classList.add('hidden');
             }
             
-            total = (tickets - freeTickets) * eventConfig.price;
+            total = (tickets - freeTickets) * pricePerTicket;
             if (total < 0) total = 0;
         }
         
@@ -554,7 +561,7 @@
         const resultEl = document.getElementById('lookup-result');
         
         if (!identifier) {
-            resultEl.textContent = 'Por favor, ingresa un WhatsApp o RFC.';
+            resultEl.textContent = 'Por favor, ingresa un Email, WhatsApp, RFC o Teléfono.';
             resultEl.className = 'text-sm mt-2 text-red-600';
             resultEl.classList.remove('hidden');
             return;
