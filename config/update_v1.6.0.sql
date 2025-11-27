@@ -170,6 +170,54 @@ SET @alter := IF(
 );
 PREPARE stmt FROM @alter; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
+-- attendee_phone
+SET @col := (
+  SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'event_registrations' AND COLUMN_NAME = 'attendee_phone'
+);
+SET @alter := IF(
+  @col = 0,
+  'ALTER TABLE `event_registrations` ADD COLUMN `attendee_phone` VARCHAR(20) NULL COMMENT "WhatsApp/Teléfono del asistente" AFTER `attendee_position`;',
+  'SELECT ''Column attendee_phone already exists, skipping...'';'
+);
+PREPARE stmt FROM @alter; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- attendee_email
+SET @col := (
+  SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'event_registrations' AND COLUMN_NAME = 'attendee_email'
+);
+SET @alter := IF(
+  @col = 0,
+  'ALTER TABLE `event_registrations` ADD COLUMN `attendee_email` VARCHAR(255) NULL COMMENT "Correo del asistente" AFTER `attendee_phone`;',
+  'SELECT ''Column attendee_email already exists, skipping...'';'
+);
+PREPARE stmt FROM @alter; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- additional_attendees (JSON for storing extra ticket attendees)
+SET @col := (
+  SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'event_registrations' AND COLUMN_NAME = 'additional_attendees'
+);
+SET @alter := IF(
+  @col = 0,
+  'ALTER TABLE `event_registrations` ADD COLUMN `additional_attendees` JSON NULL COMMENT "Información de asistentes adicionales" AFTER `attendee_email`;',
+  'SELECT ''Column additional_attendees already exists, skipping...'';'
+);
+PREPARE stmt FROM @alter; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- total_amount (calculated total for this registration)
+SET @col := (
+  SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'event_registrations' AND COLUMN_NAME = 'total_amount'
+);
+SET @alter := IF(
+  @col = 0,
+  'ALTER TABLE `event_registrations` ADD COLUMN `total_amount` DECIMAL(10,2) DEFAULT 0 COMMENT "Monto total a pagar" AFTER `additional_attendees`;',
+  'SELECT ''Column total_amount already exists, skipping...'';'
+);
+PREPARE stmt FROM @alter; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
 -- =============================================
 -- ADD QR CONFIGURATION SETTINGS
 -- =============================================
@@ -191,7 +239,7 @@ VALUES (
     'schema_update',
     NULL,
     NULL,
-    '{"version":"1.6.0","changes":["events.promo_price","events.promo_end_date","events.event_type updated","contacts.contact_type updated","event_categories table","event_type_catalog table","event_registrations fields","config additions"]}',
+    '{"version":"1.6.0","changes":["events.promo_price","events.promo_end_date","events.event_type updated","contacts.contact_type updated","event_categories table","event_type_catalog table","event_registrations.is_guest","event_registrations.is_owner_representative","event_registrations.attendee_name","event_registrations.attendee_position","event_registrations.attendee_phone","event_registrations.attendee_email","event_registrations.additional_attendees","event_registrations.total_amount","config additions"]}',
     '127.0.0.1',
     NOW()
 );
@@ -219,6 +267,10 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- ALTER TABLE `event_registrations` DROP COLUMN `is_owner_representative`;
 -- ALTER TABLE `event_registrations` DROP COLUMN `attendee_name`;
 -- ALTER TABLE `event_registrations` DROP COLUMN `attendee_position`;
+-- ALTER TABLE `event_registrations` DROP COLUMN `attendee_phone`;
+-- ALTER TABLE `event_registrations` DROP COLUMN `attendee_email`;
+-- ALTER TABLE `event_registrations` DROP COLUMN `additional_attendees`;
+-- ALTER TABLE `event_registrations` DROP COLUMN `total_amount`;
 -- DROP TABLE IF EXISTS `event_categories`;
 -- DROP TABLE IF EXISTS `event_type_catalog`;
 -- DELETE FROM `config` WHERE config_key IN ('qr_api_provider', 'qr_size', 'shelly_enabled', 'shelly_url', 'shelly_channel');
@@ -233,3 +285,6 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- 5. Test affiliate conversion with preloaded data.
 -- 6. Verify QR validation in event attendance.
 -- 7. Test API configuration page with new QR and Shelly settings.
+-- 8. Test guest registration flow with simplified form.
+-- 9. Test company employee/collaborator registration.
+-- 10. Test multiple ticket registration with additional attendees.

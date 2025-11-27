@@ -226,6 +226,9 @@ class EventsController extends Controller {
         $error = null;
         $success = null;
         $registrationId = null;
+        $qrCode = null;
+        $registrationCode = null;
+        $totalAmount = 0;
         
         // Get PayPal configuration
         $paypalClientId = $this->configModel->get('paypal_client_id', '');
@@ -239,6 +242,9 @@ class EventsController extends Controller {
                 $error = 'La verificación anti-spam es incorrecta. Por favor, intenta de nuevo.';
             } else {
                 $tickets = max(1, min(5, (int) $this->getInput('tickets', 1)));
+                $isGuest = (int) $this->getInput('is_guest', 0);
+                $isOwnerRepresentative = (int) $this->getInput('is_owner_representative', 1);
+                $isActiveAffiliateInput = (int) $this->getInput('is_active_affiliate', 0);
                 
                 $registrationData = [
                     'guest_name' => $this->sanitize($this->getInput('name', '')),
@@ -246,8 +252,24 @@ class EventsController extends Controller {
                     'guest_phone' => $this->sanitize($this->getInput('phone', '')),
                     'guest_rfc' => $this->sanitize($this->getInput('rfc', '')),
                     'tickets' => $tickets,
+                    'is_guest' => $isGuest,
+                    'is_owner_representative' => $isOwnerRepresentative,
                     'payment_status' => $event['is_paid'] ? 'pending' : 'free'
                 ];
+                
+                // If not owner/representative, get attendee details
+                if (!$isOwnerRepresentative && !$isGuest) {
+                    $registrationData['attendee_name'] = $this->sanitize($this->getInput('attendee_name', ''));
+                    $registrationData['attendee_position'] = $this->sanitize($this->getInput('attendee_position', ''));
+                    $registrationData['attendee_phone'] = $this->sanitize($this->getInput('attendee_phone', ''));
+                    $registrationData['attendee_email'] = $this->sanitize($this->getInput('attendee_email', ''));
+                }
+                
+                // Get additional attendees data
+                $additionalAttendees = $this->getInput('additional_attendees', []);
+                if (is_array($additionalAttendees)) {
+                    $registrationData['additional_attendees'] = json_encode($additionalAttendees);
+                }
                 
                 // Validate phone (10 digits)
                 if (!empty($registrationData['guest_phone']) && !preg_match('/^\d{10}$/', $registrationData['guest_phone'])) {
@@ -255,33 +277,78 @@ class EventsController extends Controller {
                 }
                 
                 if (!$error) {
-                    // Check if this is an active affiliate and event offers free access
+                    // Verify affiliate status on server side
                     $isActiveAffiliate = $this->eventModel->isActiveAffiliate($registrationData['guest_email']);
-                    if ($event['free_for_affiliates'] && $isActiveAffiliate && $tickets === 1) {
-                        // First ticket is free for active affiliates
+                    
+                    // Calculate total amount
+                    $pricePerTicket = (float) ($event['price'] ?? 0);
+                    $freeTickets = 0;
+                    
+                    if ($event['is_paid']) {
+                        // Check for courtesy ticket eligibility
+                        if (!$isGuest && $isActiveAffiliate && ($event['free_for_affiliates'] ?? 1) && $isOwnerRepresentative) {
+                            $freeTickets = 1; // One courtesy ticket for active affiliates
+                        }
+                        $totalAmount = ($tickets - $freeTickets) * $pricePerTicket;
+                        if ($totalAmount < 0) $totalAmount = 0;
+                        
+                        if ($totalAmount == 0) {
+                            $registrationData['payment_status'] = 'free';
+                        }
+                    } else {
+                        $totalAmount = 0;
                         $registrationData['payment_status'] = 'free';
                     }
+                    
+                    // Store total amount in registration
+                    $registrationData['total_amount'] = $totalAmount;
                     
                     // Multiple registrations are now allowed
                     try {
                         $registrationId = $this->eventModel->registerAttendee($id, $registrationData);
                         
-                        // Check if this email belongs to a contact - convert to prospect
+                        // Check if this email belongs to a contact - convert to prospect or create collaborator
                         $contactModel = new Contact();
                         $existingContact = $contactModel->findBy('corporate_email', $registrationData['guest_email']);
                         
-                        if (!$existingContact && $registrationData['guest_rfc']) {
-                            // Create new prospect from registration
+                        if (!$existingContact && !$isGuest) {
+                            // Determine contact type based on registration
+                            $contactType = 'prospecto';
+                            if (!$isOwnerRepresentative && isset($registrationData['attendee_name'])) {
+                                $contactType = 'colaborador_empresa';
+                            }
+                            
+                            // Create new contact from registration
                             $contactModel->create([
-                                'rfc' => $registrationData['guest_rfc'],
+                                'rfc' => $registrationData['guest_rfc'] ?? null,
                                 'corporate_email' => $registrationData['guest_email'],
                                 'phone' => $registrationData['guest_phone'],
                                 'owner_name' => $registrationData['guest_name'],
-                                'contact_type' => 'prospecto',
+                                'contact_type' => $contactType,
                                 'source_channel' => $event['is_paid'] ? 'evento_pagado' : 'evento_gratuito',
                                 'profile_completion' => 25,
                                 'completion_stage' => 'A'
                             ]);
+                        }
+                        
+                        // Create contact entries for additional attendees as colaborador_empresa
+                        if (!empty($additionalAttendees) && is_array($additionalAttendees)) {
+                            foreach ($additionalAttendees as $attendee) {
+                                if (!empty($attendee['email'])) {
+                                    $existingAttendee = $contactModel->findBy('corporate_email', $attendee['email']);
+                                    if (!$existingAttendee) {
+                                        $contactModel->create([
+                                            'corporate_email' => $this->sanitize($attendee['email']),
+                                            'phone' => $this->sanitize($attendee['phone'] ?? ''),
+                                            'owner_name' => $this->sanitize($attendee['name'] ?? ''),
+                                            'contact_type' => 'colaborador_empresa',
+                                            'source_channel' => $event['is_paid'] ? 'evento_pagado' : 'evento_gratuito',
+                                            'profile_completion' => 15,
+                                            'completion_stage' => 'A'
+                                        ]);
+                                    }
+                                }
+                            }
                         }
                         
                         // Send confirmation email
@@ -290,7 +357,16 @@ class EventsController extends Controller {
                         // If payment is free, generate and send QR code immediately
                         if ($registrationData['payment_status'] === 'free') {
                             $this->generateAndSendQR($registrationId, $event, $registrationData);
-                            $success = '¡Registro exitoso! Te hemos enviado un correo con tu código QR de acceso.';
+                            
+                            // Get the QR code filename for display
+                            $regData = $this->db->queryOne(
+                                "SELECT registration_code, qr_code FROM event_registrations WHERE id = :id",
+                                ['id' => $registrationId]
+                            );
+                            $qrCode = $regData['qr_code'] ?? null;
+                            $registrationCode = $regData['registration_code'] ?? null;
+                            
+                            $success = '¡Registro exitoso! Tu código QR de acceso se muestra a continuación.';
                         } else {
                             $success = '¡Registro exitoso! Te hemos enviado un correo de confirmación con el enlace de pago.';
                         }
@@ -307,6 +383,9 @@ class EventsController extends Controller {
             'error' => $error,
             'success' => $success,
             'registrationId' => $registrationId,
+            'qrCode' => $qrCode,
+            'registrationCode' => $registrationCode,
+            'totalAmount' => $totalAmount,
             'paypalClientId' => $paypalClientId,
             'csrf_token' => $this->csrfToken()
         ]);

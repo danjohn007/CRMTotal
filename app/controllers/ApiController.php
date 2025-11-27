@@ -137,6 +137,10 @@ class ApiController extends Controller {
         $company = $contactModel->identify($identifier);
         
         if ($company) {
+            // Check if this is an active affiliate
+            $eventModel = new Event();
+            $isActiveAffiliate = $eventModel->isActiveAffiliate($company['corporate_email'] ?? '');
+            
             // Return only safe fields for public access
             $this->json([
                 'success' => true,
@@ -149,12 +153,14 @@ class ApiController extends Controller {
                     'phone' => $company['phone'],
                     'whatsapp' => $company['whatsapp'],
                     'rfc' => $company['rfc']
-                ]
+                ],
+                'is_active_affiliate' => $isActiveAffiliate
             ]);
         } else {
             $this->json([
                 'success' => false,
-                'company' => null
+                'company' => null,
+                'is_active_affiliate' => false
             ]);
         }
     }

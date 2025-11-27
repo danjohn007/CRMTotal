@@ -24,24 +24,24 @@
     <!-- QR Validation Section -->
     <div class="bg-white rounded-lg shadow-sm p-6">
         <h3 class="text-xl font-bold text-gray-900 text-center mb-2">Validar Código QR</h3>
-        <p class="text-gray-500 text-center mb-6">Escanea o ingresa el código QR del visitante</p>
+        <p class="text-gray-500 text-center mb-6">Escanea o ingresa el código de registro del visitante</p>
         
         <div class="max-w-2xl mx-auto">
             <div class="flex space-x-4 mb-6">
                 <button type="button" id="btn-scan-qr" onclick="startQRScanner()"
-                        class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        class="flex-1 inline-flex items-center justify-center px-6 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-lg font-medium">
+                    <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
                     </svg>
                     Escanear QR
                 </button>
                 <button type="button" id="btn-manual-entry" onclick="toggleManualEntry()"
-                        class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        class="flex-1 inline-flex items-center justify-center px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-lg font-medium">
+                    <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                     </svg>
-                    Ingresar Manual
+                    Validar Código QR
                 </button>
             </div>
             
@@ -56,17 +56,17 @@
             <!-- Manual Entry -->
             <div id="manual-entry-container" class="hidden">
                 <div class="mb-4">
-                    <label for="qr-code-input" class="block text-sm font-medium text-gray-700 mb-2">Código QR</label>
+                    <label for="qr-code-input" class="block text-sm font-medium text-gray-700 mb-2">Código de Registro</label>
                     <input type="text" id="qr-code-input" 
-                           placeholder="VIS-20241121-ABCD1234"
-                           class="w-full rounded-md border-2 border-blue-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 text-lg">
+                           placeholder="REG-20251127-ABCD12"
+                           class="w-full rounded-md border-2 border-blue-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 text-lg uppercase">
                 </div>
                 <button type="button" onclick="validateQRCode()" 
-                        class="w-full inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                        class="w-full inline-flex items-center justify-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-lg font-medium">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
-                    Validar Código
+                    Validar y Registrar Asistencia
                 </button>
             </div>
             
