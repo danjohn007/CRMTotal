@@ -5,6 +5,10 @@
  */
 class EventsController extends Controller {
     
+    // Constants for ticket limits
+    private const MAX_TICKETS_PER_REGISTRATION = 5;
+    private const GUEST_TICKET_LIMIT = 1;
+    
     private Event $eventModel;
     private Config $configModel;
     
@@ -242,8 +246,10 @@ class EventsController extends Controller {
                 $error = 'La verificación anti-spam es incorrecta. Por favor, intenta de nuevo.';
             } else {
                 $isGuest = (int) $this->getInput('is_guest', 0);
-                // Guests can only register 1 ticket - enforce on server side
-                $tickets = $isGuest ? 1 : max(1, min(5, (int) $this->getInput('tickets', 1)));
+                // Guests can only register limited tickets - enforce on server side
+                $tickets = $isGuest 
+                    ? self::GUEST_TICKET_LIMIT 
+                    : max(1, min(self::MAX_TICKETS_PER_REGISTRATION, (int) $this->getInput('tickets', 1)));
                 $isOwnerRepresentative = (int) $this->getInput('is_owner_representative', 1);
                 $isActiveAffiliateInput = (int) $this->getInput('is_active_affiliate', 0);
                 
@@ -649,7 +655,8 @@ class EventsController extends Controller {
         $location = $event['is_online'] ? 'Evento en línea' : htmlspecialchars($event['location'] ?? '');
         $guestName = htmlspecialchars($registrationData['guest_name']);
         $eventTitle = htmlspecialchars($event['title']);
-        $companyName = htmlspecialchars($registrationData['guest_name']);
+        // guest_name contains either person name or company name depending on registration type
+        $registrantName = htmlspecialchars($registrationData['guest_name']);
         $tickets = (int) $registrationData['tickets'];
         $formattedAmount = number_format($amount, 2);
         
@@ -698,7 +705,7 @@ class EventsController extends Controller {
             </div>
             
             <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
-                <span style="color: #2d3e92; font-weight: bold;">Empresa/Razón Social:</span> {$companyName}
+                <span style="color: #2d3e92; font-weight: bold;">Empresa/Razón Social:</span> {$registrantName}
             </div>
             
             <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
@@ -920,7 +927,8 @@ HTML;
         $location = $event['is_online'] ? 'Evento en línea' : htmlspecialchars($event['location'] ?? '');
         $address = htmlspecialchars($event['address'] ?? $location);
         $guestName = htmlspecialchars($registrationData['guest_name']);
-        $companyName = htmlspecialchars($registrationData['guest_name']);
+        // guest_name contains either person name or company name depending on registration type
+        $registrantName = htmlspecialchars($registrationData['guest_name']);
         $eventTitle = htmlspecialchars($event['title']);
         $tickets = (int) $registrationData['tickets'];
         $qrUrl = BASE_URL . '/uploads/qr/' . $qrFilename;
@@ -986,7 +994,7 @@ HTML;
                 <h3 style="color: #333; font-size: 14px; margin: 0 0 15px 0; text-transform: uppercase; border-bottom: 1px solid #ddd; padding-bottom: 5px;">ASISTENTE</h3>
                 
                 <p style="margin: 8px 0; font-size: 14px;"><strong>Nombre:</strong><br>{$guestName}</p>
-                <p style="margin: 8px 0; font-size: 14px;"><strong>Empresa:</strong><br>{$companyName}</p>
+                <p style="margin: 8px 0; font-size: 14px;"><strong>Empresa:</strong><br>{$registrantName}</p>
                 <p style="margin: 8px 0; font-size: 14px;"><strong>Boletos:</strong> {$tickets}</p>
             </div>
             <div style="display: table-cell; width: 50%; vertical-align: top; text-align: center;">

@@ -391,6 +391,10 @@
     </div>
     
     <script>
+    // Ticket limit constants (must match server-side)
+    const GUEST_TICKET_LIMIT = 1;
+    const MAX_TICKETS_PER_REGISTRATION = 5;
+    
     // Event configuration with presale pricing
     <?php
         // Calculate if we're in presale period for frontend
@@ -427,7 +431,7 @@
             ticketsField.classList.add('hidden'); // Guests cannot request additional tickets
             nameLabel.textContent = 'Nombre Completo';
             document.getElementById('contact_id').value = '';
-            document.getElementById('tickets').value = '1'; // Reset to 1 ticket for guests
+            document.getElementById('tickets').value = String(GUEST_TICKET_LIMIT); // Reset to max tickets for guests
             isActiveAffiliate = false;
             document.getElementById('is_active_affiliate').value = '0';
         } else {
