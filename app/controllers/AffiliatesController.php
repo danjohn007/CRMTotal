@@ -95,6 +95,17 @@ class AffiliatesController extends Controller {
         $userModel = new User();
         $affiliators = $userModel->getAffiliators();
         
+        // Check if converting from prospect
+        $prospectId = (int) $this->getInput('prospect_id', 0);
+        $prospect = null;
+        if ($prospectId > 0) {
+            $prospect = $this->contactModel->find($prospectId);
+            // Only preload if it's a prospect
+            if ($prospect && $prospect['contact_type'] !== 'prospecto') {
+                $prospect = null;
+            }
+        }
+        
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$this->validateCsrf()) {
                 $error = 'Token de seguridad inválido.';
@@ -144,6 +155,7 @@ class AffiliatesController extends Controller {
             'currentPage' => 'afiliados',
             'membershipTypes' => $membershipTypes,
             'affiliators' => $affiliators,
+            'prospect' => $prospect,
             'error' => $error,
             'csrf_token' => $this->csrfToken()
         ]);

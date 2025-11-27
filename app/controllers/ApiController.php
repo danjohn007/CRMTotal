@@ -298,4 +298,52 @@ class ApiController extends Controller {
             error_log("Error generating/sending QR code: " . $e->getMessage());
         }
     }
+    
+    public function validateEventQR(): void {
+        // Validate QR code for event attendance
+        $input = json_decode(file_get_contents('php://input'), true);
+        
+        $code = $this->sanitize($input['code'] ?? '');
+        $eventId = (int) ($input['event_id'] ?? 0);
+        
+        if (empty($code) || $eventId <= 0) {
+            $this->json(['success' => false, 'message' => 'Datos inválidos'], 400);
+            return;
+        }
+        
+        $eventModel = new Event();
+        
+        // Get registration by code
+        $registration = $eventModel->getRegistrationByCode($code);
+        
+        if (!$registration) {
+            $this->json(['success' => false, 'message' => 'Código QR no encontrado']);
+            return;
+        }
+        
+        // Verify the registration belongs to this event
+        if ($registration['event_id'] != $eventId) {
+            $this->json(['success' => false, 'message' => 'Este código no corresponde a este evento']);
+            return;
+        }
+        
+        // Check if already attended
+        $alreadyAttended = (bool) $registration['attended'];
+        
+        // Mark attendance if not already attended
+        if (!$alreadyAttended) {
+            $eventModel->markAttendance($registration['id'], true);
+        }
+        
+        $this->json([
+            'success' => true,
+            'registration' => [
+                'id' => $registration['id'],
+                'guest_name' => $registration['guest_name'],
+                'guest_email' => $registration['guest_email'],
+                'tickets' => $registration['tickets'] ?? 1,
+                'already_attended' => $alreadyAttended
+            ]
+        ]);
+    }
 }

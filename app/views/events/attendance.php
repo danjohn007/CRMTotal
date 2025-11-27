@@ -21,6 +21,60 @@
         </div>
     </div>
     
+    <!-- QR Validation Section -->
+    <div class="bg-white rounded-lg shadow-sm p-6">
+        <h3 class="text-xl font-bold text-gray-900 text-center mb-2">Validar Código QR</h3>
+        <p class="text-gray-500 text-center mb-6">Escanea o ingresa el código QR del visitante</p>
+        
+        <div class="max-w-2xl mx-auto">
+            <div class="flex space-x-4 mb-6">
+                <button type="button" id="btn-scan-qr" onclick="startQRScanner()"
+                        class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    Escanear QR
+                </button>
+                <button type="button" id="btn-manual-entry" onclick="toggleManualEntry()"
+                        class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                    Ingresar Manual
+                </button>
+            </div>
+            
+            <!-- QR Scanner Container -->
+            <div id="qr-scanner-container" class="hidden mb-6">
+                <div id="qr-reader" class="w-full max-w-md mx-auto"></div>
+                <button type="button" onclick="stopQRScanner()" class="mt-4 w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                    Cancelar Escaneo
+                </button>
+            </div>
+            
+            <!-- Manual Entry -->
+            <div id="manual-entry-container" class="hidden">
+                <div class="mb-4">
+                    <label for="qr-code-input" class="block text-sm font-medium text-gray-700 mb-2">Código QR</label>
+                    <input type="text" id="qr-code-input" 
+                           placeholder="VIS-20241121-ABCD1234"
+                           class="w-full rounded-md border-2 border-blue-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 text-lg">
+                </div>
+                <button type="button" onclick="validateQRCode()" 
+                        class="w-full inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    Validar Código
+                </button>
+            </div>
+            
+            <!-- Validation Result -->
+            <div id="validation-result" class="hidden mt-6"></div>
+        </div>
+    </div>
+    
     <!-- Search -->
     <div class="bg-white rounded-lg shadow-sm p-4">
         <input type="text" id="search-input" placeholder="Buscar por nombre, email o RFC..."
@@ -83,6 +137,108 @@
 </div>
 
 <script>
+// QR Scanner variables
+let qrScanner = null;
+
+function toggleManualEntry() {
+    const container = document.getElementById('manual-entry-container');
+    const scannerContainer = document.getElementById('qr-scanner-container');
+    
+    scannerContainer.classList.add('hidden');
+    container.classList.toggle('hidden');
+    
+    if (!container.classList.contains('hidden')) {
+        document.getElementById('qr-code-input').focus();
+    }
+}
+
+function startQRScanner() {
+    const container = document.getElementById('qr-scanner-container');
+    const manualContainer = document.getElementById('manual-entry-container');
+    
+    manualContainer.classList.add('hidden');
+    container.classList.remove('hidden');
+    
+    // Check if html5-qrcode is available (would need to be loaded)
+    // For now, show a message suggesting manual entry
+    const resultDiv = document.getElementById('validation-result');
+    resultDiv.innerHTML = '<div class="p-4 bg-yellow-100 border border-yellow-400 text-yellow-800 rounded-lg">' +
+        '<p>Para habilitar el escaneo de QR, configure la cámara del dispositivo.</p>' +
+        '<p class="mt-2 text-sm">Alternativamente, use la opción "Ingresar Manual" para validar códigos.</p>' +
+        '</div>';
+    resultDiv.classList.remove('hidden');
+}
+
+function stopQRScanner() {
+    const container = document.getElementById('qr-scanner-container');
+    container.classList.add('hidden');
+    
+    if (qrScanner) {
+        qrScanner.stop();
+        qrScanner = null;
+    }
+}
+
+function validateQRCode() {
+    const code = document.getElementById('qr-code-input').value.trim();
+    const resultDiv = document.getElementById('validation-result');
+    
+    if (!code) {
+        resultDiv.innerHTML = '<div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">Por favor, ingrese un código QR.</div>';
+        resultDiv.classList.remove('hidden');
+        return;
+    }
+    
+    resultDiv.innerHTML = '<div class="p-4 bg-blue-100 border border-blue-400 text-blue-700 rounded-lg">Validando código...</div>';
+    resultDiv.classList.remove('hidden');
+    
+    fetch('<?php echo BASE_URL; ?>/api/eventos/validar-qr', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            code: code,
+            event_id: <?php echo (int)$event['id']; ?>
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            resultDiv.innerHTML = '<div class="p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">' +
+                '<p class="font-bold text-lg">✓ Código Válido</p>' +
+                '<p class="mt-2"><strong>Nombre:</strong> ' + (data.registration.guest_name || 'N/A') + '</p>' +
+                '<p><strong>Email:</strong> ' + (data.registration.guest_email || 'N/A') + '</p>' +
+                '<p><strong>Boletos:</strong> ' + (data.registration.tickets || 1) + '</p>' +
+                (data.registration.already_attended ? '<p class="mt-2 text-yellow-600">⚠ Ya registró asistencia previamente</p>' : '<p class="mt-2 font-bold text-green-600">✓ Asistencia registrada</p>') +
+                '</div>';
+            document.getElementById('qr-code-input').value = '';
+            
+            // Reload page after 2 seconds to update list
+            setTimeout(function() {
+                window.location.reload();
+            }, 2000);
+        } else {
+            resultDiv.innerHTML = '<div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">' +
+                '<p class="font-bold">✗ Código No Válido</p>' +
+                '<p class="mt-2">' + (data.message || 'El código QR no corresponde a un registro de este evento.') + '</p>' +
+                '</div>';
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        resultDiv.innerHTML = '<div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">Error al validar el código. Intente de nuevo.</div>';
+    });
+}
+
+// Handle Enter key on QR input
+document.getElementById('qr-code-input')?.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        validateQRCode();
+    }
+});
+
 // Search functionality
 document.getElementById('search-input').addEventListener('input', function(e) {
     const searchTerm = e.target.value.toLowerCase();

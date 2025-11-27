@@ -189,7 +189,17 @@ class ConfigController extends Controller {
             if (!$this->validateCsrf()) {
                 $error = 'Token de seguridad inválido.';
             } else {
+                // QR Configuration
+                $this->configModel->set('qr_api_provider', $this->sanitize($this->getInput('qr_api_provider', 'google')));
+                $this->configModel->set('qr_size', $this->sanitize($this->getInput('qr_size', '350')));
                 $this->configModel->set('qr_api_key', $this->sanitize($this->getInput('qr_api_key', '')));
+                
+                // Shelly Relay Configuration
+                $this->configModel->set('shelly_enabled', $this->getInput('shelly_enabled', '0'));
+                $this->configModel->set('shelly_url', $this->sanitize($this->getInput('shelly_url', '')));
+                $this->configModel->set('shelly_channel', $this->sanitize($this->getInput('shelly_channel', '0')));
+                
+                // Other APIs
                 $this->configModel->set('whatsapp_api_key', $this->sanitize($this->getInput('whatsapp_api_key', '')));
                 $this->configModel->set('google_maps_api_key', $this->sanitize($this->getInput('google_maps_api_key', '')));
                 

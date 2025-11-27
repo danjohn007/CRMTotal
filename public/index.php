@@ -167,6 +167,10 @@ $router->add('api/buscar', ['controller' => 'api', 'action' => 'search']);
 $router->add('api/buscar-empresa', ['controller' => 'api', 'action' => 'searchCompany']);
 $router->add('api/eventos/verificar-url', ['controller' => 'api', 'action' => 'verifyEventUrl']);
 $router->add('api/eventos/confirmar-pago', ['controller' => 'api', 'action' => 'confirmEventPayment']);
+$router->add('api/eventos/validar-qr', ['controller' => 'api', 'action' => 'validateEventQR']);
+
+// Events Categories
+$router->add('eventos/categorias', ['controller' => 'events', 'action' => 'categories']);
 
 // Dispatch the route
 $url = $_GET['url'] ?? '';

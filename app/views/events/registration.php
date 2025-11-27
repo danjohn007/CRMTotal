@@ -142,11 +142,11 @@
             <!-- Company Lookup -->
             <div class="mb-6 p-4 bg-gray-50 rounded-lg">
                 <p class="text-sm text-gray-600 mb-3">
-                    ¿Ya eres empresa afiliada o registrada? Ingresa tu WhatsApp o RFC para autocompletar tus datos.
+                    ¿Ya eres empresa afiliada o registrada? Ingresa tu WhatsApp, RFC o Teléfono para autocompletar tus datos.
                 </p>
                 <div class="flex space-x-2">
                     <input type="text" id="lookup-identifier" 
-                           placeholder="WhatsApp o RFC"
+                           placeholder="WhatsApp, RFC o Teléfono"
                            class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                     <button type="button" onclick="lookupCompany()" 
                             class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
