@@ -653,10 +653,9 @@ class EventsController extends Controller {
         $eventDate = date('d/m/Y', strtotime($event['start_date']));
         $eventTime = date('H:i', strtotime($event['start_date'])) . ' - ' . date('H:i', strtotime($event['end_date']));
         $location = $event['is_online'] ? 'Evento en línea' : htmlspecialchars($event['location'] ?? '');
+        // guest_name field contains either person name or company name depending on how the user registered
         $guestName = htmlspecialchars($registrationData['guest_name']);
         $eventTitle = htmlspecialchars($event['title']);
-        // guest_name contains either person name or company name depending on registration type
-        $registrantName = htmlspecialchars($registrationData['guest_name']);
         $tickets = (int) $registrationData['tickets'];
         $formattedAmount = number_format($amount, 2);
         
@@ -705,7 +704,7 @@ class EventsController extends Controller {
             </div>
             
             <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
-                <span style="color: #2d3e92; font-weight: bold;">Empresa/Razón Social:</span> {$registrantName}
+                <span style="color: #2d3e92; font-weight: bold;">Empresa/Razón Social:</span> {$guestName}
             </div>
             
             <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
@@ -926,9 +925,8 @@ HTML;
         $eventTime = date('H:i', strtotime($event['start_date'])) . ' - ' . date('H:i', strtotime($event['end_date']));
         $location = $event['is_online'] ? 'Evento en línea' : htmlspecialchars($event['location'] ?? '');
         $address = htmlspecialchars($event['address'] ?? $location);
+        // guest_name field contains either person name or company name depending on how the user registered
         $guestName = htmlspecialchars($registrationData['guest_name']);
-        // guest_name contains either person name or company name depending on registration type
-        $registrantName = htmlspecialchars($registrationData['guest_name']);
         $eventTitle = htmlspecialchars($event['title']);
         $tickets = (int) $registrationData['tickets'];
         $qrUrl = BASE_URL . '/uploads/qr/' . $qrFilename;
@@ -994,7 +992,7 @@ HTML;
                 <h3 style="color: #333; font-size: 14px; margin: 0 0 15px 0; text-transform: uppercase; border-bottom: 1px solid #ddd; padding-bottom: 5px;">ASISTENTE</h3>
                 
                 <p style="margin: 8px 0; font-size: 14px;"><strong>Nombre:</strong><br>{$guestName}</p>
-                <p style="margin: 8px 0; font-size: 14px;"><strong>Empresa:</strong><br>{$registrantName}</p>
+                <p style="margin: 8px 0; font-size: 14px;"><strong>Empresa:</strong><br>{$guestName}</p>
                 <p style="margin: 8px 0; font-size: 14px;"><strong>Boletos:</strong> {$tickets}</p>
             </div>
             <div style="display: table-cell; width: 50%; vertical-align: top; text-align: center;">
