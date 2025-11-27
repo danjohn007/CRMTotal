@@ -8,8 +8,8 @@ class Event extends Model {
         'title', 'description', 'event_type', 'category', 'start_date',
         'end_date', 'location', 'address', 'google_maps_url', 'is_online',
         'online_url', 'max_capacity', 'is_paid', 'price', 'promo_price',
-        'promo_end_date', 'member_price', 'free_for_affiliates', 'registration_url',
-        'image', 'status', 'target_audiences', 'created_by'
+        'promo_end_date', 'member_price', 'promo_member_price', 'free_for_affiliates', 
+        'registration_url', 'image', 'status', 'target_audiences', 'created_by'
     ];
     
     public function getUpcoming(int $limit = 10): array {

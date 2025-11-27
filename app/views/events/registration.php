@@ -30,8 +30,25 @@
                         <?php echo $event['category'] ?? 'Evento'; ?>
                     </span>
                     <?php if ($event['is_paid']): ?>
+                    <?php
+                        // Calculate current price based on presale period
+                        $isPresalePeriod = false;
+                        if (!empty($event['promo_end_date'])) {
+                            $promoEndDate = strtotime($event['promo_end_date']);
+                            $isPresalePeriod = (time() <= $promoEndDate);
+                        }
+                        $displayPrice = ($isPresalePeriod && (float)($event['promo_price'] ?? 0) > 0) 
+                            ? (float)$event['promo_price'] 
+                            : (float)$event['price'];
+                    ?>
                     <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
+                        <?php if ($isPresalePeriod && (float)($event['promo_price'] ?? 0) > 0): ?>
+                        <span class="line-through text-gray-500">$<?php echo number_format($event['price'], 0); ?></span>
+                        $<?php echo number_format($displayPrice, 0); ?> MXN
+                        <span class="text-green-700">(Preventa)</span>
+                        <?php else: ?>
                         $<?php echo number_format($event['price'], 0); ?> MXN
+                        <?php endif; ?>
                     </span>
                     <?php else: ?>
                     <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
@@ -76,10 +93,22 @@
         <?php endif; ?>
         
         <?php if (isset($success)): ?>
-        <div class="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+        <?php 
+            // Determine the type of message based on payment status
+            $isPendingPayment = ($event['is_paid'] && isset($registrationId) && isset($totalAmount) && $totalAmount > 0);
+            $messageClass = $isPendingPayment ? 'bg-yellow-100 border-yellow-400 text-yellow-800' : 'bg-green-100 border-green-400 text-green-700';
+        ?>
+        <div class="mb-6 p-4 <?php echo $messageClass; ?> border rounded-lg">
+            <?php if ($isPendingPayment): ?>
+            <div class="flex items-center">
+                <span class="text-2xl mr-2">⚠️</span>
+                <div>
+                    <p class="font-bold text-lg">Registro Pendiente</p>
+                    <p>Tu registro ha sido recibido. Por favor, completa el pago para confirmar tu asistencia.</p>
+                </div>
+            </div>
+            <?php else: ?>
             <?php echo htmlspecialchars($success); ?>
-            <?php if ($event['is_paid'] && isset($registrationId) && isset($totalAmount) && $totalAmount > 0): ?>
-            <p class="mt-2 font-medium">Por favor, completa el pago para confirmar tu registro.</p>
             <?php endif; ?>
         </div>
         
@@ -229,7 +258,8 @@
                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                     </div>
                     
-                    <div>
+                    <!-- Tickets field (hidden in guest mode - guests can only register 1 ticket) -->
+                    <div id="tickets-field">
                         <label for="tickets" class="block text-sm font-medium text-gray-700">Número de Boletos</label>
                         <select id="tickets" name="tickets" onchange="updateTicketFields()"
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
@@ -361,11 +391,26 @@
     </div>
     
     <script>
-    // Event configuration
+    // Ticket limit constants (must match server-side)
+    const GUEST_TICKET_LIMIT = 1;
+    const MAX_TICKETS_PER_REGISTRATION = 5;
+    
+    // Event configuration with presale pricing
+    <?php
+        // Calculate if we're in presale period for frontend
+        $jsPresalePeriod = false;
+        if (!empty($event['promo_end_date'])) {
+            $promoEndDate = strtotime($event['promo_end_date']);
+            $jsPresalePeriod = (time() <= $promoEndDate);
+        }
+    ?>
     const eventConfig = {
         isPaid: <?php echo $event['is_paid'] ? 'true' : 'false'; ?>,
         price: <?php echo (float)($event['price'] ?? 0); ?>,
+        promoPrice: <?php echo (float)($event['promo_price'] ?? 0); ?>,
         memberPrice: <?php echo (float)($event['member_price'] ?? 0); ?>,
+        promoMemberPrice: <?php echo (float)($event['promo_member_price'] ?? 0); ?>,
+        isPresalePeriod: <?php echo $jsPresalePeriod ? 'true' : 'false'; ?>,
         freeForAffiliates: <?php echo ($event['free_for_affiliates'] ?? 1) ? 'true' : 'false'; ?>
     };
     
@@ -376,20 +421,24 @@
         const companyLookup = document.getElementById('company-lookup-section');
         const rfcField = document.getElementById('rfc-field');
         const attendeeSection = document.getElementById('attendee-section');
+        const ticketsField = document.getElementById('tickets-field');
         const nameLabel = document.getElementById('name-label');
         
         if (isGuest) {
             companyLookup.classList.add('hidden');
             rfcField.classList.add('hidden');
             attendeeSection.classList.add('hidden');
+            ticketsField.classList.add('hidden'); // Guests cannot request additional tickets
             nameLabel.textContent = 'Nombre Completo';
             document.getElementById('contact_id').value = '';
+            document.getElementById('tickets').value = String(GUEST_TICKET_LIMIT); // Reset to max tickets for guests
             isActiveAffiliate = false;
             document.getElementById('is_active_affiliate').value = '0';
         } else {
             companyLookup.classList.remove('hidden');
             rfcField.classList.remove('hidden');
             attendeeSection.classList.remove('hidden');
+            ticketsField.classList.remove('hidden');
             nameLabel.textContent = 'Nombre Completo / Empresa';
         }
         
@@ -516,10 +565,22 @@
         let total = 0;
         let freeTickets = 0;
         
-        // Determine price per ticket - use member price for active affiliates
+        // Determine price per ticket with presale pricing logic
+        // Priority: 1. Promo Member Price, 2. Member Price, 3. Promo Price, 4. Regular Price
         let pricePerTicket = eventConfig.price;
-        if (isActiveAffiliate && !isGuest && eventConfig.memberPrice > 0) {
-            pricePerTicket = eventConfig.memberPrice;
+        
+        if (isActiveAffiliate && !isGuest) {
+            // Affiliate pricing
+            if (eventConfig.isPresalePeriod && eventConfig.promoMemberPrice > 0) {
+                pricePerTicket = eventConfig.promoMemberPrice;
+            } else if (eventConfig.memberPrice > 0) {
+                pricePerTicket = eventConfig.memberPrice;
+            }
+        } else {
+            // Non-affiliate pricing
+            if (eventConfig.isPresalePeriod && eventConfig.promoPrice > 0) {
+                pricePerTicket = eventConfig.promoPrice;
+            }
         }
         
         if (!eventConfig.isPaid) {

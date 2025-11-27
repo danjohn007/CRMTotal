@@ -5,6 +5,10 @@
  */
 class EventsController extends Controller {
     
+    // Constants for ticket limits
+    private const MAX_TICKETS_PER_REGISTRATION = 5;
+    private const GUEST_TICKET_LIMIT = 1;
+    
     private Event $eventModel;
     private Config $configModel;
     
@@ -241,8 +245,11 @@ class EventsController extends Controller {
             if ($userSum !== $expectedSum) {
                 $error = 'La verificación anti-spam es incorrecta. Por favor, intenta de nuevo.';
             } else {
-                $tickets = max(1, min(5, (int) $this->getInput('tickets', 1)));
                 $isGuest = (int) $this->getInput('is_guest', 0);
+                // Guests can only register limited tickets - enforce on server side
+                $tickets = $isGuest 
+                    ? self::GUEST_TICKET_LIMIT 
+                    : max(1, min(self::MAX_TICKETS_PER_REGISTRATION, (int) $this->getInput('tickets', 1)));
                 $isOwnerRepresentative = (int) $this->getInput('is_owner_representative', 1);
                 $isActiveAffiliateInput = (int) $this->getInput('is_active_affiliate', 0);
                 
@@ -286,14 +293,35 @@ class EventsController extends Controller {
                     $existingContact = $contactModel->findBy('corporate_email', $registrationData['guest_email']);
                     $companyId = $existingContact['id'] ?? null;
                     
-                    // Calculate total amount
-                    // For active affiliates, use member_price if available
+                    // Calculate total amount with presale pricing logic
+                    // Check if we're within the presale period
+                    $isPresalePeriod = false;
+                    if (!empty($event['promo_end_date'])) {
+                        $promoEndDate = strtotime($event['promo_end_date']);
+                        $now = time();
+                        $isPresalePeriod = ($now <= $promoEndDate);
+                    }
+                    
+                    // Determine price per ticket based on affiliate status and presale period
+                    // Priority: 1. Promo Member Price, 2. Member Price, 3. Promo Price, 4. Regular Price
                     $pricePerTicket = (float) ($event['price'] ?? 0);
+                    
                     if ($isActiveAffiliate && !$isGuest) {
-                        $memberPrice = (float) ($event['member_price'] ?? 0);
-                        if ($memberPrice > 0) {
-                            $pricePerTicket = $memberPrice;
+                        // Affiliate pricing
+                        if ($isPresalePeriod && (float) ($event['promo_member_price'] ?? 0) > 0) {
+                            // Presale affiliate price
+                            $pricePerTicket = (float) $event['promo_member_price'];
+                        } elseif ((float) ($event['member_price'] ?? 0) > 0) {
+                            // Regular affiliate price
+                            $pricePerTicket = (float) $event['member_price'];
                         }
+                    } else {
+                        // Non-affiliate pricing (public/guest)
+                        if ($isPresalePeriod && (float) ($event['promo_price'] ?? 0) > 0) {
+                            // Presale public price
+                            $pricePerTicket = (float) $event['promo_price'];
+                        }
+                        // else use regular price
                     }
                     
                     $freeTickets = 0;
@@ -533,6 +561,7 @@ class EventsController extends Controller {
             'promo_price' => (float) $this->getInput('promo_price', 0),
             'promo_end_date' => $this->getInput('promo_end_date', null),
             'member_price' => (float) $this->getInput('member_price', 0),
+            'promo_member_price' => (float) $this->getInput('promo_member_price', 0),
             'free_for_affiliates' => (int) $this->getInput('free_for_affiliates', 1),
             'status' => $this->sanitize($this->getInput('status', 'draft'))
         ];
@@ -582,35 +611,30 @@ class EventsController extends Controller {
             $registrationCode = $regCodeResult['registration_code'];
             
             $to = $registrationData['guest_email'];
-            $subject = "Confirmación de Registro - " . $event['title'];
             
-            // Build email body
-            $body = "Hola " . htmlspecialchars($registrationData['guest_name']) . ",\n\n";
-            $body .= "Gracias por registrarte al evento:\n\n";
-            $body .= "📅 " . htmlspecialchars($event['title']) . "\n";
-            $body .= "📍 " . ($event['is_online'] ? 'Evento en línea' : htmlspecialchars($event['location'] ?? '')) . "\n";
-            $body .= "🕐 " . date('d/m/Y H:i', strtotime($event['start_date'])) . " hrs\n";
-            $body .= "🎫 Boletos: " . $registrationData['tickets'] . "\n\n";
+            // Check if this is a pending payment email or a confirmation email
+            $isPendingPayment = ($event['is_paid'] && $registrationData['payment_status'] === 'pending');
             
-            if ($event['is_paid'] && $registrationData['payment_status'] === 'pending') {
-                $paymentUrl = BASE_URL . '/evento/pago/' . $registrationCode;
-                $body .= "💳 COMPLETAR PAGO\n";
-                $body .= "Para confirmar tu asistencia, completa el pago en el siguiente enlace:\n";
-                $body .= $paymentUrl . "\n\n";
-                // Use the calculated total_amount which includes member pricing and courtesy tickets
+            if ($isPendingPayment) {
+                // PENDING PAYMENT EMAIL - HTML Template
+                $subject = "Registro Pendiente - " . $event['title'];
                 $amountToPay = $registrationData['total_amount'] ?? ($event['price'] * $registrationData['tickets']);
-                $body .= "Monto a pagar: $" . number_format($amountToPay, 2) . " MXN\n\n";
+                $paymentUrl = BASE_URL . '/evento/pago/' . $registrationCode;
+                
+                $body = $this->buildPendingPaymentEmailTemplate($event, $registrationData, $registrationCode, $amountToPay, $paymentUrl);
+            } else {
+                // FREE/COURTESY EMAIL - Will be sent via generateAndSendQR with QR code
+                // This is just a basic confirmation for tracking purposes
+                $subject = "Confirmación de Registro - " . $event['title'];
+                
+                $body = $this->buildConfirmationEmailTemplate($event, $registrationData, $registrationCode);
             }
             
-            $body .= "Código de registro: " . $registrationCode . "\n\n";
-            $body .= "Te esperamos!\n\n";
-            $body .= "Cámara de Comercio de Querétaro\n";
-            $body .= BASE_URL;
-            
-            // Send email using PHP mail() - in production, use PHPMailer or similar
+            // Send HTML email
             $headers = "From: " . ($this->configModel->get('smtp_from_name', 'CRM CCQ')) . " <noreply@camaradecomercioqro.mx>\r\n";
             $headers .= "Reply-To: " . ($this->configModel->get('contact_email', 'info@camaradecomercioqro.mx')) . "\r\n";
-            $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+            $headers .= "MIME-Version: 1.0\r\n";
+            $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
             
             mail($to, $subject, $body, $headers);
             
@@ -620,6 +644,190 @@ class EventsController extends Controller {
             // Log error but don't fail the registration
             error_log("Error sending confirmation email: " . $e->getMessage());
         }
+    }
+    
+    /**
+     * Build HTML template for pending payment email
+     */
+    private function buildPendingPaymentEmailTemplate(array $event, array $registrationData, string $registrationCode, float $amount, string $paymentUrl): string {
+        $eventDate = date('d/m/Y', strtotime($event['start_date']));
+        $eventTime = date('H:i', strtotime($event['start_date'])) . ' - ' . date('H:i', strtotime($event['end_date']));
+        $location = $event['is_online'] ? 'Evento en línea' : htmlspecialchars($event['location'] ?? '');
+        // guest_name field contains either person name or company name depending on how the user registered
+        $guestName = htmlspecialchars($registrationData['guest_name']);
+        $eventTitle = htmlspecialchars($event['title']);
+        $tickets = (int) $registrationData['tickets'];
+        $formattedAmount = number_format($amount, 2);
+        
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro Pendiente - {$eventTitle}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa;">
+    <!-- Header -->
+    <div style="background-color: #2d3e92; height: 8px; width: 100%;"></div>
+    
+    <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 40px;">
+        <!-- Greeting -->
+        <h1 style="font-size: 28px; color: #333; margin: 0 0 20px 0; font-weight: bold;">Hola {$guestName},</h1>
+        
+        <p style="font-size: 16px; color: #333; line-height: 1.6; margin: 0 0 30px 0;">
+            Tu registro para el evento <strong>{$eventTitle}</strong> ha sido recibido exitosamente.
+        </p>
+        
+        <!-- Event Info Box -->
+        <div style="border: 2px solid #2d3e92; border-radius: 15px; padding: 30px; margin: 30px 0;">
+            <h2 style="color: #2d3e92; text-align: center; font-size: 22px; margin: 0 0 25px 0;">Información del Evento</h2>
+            
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                <span style="color: #2d3e92; font-weight: bold;">Evento:</span> {$eventTitle}
+            </div>
+            
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                <span style="color: #2d3e92; font-weight: bold;">Fecha:</span> {$eventDate}
+            </div>
+            
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                <span style="color: #2d3e92; font-weight: bold;">Hora:</span> {$eventTime}
+            </div>
+            
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                <span style="color: #2d3e92; font-weight: bold;">Ubicación:</span> {$location}
+            </div>
+            
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                <span style="color: #2d3e92; font-weight: bold;">Nombre:</span> {$guestName}
+            </div>
+            
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                <span style="color: #2d3e92; font-weight: bold;">Empresa/Razón Social:</span> {$guestName}
+            </div>
+            
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                <span style="color: #2d3e92; font-weight: bold;">Boletos Solicitados:</span> {$tickets}
+            </div>
+        </div>
+        
+        <!-- Payment Section -->
+        <div style="background-color: #fff9e6; border: 2px solid #f5a623; border-radius: 15px; padding: 30px; margin: 30px 0; text-align: center;">
+            <h3 style="color: #f5a623; font-size: 20px; margin: 0 0 15px 0;">
+                ⚠️ Pago Pendiente
+            </h3>
+            
+            <p style="color: #333; font-size: 16px; font-weight: bold; margin: 0 0 20px 0;">
+                Para completar tu registro y recibir tus boletos, debes realizar el pago de:
+            </p>
+            
+            <p style="color: #2d3e92; font-size: 42px; font-weight: bold; margin: 0 0 25px 0;">
+                \${$formattedAmount} MXN
+            </p>
+            
+            <a href="{$paymentUrl}" style="display: inline-block; background-color: #2d3e92; color: white; text-decoration: none; padding: 18px 45px; border-radius: 12px; font-size: 18px; font-weight: bold;">
+                💳 Realizar Pago Ahora
+            </a>
+            
+            <p style="color: #666; font-size: 14px; margin: 25px 0 0 0;">
+                También puedes acceder al enlace de pago desde tu código de registro:<br>
+                <strong style="color: #333;">{$registrationCode}</strong>
+            </p>
+        </div>
+        
+        <!-- Important Notes -->
+        <div style="margin: 30px 0;">
+            <p style="font-weight: bold; color: #333; font-size: 16px; margin: 0 0 10px 0;">Importante:</p>
+            <ul style="color: #666; font-size: 14px; line-height: 1.8; margin: 0; padding-left: 20px;">
+                <li>Guarda este correo electrónico</li>
+                <li>Completa tu pago para recibir tus boletos digitales</li>
+                <li>Una vez pagado, recibirás un correo con tus boletos</li>
+            </ul>
+        </div>
+        
+        <p style="color: #333; font-size: 16px; margin: 30px 0;">¡Nos vemos en el evento!</p>
+    </div>
+    
+    <!-- Footer -->
+    <div style="background-color: #333; padding: 25px; text-align: center;">
+        <p style="color: white; font-size: 18px; margin: 0;">CRM CCdeQ</p>
+    </div>
+</body>
+</html>
+HTML;
+    }
+    
+    /**
+     * Build HTML template for confirmation email (basic, without QR)
+     */
+    private function buildConfirmationEmailTemplate(array $event, array $registrationData, string $registrationCode): string {
+        $eventDate = date('d/m/Y', strtotime($event['start_date']));
+        $eventTime = date('H:i', strtotime($event['start_date'])) . ' - ' . date('H:i', strtotime($event['end_date']));
+        $location = $event['is_online'] ? 'Evento en línea' : htmlspecialchars($event['location'] ?? '');
+        $guestName = htmlspecialchars($registrationData['guest_name']);
+        $eventTitle = htmlspecialchars($event['title']);
+        $tickets = (int) $registrationData['tickets'];
+        
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro Exitoso - {$eventTitle}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa;">
+    <!-- Header -->
+    <div style="background-color: #2d3e92; height: 8px; width: 100%;"></div>
+    
+    <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 40px;">
+        <h1 style="font-size: 28px; color: #333; margin: 0 0 20px 0;">Hola {$guestName},</h1>
+        
+        <p style="font-size: 16px; color: #333; line-height: 1.6;">
+            Tu registro para el evento <strong>{$eventTitle}</strong> ha sido recibido exitosamente.
+        </p>
+        
+        <p style="font-size: 16px; color: #333; line-height: 1.6;">
+            En unos momentos recibirás otro correo con tu código QR de acceso.
+        </p>
+        
+        <div style="border: 2px solid #2d3e92; border-radius: 15px; padding: 30px; margin: 30px 0;">
+            <h2 style="color: #2d3e92; text-align: center; font-size: 22px; margin: 0 0 25px 0;">Información del Evento</h2>
+            
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                <span style="color: #2d3e92; font-weight: bold;">Evento:</span> {$eventTitle}
+            </div>
+            
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                <span style="color: #2d3e92; font-weight: bold;">Fecha:</span> {$eventDate}
+            </div>
+            
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                <span style="color: #2d3e92; font-weight: bold;">Hora:</span> {$eventTime}
+            </div>
+            
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                <span style="color: #2d3e92; font-weight: bold;">Ubicación:</span> {$location}
+            </div>
+            
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                <span style="color: #2d3e92; font-weight: bold;">Boletos:</span> {$tickets}
+            </div>
+        </div>
+        
+        <p style="color: #333; font-size: 16px;">Código de registro: <strong>{$registrationCode}</strong></p>
+        
+        <p style="color: #333; font-size: 16px; margin: 30px 0;">¡Te esperamos!</p>
+    </div>
+    
+    <!-- Footer -->
+    <div style="background-color: #333; padding: 25px; text-align: center;">
+        <p style="color: white; font-size: 18px; margin: 0;">CRM CCdeQ</p>
+    </div>
+</body>
+</html>
+HTML;
     }
     
     private function generateAndSendQR(int $registrationId, array $event, array $registrationData): void {
@@ -685,29 +893,18 @@ class EventsController extends Controller {
                 return;
             }
             
-            // Send QR code email
+            // Send QR code email with HTML template
             $to = $registrationData['guest_email'];
-            $subject = "Código QR de Acceso - " . $event['title'];
+            $subject = "Boleto de Acceso - " . $event['title'];
             
-            $body = "Hola " . htmlspecialchars($registrationData['guest_name']) . ",\n\n";
-            $body .= "¡Tu registro ha sido confirmado!\n\n";
-            $body .= "Tu código QR de acceso al evento:\n\n";
-            $body .= "📅 " . htmlspecialchars($event['title']) . "\n";
-            $body .= "📍 " . ($event['is_online'] ? 'Evento en línea' : htmlspecialchars($event['location'] ?? '')) . "\n";
-            $body .= "🕐 " . date('d/m/Y H:i', strtotime($event['start_date'])) . " hrs\n";
-            $body .= "🎫 Boletos: " . $registrationData['tickets'] . "\n\n";
-            $body .= "Presenta este código QR en el evento para registrar tu asistencia.\n\n";
-            $body .= "También puedes descargar tu QR desde:\n";
-            $body .= BASE_URL . '/uploads/qr/' . $qrFilename . "\n\n";
-            $body .= "Código de registro: " . $qrRegistrationCode . "\n\n";
-            $body .= "Te esperamos!\n\n";
-            $body .= "Cámara de Comercio de Querétaro\n";
-            $body .= BASE_URL;
+            // Build the HTML email with QR code embedded
+            $body = $this->buildAccessTicketEmailTemplate($event, $registrationData, $qrRegistrationCode, $qrFilename);
             
-            // Send email
+            // Send HTML email
             $headers = "From: " . ($this->configModel->get('smtp_from_name', 'CRM CCQ')) . " <noreply@camaradecomercioqro.mx>\r\n";
             $headers .= "Reply-To: " . ($this->configModel->get('contact_email', 'info@camaradecomercioqro.mx')) . "\r\n";
-            $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+            $headers .= "MIME-Version: 1.0\r\n";
+            $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
             
             mail($to, $subject, $body, $headers);
             
@@ -717,6 +914,119 @@ class EventsController extends Controller {
             // Log error but don't fail
             error_log("Error generating/sending QR code: " . $e->getMessage());
         }
+    }
+    
+    /**
+     * Build HTML template for access ticket email with QR code
+     * This is the email sent for FREE, COURTESY, or PAID (after payment) registrations
+     */
+    private function buildAccessTicketEmailTemplate(array $event, array $registrationData, string $registrationCode, string $qrFilename): string {
+        $eventDate = date('d/m/Y', strtotime($event['start_date']));
+        $eventTime = date('H:i', strtotime($event['start_date'])) . ' - ' . date('H:i', strtotime($event['end_date']));
+        $location = $event['is_online'] ? 'Evento en línea' : htmlspecialchars($event['location'] ?? '');
+        $address = htmlspecialchars($event['address'] ?? $location);
+        // guest_name field contains either person name or company name depending on how the user registered
+        $guestName = htmlspecialchars($registrationData['guest_name']);
+        $eventTitle = htmlspecialchars($event['title']);
+        $tickets = (int) $registrationData['tickets'];
+        $qrUrl = BASE_URL . '/uploads/qr/' . $qrFilename;
+        $contactEmail = htmlspecialchars($this->configModel->get('contact_email', 'contacto@camaradecomercioqro.mx'));
+        $contactPhone = htmlspecialchars($this->configModel->get('contact_phone', '4425375301'));
+        
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boleto de Acceso - {$eventTitle}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa;">
+    <!-- Header -->
+    <div style="background-color: #1a5a2c; padding: 20px; text-align: right;">
+        <span style="background-color: #2d7a3d; color: white; padding: 12px 24px; border-radius: 5px; font-weight: bold; display: inline-block;">
+            🖨️ Imprimir Boleto
+        </span>
+    </div>
+    
+    <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border: 1px solid #e0e0e0;">
+        <!-- Logo and Title -->
+        <div style="display: table; width: 100%; margin-bottom: 20px;">
+            <div style="display: table-cell; width: 40%; vertical-align: middle;">
+                <div style="background-color: #1a5a2c; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="background-color: white; display: inline-block; padding: 10px; border-radius: 5px;">
+                        <span style="color: #1a5a2c; font-weight: bold; font-size: 12px;">CÁMARA<br>DE COMERCIO<br>DE QUERÉTARO</span>
+                    </div>
+                </div>
+            </div>
+            <div style="display: table-cell; width: 60%; vertical-align: middle; text-align: right;">
+                <h1 style="color: #1a5a2c; font-size: 24px; margin: 0; font-weight: bold;">BOLETO DE ACCESO</h1>
+                <p style="color: #666; font-size: 14px; margin: 5px 0 0 0;">Personal e Intransferible</p>
+            </div>
+        </div>
+        
+        <!-- Event Title -->
+        <div style="background-color: #f5f5f5; border-top: 3px solid #1a5a2c; border-bottom: 3px solid #1a5a2c; padding: 15px; text-align: center; margin: 20px 0;">
+            <h2 style="color: #1a5a2c; font-size: 22px; margin: 0; font-weight: bold;">{$eventTitle}</h2>
+        </div>
+        
+        <!-- Event Details -->
+        <div style="display: table; width: 100%; margin: 20px 0;">
+            <div style="display: table-row;">
+                <div style="display: table-cell; width: 50%; padding: 5px 10px;">
+                    <span style="color: #1a5a2c;">📅</span> <strong>{$eventDate}</strong>
+                </div>
+                <div style="display: table-cell; width: 50%; padding: 5px 10px;">
+                    <span style="color: #1a5a2c;">🕐</span> {$eventTime}
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin: 10px 0; color: #666;">
+            <span style="color: #1a5a2c;">📍</span> {$address}
+        </div>
+        
+        <!-- Attendee Info and QR Code -->
+        <div style="display: table; width: 100%; margin: 30px 0;">
+            <div style="display: table-cell; width: 50%; vertical-align: top; padding-right: 20px;">
+                <h3 style="color: #333; font-size: 14px; margin: 0 0 15px 0; text-transform: uppercase; border-bottom: 1px solid #ddd; padding-bottom: 5px;">ASISTENTE</h3>
+                
+                <p style="margin: 8px 0; font-size: 14px;"><strong>Nombre:</strong><br>{$guestName}</p>
+                <p style="margin: 8px 0; font-size: 14px;"><strong>Empresa:</strong><br>{$guestName}</p>
+                <p style="margin: 8px 0; font-size: 14px;"><strong>Boletos:</strong> {$tickets}</p>
+            </div>
+            <div style="display: table-cell; width: 50%; vertical-align: top; text-align: center;">
+                <h3 style="color: #333; font-size: 14px; margin: 0 0 15px 0; text-transform: uppercase;">CÓDIGO QR</h3>
+                <img src="{$qrUrl}" alt="Código QR" style="width: 180px; height: 180px; border: 1px solid #ddd;">
+                <p style="color: #1a5a2c; font-size: 12px; font-family: monospace; margin: 10px 0 0 0; word-break: break-all;">{$registrationCode}</p>
+            </div>
+        </div>
+        
+        <!-- Contact Info -->
+        <div style="text-align: center; padding: 20px 0; border-top: 1px solid #ddd; color: #666; font-size: 13px;">
+            <p style="margin: 5px 0;">✉️ {$contactEmail} | 📞 {$contactPhone}</p>
+            <p style="margin: 5px 0;">🔒 Política de Privacidad</p>
+        </div>
+    </div>
+    
+    <!-- Instructions -->
+    <div style="max-width: 600px; margin: 0 auto; background-color: #f8f9fa; padding: 25px 30px; border: 1px solid #e0e0e0; border-top: none;">
+        <h3 style="color: #2d3e92; font-size: 16px; margin: 0 0 15px 0;">ℹ️ Instrucciones</h3>
+        <ul style="color: #333; font-size: 14px; line-height: 1.8; margin: 0; padding-left: 20px;">
+            <li>Imprime este boleto o guárdalo en tu dispositivo móvil</li>
+            <li>Llega con 15 minutos de anticipación</li>
+            <li>Presenta tu código QR en la entrada del evento</li>
+            <li>Si tienes problemas, contacta al organizador</li>
+        </ul>
+    </div>
+    
+    <!-- Footer -->
+    <div style="background-color: #333; padding: 25px; text-align: center;">
+        <p style="color: white; font-size: 18px; margin: 0;">CRM CCdeQ</p>
+    </div>
+</body>
+</html>
+HTML;
     }
     
     /**
