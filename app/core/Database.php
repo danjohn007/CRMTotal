@@ -39,6 +39,13 @@ class Database {
         return $result ?: null;
     }
     
+    /**
+     * Alias for fetch() - Query and return a single row
+     */
+    public function queryOne(string $sql, array $params = []): ?array {
+        return $this->fetch($sql, $params);
+    }
+    
     public function fetchAll(string $sql, array $params = []): array {
         $stmt = $this->query($sql, $params);
         return $stmt->fetchAll();

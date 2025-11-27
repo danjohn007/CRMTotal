@@ -231,7 +231,7 @@ class ApiController extends Controller {
             $configModel = new Config();
             
             // Get registration code
-            $registration = $this->db->queryOne(
+            $registration = $this->db->fetch(
                 "SELECT registration_code FROM event_registrations WHERE id = :id", 
                 ['id' => $registrationId]
             );
@@ -242,13 +242,10 @@ class ApiController extends Controller {
             
             $registrationCode = $registration['registration_code'];
             
-            // Generate QR code using Google Charts API
-            // NOTE: This API is deprecated. For production, migrate to endroid/qr-code
-            // TODO: Extract QR generation to a shared service class
+            // Data to encode in QR
             $qrData = BASE_URL . '/evento/verificar/' . $registrationCode;
-            $qrImageUrl = "https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=" . urlencode($qrData);
             
-            // Download QR code image
+            // Create QR directory
             $qrDir = PUBLIC_PATH . '/uploads/qr/';
             if (!is_dir($qrDir)) {
                 mkdir($qrDir, 0750, true);
@@ -257,8 +254,38 @@ class ApiController extends Controller {
             $qrFilename = 'qr_' . $registrationCode . '.png';
             $qrPath = $qrDir . $qrFilename;
             
-            // Download and save QR code
-            $qrContent = @file_get_contents($qrImageUrl);
+            // Get QR provider from config
+            $qrProvider = $configModel->get('qr_api_provider', 'local');
+            $qrSize = (int) $configModel->get('qr_size', 350);
+            
+            $qrContent = null;
+            
+            // Try QR Server API (more reliable)
+            $qrServerUrl = "https://api.qrserver.com/v1/create-qr-code/?size={$qrSize}x{$qrSize}&data=" . urlencode($qrData);
+            
+            // Use cURL for more reliable fetching
+            if (function_exists('curl_init')) {
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $qrServerUrl);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+                $qrContent = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+                
+                if ($httpCode !== 200 || !$qrContent) {
+                    $qrContent = null;
+                }
+            }
+            
+            // Fallback to file_get_contents
+            if (!$qrContent) {
+                $qrContent = @file_get_contents($qrServerUrl);
+            }
+            
+            // Save QR code if generated
             if ($qrContent) {
                 file_put_contents($qrPath, $qrContent);
                 
@@ -266,6 +293,9 @@ class ApiController extends Controller {
                 $this->db->update('event_registrations', [
                     'qr_code' => $qrFilename
                 ], 'id = :id', ['id' => $registrationId]);
+            } else {
+                error_log("QR generation failed for registration: " . $registrationCode);
+                return;
             }
             
             // Send QR code email
@@ -274,7 +304,7 @@ class ApiController extends Controller {
             
             $body = "Hola " . htmlspecialchars($registrationData['guest_name']) . ",\n\n";
             $body .= "¡Tu pago ha sido confirmado!\n\n";
-            $body .= "Adjunto encontrarás tu código QR de acceso al evento:\n\n";
+            $body .= "Tu código QR de acceso al evento:\n\n";
             $body .= "📅 " . htmlspecialchars($event['title']) . "\n";
             $body .= "📍 " . ($event['is_online'] ? 'Evento en línea' : htmlspecialchars($event['location'] ?? '')) . "\n";
             $body .= "🕐 " . date('d/m/Y H:i', strtotime($event['start_date'])) . " hrs\n";
