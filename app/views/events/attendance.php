@@ -1,6 +1,6 @@
 <!-- Event Attendance Control View -->
-<!-- html5-qrcode library for camera scanning -->
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" integrity="sha384-Qr5p8smqb7TKuzJvJ7+YDH3YExW9Uj4yEfJfTZqGzVb+gQKiXnqNTlY9EHMzaLOl" crossorigin="anonymous"></script>
+<!-- html5-qrcode library for camera scanning - v2.3.8 from cdnjs -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
 <div class="space-y-6">
     <!-- Header -->
