@@ -91,15 +91,23 @@
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Asistencia</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Empresa / Representante</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Teléfono</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">RFC</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Boletos</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Asistentes Adicionales</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hora Asistencia</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                     <?php foreach ($registrations as $reg): ?>
+                    <?php 
+                        // Parse additional attendees JSON
+                        $additionalAttendees = [];
+                        if (!empty($reg['additional_attendees'])) {
+                            $additionalAttendees = json_decode($reg['additional_attendees'], true) ?: [];
+                        }
+                    ?>
                     <tr class="hover:bg-gray-50 attendance-row" 
                         data-name="<?php echo strtolower($reg['guest_name'] ?? ''); ?>"
                         data-email="<?php echo strtolower($reg['guest_email'] ?? ''); ?>"
@@ -112,8 +120,27 @@
                                 <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
                             </label>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            <?php echo htmlspecialchars($reg['guest_name'] ?? $reg['business_name'] ?? '-'); ?>
+                        <td class="px-6 py-4 text-sm font-medium text-gray-900">
+                            <div class="font-semibold">
+                                <?php echo htmlspecialchars($reg['guest_name'] ?? $reg['business_name'] ?? '-'); ?>
+                            </div>
+                            <?php if (!empty($reg['attendee_name']) && empty($reg['is_owner_representative'])): ?>
+                            <div class="text-xs text-gray-500 mt-1">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded bg-blue-100 text-blue-800">
+                                    👤 Asiste: <?php echo htmlspecialchars($reg['attendee_name']); ?>
+                                    <?php if (!empty($reg['attendee_position'])): ?>
+                                    <span class="ml-1 text-gray-600">(<?php echo htmlspecialchars($reg['attendee_position']); ?>)</span>
+                                    <?php endif; ?>
+                                </span>
+                            </div>
+                            <?php elseif (!empty($reg['is_owner_representative'])): ?>
+                            <div class="text-xs text-green-600 mt-1">
+                                ✓ Dueño/Representante
+                            </div>
+                            <?php endif; ?>
+                            <?php if (!empty($reg['guest_rfc'])): ?>
+                            <div class="text-xs text-gray-400 mt-1">RFC: <?php echo htmlspecialchars($reg['guest_rfc']); ?></div>
+                            <?php endif; ?>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             <?php echo htmlspecialchars($reg['guest_email'] ?? '-'); ?>
@@ -121,8 +148,29 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             <?php echo htmlspecialchars($reg['guest_phone'] ?? '-'); ?>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <?php echo htmlspecialchars($reg['guest_rfc'] ?? '-'); ?>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                <?php echo (int)($reg['tickets'] ?? 1); ?>
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-500">
+                            <?php if (!empty($additionalAttendees)): ?>
+                            <div class="space-y-1">
+                                <?php foreach ($additionalAttendees as $index => $attendee): ?>
+                                <div class="text-xs bg-gray-50 rounded p-1">
+                                    <span class="font-medium"><?php echo htmlspecialchars($attendee['name'] ?? 'Sin nombre'); ?></span>
+                                    <?php if (!empty($attendee['email'])): ?>
+                                    <br><span class="text-gray-400"><?php echo htmlspecialchars($attendee['email']); ?></span>
+                                    <?php endif; ?>
+                                    <?php if (!empty($attendee['phone'])): ?>
+                                    <br><span class="text-gray-400">📞 <?php echo htmlspecialchars($attendee['phone']); ?></span>
+                                    <?php endif; ?>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <?php else: ?>
+                            <span class="text-gray-400">-</span>
+                            <?php endif; ?>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 attendance-time">
                             <?php echo $reg['attendance_time'] ? date('H:i', strtotime($reg['attendance_time'])) : '-'; ?>
