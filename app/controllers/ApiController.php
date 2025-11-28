@@ -398,6 +398,7 @@ class ApiController extends Controller {
         }
         $location = $event['is_online'] ? 'Evento en línea' : htmlspecialchars($event['location'] ?? '');
         $address = htmlspecialchars($event['address'] ?? $location);
+        // guest_name field contains either person name or company name depending on how the user registered
         $guestName = htmlspecialchars($registrationData['guest_name']);
         $eventTitle = htmlspecialchars($event['title']);
         $tickets = (int) $registrationData['tickets'];
