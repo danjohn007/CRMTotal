@@ -200,9 +200,9 @@ class ApiController extends Controller {
         $eventModel = new Event();
         $eventModel->updatePaymentStatus($registrationId, 'paid', $orderId);
         
-        // Get registration and event details
+        // Get registration and event details (including end_date and address for email template)
         $registration = $this->db->queryOne(
-            "SELECT er.*, e.title, e.start_date, e.location, e.is_online 
+            "SELECT er.*, e.title, e.start_date, e.end_date, e.location, e.address, e.is_online 
              FROM event_registrations er 
              JOIN events e ON er.event_id = e.id 
              WHERE er.id = :id",
@@ -214,7 +214,9 @@ class ApiController extends Controller {
             $this->generateAndSendQR($registrationId, [
                 'title' => $registration['title'],
                 'start_date' => $registration['start_date'],
+                'end_date' => $registration['end_date'],
                 'location' => $registration['location'],
+                'address' => $registration['address'],
                 'is_online' => $registration['is_online']
             ], [
                 'guest_name' => $registration['guest_name'],
@@ -310,29 +312,18 @@ class ApiController extends Controller {
                 return;
             }
             
-            // Send QR code email
+            // Send QR code email with HTML template
             $to = $registrationData['guest_email'];
-            $subject = "Código QR de Acceso - " . $event['title'];
+            $subject = "Boleto de Acceso - " . $event['title'];
             
-            $body = "Hola " . htmlspecialchars($registrationData['guest_name']) . ",\n\n";
-            $body .= "¡Tu pago ha sido confirmado!\n\n";
-            $body .= "Tu código QR de acceso al evento:\n\n";
-            $body .= "📅 " . htmlspecialchars($event['title']) . "\n";
-            $body .= "📍 " . ($event['is_online'] ? 'Evento en línea' : htmlspecialchars($event['location'] ?? '')) . "\n";
-            $body .= "🕐 " . date('d/m/Y H:i', strtotime($event['start_date'])) . " hrs\n";
-            $body .= "🎫 Boletos: " . $registrationData['tickets'] . "\n\n";
-            $body .= "Presenta este código QR en el evento para registrar tu asistencia.\n\n";
-            $body .= "También puedes descargar tu QR desde:\n";
-            $body .= BASE_URL . '/uploads/qr/' . $qrFilename . "\n\n";
-            $body .= "Código de registro: " . $registrationCode . "\n\n";
-            $body .= "Te esperamos!\n\n";
-            $body .= "Cámara de Comercio de Querétaro\n";
-            $body .= BASE_URL;
+            // Build the HTML email with QR code embedded
+            $body = $this->buildAccessTicketEmailTemplate($event, $registrationData, $registrationCode, $qrFilename, $configModel);
             
-            // Send email
+            // Send HTML email
             $headers = "From: " . ($configModel->get('smtp_from_name', 'CRM CCQ')) . " <noreply@camaradecomercioqro.mx>\r\n";
             $headers .= "Reply-To: " . ($configModel->get('contact_email', 'info@camaradecomercioqro.mx')) . "\r\n";
-            $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+            $headers .= "MIME-Version: 1.0\r\n";
+            $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
             
             mail($to, $subject, $body, $headers);
             
@@ -393,5 +384,126 @@ class ApiController extends Controller {
                 'already_attended' => $alreadyAttended
             ]
         ]);
+    }
+    
+    /**
+     * Build HTML template for access ticket email with QR code
+     * This is the email sent after payment confirmation for paid events
+     */
+    private function buildAccessTicketEmailTemplate(array $event, array $registrationData, string $registrationCode, string $qrFilename, Config $configModel): string {
+        $eventDate = date('d/m/Y', strtotime($event['start_date']));
+        $eventTime = date('H:i', strtotime($event['start_date']));
+        if (!empty($event['end_date'])) {
+            $eventTime .= ' - ' . date('H:i', strtotime($event['end_date']));
+        }
+        $location = $event['is_online'] ? 'Evento en línea' : htmlspecialchars($event['location'] ?? '');
+        $address = htmlspecialchars($event['address'] ?? $location);
+        $guestName = htmlspecialchars($registrationData['guest_name']);
+        $eventTitle = htmlspecialchars($event['title']);
+        $tickets = (int) $registrationData['tickets'];
+        $qrUrl = BASE_URL . '/uploads/qr/' . $qrFilename;
+        $contactEmail = htmlspecialchars($configModel->get('contact_email', 'contacto@camaradecomercioqro.mx'));
+        $contactPhone = htmlspecialchars($configModel->get('contact_phone', '4425375301'));
+        
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boleto de Acceso - {$eventTitle}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa;">
+    <!-- Header -->
+    <div style="background-color: #1a5a2c; padding: 20px; text-align: right;">
+        <span style="background-color: #2d7a3d; color: white; padding: 12px 24px; border-radius: 5px; font-weight: bold; display: inline-block;">
+            🖨️ Imprimir Boleto
+        </span>
+    </div>
+    
+    <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border: 1px solid #e0e0e0;">
+        <!-- Payment Confirmation Banner -->
+        <div style="background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; padding: 15px; margin-bottom: 20px; text-align: center;">
+            <p style="color: #155724; font-size: 18px; margin: 0; font-weight: bold;">✓ ¡Pago Confirmado!</p>
+            <p style="color: #155724; font-size: 14px; margin: 5px 0 0 0;">Tu boleto de acceso está listo</p>
+        </div>
+        
+        <!-- Logo and Title -->
+        <div style="display: table; width: 100%; margin-bottom: 20px;">
+            <div style="display: table-cell; width: 40%; vertical-align: middle;">
+                <div style="background-color: #1a5a2c; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="background-color: white; display: inline-block; padding: 10px; border-radius: 5px;">
+                        <span style="color: #1a5a2c; font-weight: bold; font-size: 12px;">CÁMARA<br>DE COMERCIO<br>DE QUERÉTARO</span>
+                    </div>
+                </div>
+            </div>
+            <div style="display: table-cell; width: 60%; vertical-align: middle; text-align: right;">
+                <h1 style="color: #1a5a2c; font-size: 24px; margin: 0; font-weight: bold;">BOLETO DE ACCESO</h1>
+                <p style="color: #666; font-size: 14px; margin: 5px 0 0 0;">Personal e Intransferible</p>
+            </div>
+        </div>
+        
+        <!-- Event Title -->
+        <div style="background-color: #f5f5f5; border-top: 3px solid #1a5a2c; border-bottom: 3px solid #1a5a2c; padding: 15px; text-align: center; margin: 20px 0;">
+            <h2 style="color: #1a5a2c; font-size: 22px; margin: 0; font-weight: bold;">{$eventTitle}</h2>
+        </div>
+        
+        <!-- Event Details -->
+        <div style="display: table; width: 100%; margin: 20px 0;">
+            <div style="display: table-row;">
+                <div style="display: table-cell; width: 50%; padding: 5px 10px;">
+                    <span style="color: #1a5a2c;">📅</span> <strong>{$eventDate}</strong>
+                </div>
+                <div style="display: table-cell; width: 50%; padding: 5px 10px;">
+                    <span style="color: #1a5a2c;">🕐</span> {$eventTime}
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin: 10px 0; color: #666;">
+            <span style="color: #1a5a2c;">📍</span> {$address}
+        </div>
+        
+        <!-- Attendee Info and QR Code -->
+        <div style="display: table; width: 100%; margin: 30px 0;">
+            <div style="display: table-cell; width: 50%; vertical-align: top; padding-right: 20px;">
+                <h3 style="color: #333; font-size: 14px; margin: 0 0 15px 0; text-transform: uppercase; border-bottom: 1px solid #ddd; padding-bottom: 5px;">ASISTENTE</h3>
+                
+                <p style="margin: 8px 0; font-size: 14px;"><strong>Nombre:</strong><br>{$guestName}</p>
+                <p style="margin: 8px 0; font-size: 14px;"><strong>Empresa:</strong><br>{$guestName}</p>
+                <p style="margin: 8px 0; font-size: 14px;"><strong>Boletos:</strong> {$tickets}</p>
+            </div>
+            <div style="display: table-cell; width: 50%; vertical-align: top; text-align: center;">
+                <h3 style="color: #333; font-size: 14px; margin: 0 0 15px 0; text-transform: uppercase;">CÓDIGO QR</h3>
+                <img src="{$qrUrl}" alt="Código QR" style="width: 180px; height: 180px; border: 1px solid #ddd;">
+                <p style="color: #1a5a2c; font-size: 12px; font-family: monospace; margin: 10px 0 0 0; word-break: break-all;">{$registrationCode}</p>
+            </div>
+        </div>
+        
+        <!-- Contact Info -->
+        <div style="text-align: center; padding: 20px 0; border-top: 1px solid #ddd; color: #666; font-size: 13px;">
+            <p style="margin: 5px 0;">✉️ {$contactEmail} | 📞 {$contactPhone}</p>
+            <p style="margin: 5px 0;">🔒 Política de Privacidad</p>
+        </div>
+    </div>
+    
+    <!-- Instructions -->
+    <div style="max-width: 600px; margin: 0 auto; background-color: #f8f9fa; padding: 25px 30px; border: 1px solid #e0e0e0; border-top: none;">
+        <h3 style="color: #2d3e92; font-size: 16px; margin: 0 0 15px 0;">ℹ️ Instrucciones</h3>
+        <ul style="color: #333; font-size: 14px; line-height: 1.8; margin: 0; padding-left: 20px;">
+            <li>Imprime este boleto o guárdalo en tu dispositivo móvil</li>
+            <li>Llega con 15 minutos de anticipación</li>
+            <li>Presenta tu código QR en la entrada del evento</li>
+            <li>Si tienes problemas, contacta al organizador</li>
+        </ul>
+    </div>
+    
+    <!-- Footer -->
+    <div style="background-color: #333; padding: 25px; text-align: center;">
+        <p style="color: white; font-size: 18px; margin: 0;">CRM CCdeQ</p>
+    </div>
+</body>
+</html>
+HTML;
     }
 }
