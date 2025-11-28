@@ -120,6 +120,8 @@
                                 return response.json();
                             }).then(function(result) {
                                 if (result.success) {
+                                    // Show success message with email before redirect
+                                    alert('¡Pago completado exitosamente! Se ha enviado tu boleto a: <?php echo htmlspecialchars($registration['guest_email'] ?? ''); ?>');
                                     // Redirect to ticket page
                                     window.location.href = <?php echo json_encode(BASE_URL . '/evento/boleto/' . $registration['registration_code']); ?>;
                                 } else {
@@ -127,7 +129,7 @@
                                 }
                             }).catch(function(error) {
                                 console.error(error);
-                                alert('¡Pago completado! Recibirás un correo de confirmación.');
+                                alert('¡Pago completado! Se ha enviado tu boleto a: <?php echo htmlspecialchars($registration['guest_email'] ?? ''); ?>');
                                 window.location.href = <?php echo json_encode(BASE_URL . '/evento/boleto/' . $registration['registration_code']); ?>;
                             });
                         });

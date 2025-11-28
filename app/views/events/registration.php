@@ -105,6 +105,9 @@
                 <div>
                     <p class="font-bold text-lg">Registro Pendiente</p>
                     <p>Tu registro ha sido recibido. Por favor, completa el pago para confirmar tu asistencia.</p>
+                    <?php if (!empty($registrationEmail)): ?>
+                    <p class="mt-2 text-sm">📧 Notificación enviada a: <strong><?php echo htmlspecialchars($registrationEmail); ?></strong></p>
+                    <?php endif; ?>
                 </div>
             </div>
             <?php else: ?>
@@ -286,10 +289,10 @@
                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                     </div>
                     
-                    <!-- RFC field (hidden in guest mode) -->
+                    <!-- RFC field (hidden in guest mode, required when not guest) -->
                     <div id="rfc-field">
-                        <label for="rfc" class="block text-sm font-medium text-gray-700">RFC (Opcional)</label>
-                        <input type="text" id="rfc" name="rfc"
+                        <label for="rfc" class="block text-sm font-medium text-gray-700">RFC <span id="rfc-required-indicator">*</span></label>
+                        <input type="text" id="rfc" name="rfc" required
                                maxlength="13" pattern="[A-Za-z0-9]{12,13}"
                                placeholder="12-13 caracteres"
                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
@@ -320,6 +323,18 @@
                     <p class="text-xs text-gray-600 mt-2 ml-6">
                         Selecciona esta opción si no eres empresa afiliada y deseas asistir como invitado al evento.
                     </p>
+                    
+                    <!-- Guest Type Dropdown (shown only when guest mode is active) -->
+                    <div id="guest-type-section" class="hidden mt-4">
+                        <label for="guest_type" class="block text-sm font-medium text-gray-700">Tipo de Invitado *</label>
+                        <select id="guest_type" name="guest_type"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 p-2 border">
+                            <option value="">-- Selecciona una opción --</option>
+                            <option value="INVITADO">INVITADO</option>
+                            <option value="FUNCIONARIO PÚBLICO">FUNCIONARIO PÚBLICO</option>
+                            <option value="OTRO">OTRO</option>
+                        </select>
+                    </div>
                 </div>
                 
                 <!-- Attendee Information (for affiliate registrations) -->
@@ -331,10 +346,10 @@
                             <input type="checkbox" id="is_owner_representative" name="is_owner_representative" value="1" checked
                                    class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                    onchange="toggleOwnerRepresentative()">
-                            <span class="ml-3 text-sm font-medium text-gray-900">Dueño o Representante Legal</span>
+                            <span class="ml-3 text-sm font-medium text-gray-900">¿Dueño, Socio o Representante Legal?</span>
                         </label>
                         <p class="text-xs text-gray-600 mt-1 ml-6">
-                            Las empresas afiliadas activas tienen 1 boleto de cortesía. Desmarca esta casilla si el asistente es colaborador, socio o invitado de la empresa.
+                            Las empresas afiliadas activas tienen 1 boleto de cortesía. Desmarca esta casilla si el asistente es colaborador o invitado de la empresa.
                         </p>
                     </div>
                     
@@ -474,6 +489,10 @@
         const attendeeSection = document.getElementById('attendee-section');
         const ticketsField = document.getElementById('tickets-field');
         const nameLabel = document.getElementById('name-label');
+        const guestTypeSection = document.getElementById('guest-type-section');
+        const guestTypeSelect = document.getElementById('guest_type');
+        const rfcInput = document.getElementById('rfc');
+        const rfcRequiredIndicator = document.getElementById('rfc-required-indicator');
         
         if (isGuest) {
             companyLookup.classList.add('hidden');
@@ -481,19 +500,32 @@
             ownerNameField.classList.add('hidden');
             attendeeSection.classList.add('hidden');
             ticketsField.classList.add('hidden'); // Guests cannot request additional tickets
+            guestTypeSection.classList.remove('hidden'); // Show guest type dropdown
             nameLabel.textContent = 'Nombre Completo';
             document.getElementById('contact_id').value = '';
             document.getElementById('owner_name').value = '';
             document.getElementById('tickets').value = String(GUEST_TICKET_LIMIT); // Reset to max tickets for guests
             isActiveAffiliate = false;
             document.getElementById('is_active_affiliate').value = '0';
+            // RFC is not required for guests
+            rfcInput.removeAttribute('required');
+            rfcInput.value = '';
+            // Guest type is required
+            guestTypeSelect.setAttribute('required', 'required');
         } else {
             companyLookup.classList.remove('hidden');
             rfcField.classList.remove('hidden');
             ownerNameField.classList.remove('hidden');
             attendeeSection.classList.remove('hidden');
             ticketsField.classList.remove('hidden');
+            guestTypeSection.classList.add('hidden'); // Hide guest type dropdown
             nameLabel.textContent = 'Nombre Completo / Empresa';
+            // RFC is required for non-guests
+            rfcInput.setAttribute('required', 'required');
+            rfcRequiredIndicator.classList.remove('hidden');
+            // Guest type is not required
+            guestTypeSelect.removeAttribute('required');
+            guestTypeSelect.value = '';
         }
         
         updateTicketFields();

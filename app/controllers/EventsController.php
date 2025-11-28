@@ -252,6 +252,7 @@ class EventsController extends Controller {
                     : max(1, min(self::MAX_TICKETS_PER_REGISTRATION, (int) $this->getInput('tickets', 1)));
                 $isOwnerRepresentative = (int) $this->getInput('is_owner_representative', 1);
                 $isActiveAffiliateInput = (int) $this->getInput('is_active_affiliate', 0);
+                $guestType = $this->sanitize($this->getInput('guest_type', ''));
                 
                 $registrationData = [
                     'guest_name' => $this->sanitize($this->getInput('name', '')),
@@ -261,6 +262,7 @@ class EventsController extends Controller {
                     'tickets' => $tickets,
                     'is_guest' => $isGuest,
                     'is_owner_representative' => $isOwnerRepresentative,
+                    'guest_type' => $isGuest ? $guestType : null,
                     'payment_status' => $event['is_paid'] ? 'pending' : 'free'
                 ];
                 
@@ -278,8 +280,13 @@ class EventsController extends Controller {
                     $registrationData['additional_attendees'] = json_encode($additionalAttendees);
                 }
                 
+                // Validate guest type is required when registering as guest
+                if ($isGuest && empty($guestType)) {
+                    $error = 'Debes seleccionar un tipo de invitado.';
+                }
+                
                 // Validate phone (10 digits)
-                if (!empty($registrationData['guest_phone']) && !preg_match('/^\d{10}$/', $registrationData['guest_phone'])) {
+                if (!$error && !empty($registrationData['guest_phone']) && !preg_match('/^\d{10}$/', $registrationData['guest_phone'])) {
                     $error = 'El teléfono debe tener exactamente 10 dígitos.';
                 }
                 
@@ -389,12 +396,13 @@ class EventsController extends Controller {
                             }
                         }
                         
-                        // Create contact entries for additional attendees as colaborador_empresa
-                        // Note: Using individual inserts here since max 4 additional attendees (5 total tickets limit)
-                        // and we need to check for existing contacts. For larger batches, consider batch insert.
+                        // Create individual registrations for additional attendees
+                        // This allows them to have their own QR codes and appear individually in attendance control
+                        $additionalRegistrationIds = [];
                         if (!empty($additionalAttendees) && is_array($additionalAttendees)) {
                             foreach ($additionalAttendees as $attendee) {
                                 if (!empty($attendee['email'])) {
+                                    // Check for existing contact
                                     $existingAttendee = $contactModel->findBy('corporate_email', $attendee['email']);
                                     if (!$existingAttendee) {
                                         $contactModel->create([
@@ -407,6 +415,25 @@ class EventsController extends Controller {
                                             'completion_stage' => 'A'
                                         ]);
                                     }
+                                    
+                                    // Create individual registration for this additional attendee
+                                    $additionalRegData = [
+                                        'guest_name' => $this->sanitize($attendee['name'] ?? ''),
+                                        'guest_email' => $this->sanitize($attendee['email']),
+                                        'guest_phone' => $this->sanitize($attendee['phone'] ?? ''),
+                                        'guest_rfc' => $registrationData['guest_rfc'] ?? null, // Inherit RFC from main registration
+                                        'tickets' => 1, // Each additional attendee gets 1 ticket
+                                        'is_guest' => 0,
+                                        'is_owner_representative' => 0,
+                                        'parent_registration_id' => $registrationId,
+                                        'payment_status' => $registrationData['payment_status'] // Same payment status as main registration
+                                    ];
+                                    
+                                    $additionalRegId = $this->eventModel->registerAttendee($id, $additionalRegData);
+                                    $additionalRegistrationIds[] = [
+                                        'id' => $additionalRegId,
+                                        'data' => $additionalRegData
+                                    ];
                                 }
                             }
                         }
@@ -418,6 +445,11 @@ class EventsController extends Controller {
                         if ($registrationData['payment_status'] === 'free') {
                             $this->generateAndSendQR($registrationId, $event, $registrationData);
                             
+                            // Generate and send QR codes for additional attendees
+                            foreach ($additionalRegistrationIds as $additionalReg) {
+                                $this->generateAndSendQR($additionalReg['id'], $event, $additionalReg['data']);
+                            }
+                            
                             // Get the QR code filename for display
                             $regData = $this->db->queryOne(
                                 "SELECT registration_code, qr_code FROM event_registrations WHERE id = :id",
@@ -426,9 +458,9 @@ class EventsController extends Controller {
                             $qrCode = $regData['qr_code'] ?? null;
                             $registrationCode = $regData['registration_code'] ?? null;
                             
-                            $success = '¡Registro exitoso! Tu código QR de acceso se muestra a continuación.';
+                            $success = '¡Registro exitoso! Tu código QR de acceso se muestra a continuación. Se ha enviado una copia a: ' . $registrationData['guest_email'];
                         } else {
-                            $success = '¡Registro exitoso! Te hemos enviado un correo de confirmación con el enlace de pago.';
+                            $success = '¡Registro exitoso! Te hemos enviado un correo de confirmación con el enlace de pago a: ' . $registrationData['guest_email'];
                         }
                     } catch (Exception $e) {
                         $error = 'Error en el registro: ' . $e->getMessage();
@@ -443,6 +475,7 @@ class EventsController extends Controller {
             'error' => $error,
             'success' => $success,
             'registrationId' => $registrationId,
+            'registrationEmail' => $registrationData['guest_email'] ?? null,
             'qrCode' => $qrCode,
             'registrationCode' => $registrationCode,
             'totalAmount' => $totalAmount,
@@ -847,7 +880,7 @@ class EventsController extends Controller {
     
     <!-- Footer -->
     <div style="background-color: #333; padding: 25px; text-align: center;">
-        <p style="color: white; font-size: 18px; margin: 0;">Estrategia Digital desarrollada por <a href="https://www.impactosdigitales.com/" style="color: #4da6ff; text-decoration: none;">ID</a></p>
+        <p style="color: white; font-size: 18px; margin: 0;">Solución Digital desarrollada por&nbsp;<a href="https://www.impactosdigitales.com/" style="color: #4da6ff; text-decoration: none;">ID</a></p>
     </div>
 </body>
 </html>
@@ -919,7 +952,7 @@ HTML;
     
     <!-- Footer -->
     <div style="background-color: #333; padding: 25px; text-align: center;">
-        <p style="color: white; font-size: 18px; margin: 0;">Estrategia Digital desarrollada por <a href="https://www.impactosdigitales.com/" style="color: #4da6ff; text-decoration: none;">ID</a></p>
+        <p style="color: white; font-size: 18px; margin: 0;">Solución Digital desarrollada por&nbsp;<a href="https://www.impactosdigitales.com/" style="color: #4da6ff; text-decoration: none;">ID</a></p>
     </div>
 </body>
 </html>
@@ -1119,7 +1152,7 @@ HTML;
     
     <!-- Footer -->
     <div style="background-color: #333; padding: 25px; text-align: center;">
-        <p style="color: white; font-size: 18px; margin: 0;">Estrategia Digital desarrollada por <a href="https://www.impactosdigitales.com/" style="color: #4da6ff; text-decoration: none;">ID</a></p>
+        <p style="color: white; font-size: 18px; margin: 0;">Solución Digital desarrollada por&nbsp;<a href="https://www.impactosdigitales.com/" style="color: #4da6ff; text-decoration: none;">ID</a></p>
     </div>
 </body>
 </html>
