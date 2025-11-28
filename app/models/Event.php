@@ -47,16 +47,20 @@ class Event extends Model {
     }
     
     public function getRegistrations(int $eventId): array {
-        // Join with contacts table by contact_id or by email to get owner_name and legal_representative
-        $sql = "SELECT er.*, 
-                       COALESCE(c1.business_name, c2.business_name) as business_name,
-                       COALESCE(c1.commercial_name, c2.commercial_name) as commercial_name,
-                       COALESCE(c1.contact_type, c2.contact_type) as contact_type,
-                       COALESCE(c1.owner_name, c2.owner_name) as owner_name,
-                       COALESCE(c1.legal_representative, c2.legal_representative) as legal_representative
+        // Join with contacts table to get owner_name and legal_representative
+        // First try to join by contact_id, if null, try to match by email
+        $sql = "SELECT 
+                    er.*,
+                    COALESCE(c.business_name, '') as business_name,
+                    COALESCE(c.commercial_name, '') as commercial_name,
+                    COALESCE(c.contact_type, '') as contact_type,
+                    COALESCE(c.owner_name, '') as owner_name,
+                    COALESCE(c.legal_representative, '') as legal_representative
                 FROM event_registrations er
-                LEFT JOIN contacts c1 ON er.contact_id = c1.id
-                LEFT JOIN contacts c2 ON er.contact_id IS NULL AND er.guest_email = c2.corporate_email
+                LEFT JOIN contacts c ON (
+                    er.contact_id = c.id 
+                    OR (er.contact_id IS NULL AND er.guest_email = c.corporate_email)
+                )
                 WHERE er.event_id = :event_id
                 ORDER BY er.registration_date";
         return $this->raw($sql, ['event_id' => $eventId]);
