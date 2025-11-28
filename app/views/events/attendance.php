@@ -23,6 +23,100 @@ function loadFallbackQRLibrary() {
     <p class="text-sm mt-1">Por favor, usa la opción "Ingresar Manual" para registrar asistencia.</p>
 </div>
 
+<!-- QR Scanner Modal -->
+<div id="qr-scanner-modal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <!-- Background overlay -->
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeQRScannerModal()"></div>
+        
+        <!-- Modal panel -->
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                        📷 Escanear Código QR
+                    </h3>
+                    <button type="button" onclick="closeQRScannerModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div id="qr-info-alert" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <p class="text-sm text-blue-700">Apunta la cámara hacia el código QR del visitante</p>
+                    </div>
+                </div>
+                
+                <!-- QR Scanner Container -->
+                <div id="qr-reader" class="w-full" style="min-height: 300px;"></div>
+                
+                <!-- Validation Result -->
+                <div id="qr-validation-result" class="hidden mt-4"></div>
+            </div>
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button type="button" onclick="closeQRScannerModal()" 
+                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manual Entry Modal -->
+<div id="manual-entry-modal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="manual-modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <!-- Background overlay -->
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeManualEntryModal()"></div>
+        
+        <!-- Modal panel -->
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900" id="manual-modal-title">
+                        ✏️ Ingresar Código Manual
+                    </h3>
+                    <button type="button" onclick="closeManualEntryModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                
+                <p class="text-sm text-gray-500 mb-4">Ingresa el código de registro del asistente para validar y marcar su asistencia.</p>
+                
+                <div class="mb-4">
+                    <label for="qr-code-input" class="block text-sm font-medium text-gray-700 mb-2">Código de Registro</label>
+                    <input type="text" id="qr-code-input" 
+                           placeholder="REG-20251127-ABCD12"
+                           class="w-full rounded-md border-2 border-blue-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 text-lg uppercase">
+                </div>
+                
+                <!-- Validation Result -->
+                <div id="manual-validation-result" class="hidden mt-4"></div>
+            </div>
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button type="button" onclick="validateQRCode()" 
+                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Validar y Registrar
+                </button>
+                <button type="button" onclick="closeManualEntryModal()" 
+                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="space-y-6">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -52,65 +146,22 @@ function loadFallbackQRLibrary() {
         
         <div class="max-w-2xl mx-auto">
             <div class="flex space-x-4 mb-6">
-                <button type="button" id="btn-scan-qr" onclick="startQRScanner()"
-                        class="flex-1 inline-flex items-center justify-center px-6 py-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-lg font-medium">
+                <button type="button" id="btn-scan-qr" onclick="openQRScannerModal()"
+                        class="flex-1 inline-flex items-center justify-center px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-lg font-medium shadow-md">
                     <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
                     </svg>
                     Escanear QR
                 </button>
-                <button type="button" id="btn-manual-entry" onclick="toggleManualEntry()"
-                        class="flex-1 inline-flex items-center justify-center px-6 py-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition text-lg font-medium">
+                <button type="button" id="btn-manual-entry" onclick="openManualEntryModal()"
+                        class="flex-1 inline-flex items-center justify-center px-6 py-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition text-lg font-medium shadow-md">
                     <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                     </svg>
                     Ingresar Manual
                 </button>
             </div>
-            
-            <!-- Info Alert -->
-            <div id="qr-info-alert" class="hidden mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div class="flex items-start">
-                    <svg class="w-5 h-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <p class="text-sm text-blue-700">Apunta la cámara hacia el código QR del visitante</p>
-                </div>
-            </div>
-            
-            <!-- QR Scanner Container -->
-            <div id="qr-scanner-container" class="hidden mb-6">
-                <div id="qr-reader" class="w-full" style="min-height: 300px;"></div>
-                <button type="button" onclick="stopQRScanner()" 
-                        class="mt-4 w-full inline-flex items-center justify-center px-4 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-medium">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>
-                    </svg>
-                    Detener Cámara
-                </button>
-            </div>
-            
-            <!-- Manual Entry -->
-            <div id="manual-entry-container" class="hidden">
-                <div class="mb-4">
-                    <label for="qr-code-input" class="block text-sm font-medium text-gray-700 mb-2">Código de Registro</label>
-                    <input type="text" id="qr-code-input" 
-                           placeholder="REG-20251127-ABCD12"
-                           class="w-full rounded-md border-2 border-blue-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 text-lg uppercase">
-                </div>
-                <button type="button" onclick="validateQRCode()" 
-                        class="w-full inline-flex items-center justify-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-lg font-medium">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    Validar y Registrar Asistencia
-                </button>
-            </div>
-            
-            <!-- Validation Result -->
-            <div id="validation-result" class="hidden mt-6"></div>
         </div>
     </div>
     
@@ -177,6 +228,59 @@ function loadFallbackQRLibrary() {
                                 </span>
                             </div>
                             <?php endif; ?>
+                            <?php 
+                                // Determine the type to display based on registration and contact data
+                                // Check if this is a child registration (additional attendee)
+                                $isChildRegistration = !empty($reg['parent_registration_id']);
+                                
+                                // Determine the contact type label
+                                $contactTypeLabels = [
+                                    'afiliado' => ['label' => 'Afiliado', 'class' => 'bg-green-100 text-green-800', 'icon' => '✅'],
+                                    'exafiliado' => ['label' => 'Exafiliado', 'class' => 'bg-orange-100 text-orange-800', 'icon' => '📋'],
+                                    'prospecto' => ['label' => 'Prospecto', 'class' => 'bg-blue-100 text-blue-800', 'icon' => '🎯'],
+                                    'nuevo_usuario' => ['label' => 'Nuevo Usuario', 'class' => 'bg-gray-100 text-gray-800', 'icon' => '👤'],
+                                    'funcionario' => ['label' => 'Funcionario', 'class' => 'bg-indigo-100 text-indigo-800', 'icon' => '🏛️'],
+                                    'publico_general' => ['label' => 'Público General', 'class' => 'bg-gray-100 text-gray-800', 'icon' => '👥'],
+                                    'colaborador_empresa' => ['label' => 'Colaborador', 'class' => 'bg-cyan-100 text-cyan-800', 'icon' => '👔'],
+                                    'invitado' => ['label' => 'Invitado', 'class' => 'bg-purple-100 text-purple-800', 'icon' => '🎫'],
+                                    'consejero_propietario' => ['label' => 'Consejero', 'class' => 'bg-yellow-100 text-yellow-800', 'icon' => '⭐'],
+                                    'consejero_invitado' => ['label' => 'Consejero Inv.', 'class' => 'bg-yellow-100 text-yellow-800', 'icon' => '⭐'],
+                                    'mesa_directiva' => ['label' => 'Mesa Directiva', 'class' => 'bg-red-100 text-red-800', 'icon' => '🎖️'],
+                                ];
+                                
+                                $displayContactType = null;
+                                $displayContactClass = 'bg-gray-100 text-gray-800';
+                                $displayContactIcon = '👤';
+                                
+                                // Check if it's a guest registration
+                                if (!empty($reg['is_guest'])) {
+                                    $guestType = $reg['guest_type'] ?? 'INVITADO';
+                                    $displayContactType = $guestType;
+                                    $displayContactClass = 'bg-purple-100 text-purple-800';
+                                    $displayContactIcon = '🎫';
+                                } elseif (!empty($reg['contact_type']) && isset($contactTypeLabels[$reg['contact_type']])) {
+                                    // Use contact_type from DB if available
+                                    $typeInfo = $contactTypeLabels[$reg['contact_type']];
+                                    $displayContactType = $typeInfo['label'];
+                                    $displayContactClass = $typeInfo['class'];
+                                    $displayContactIcon = $typeInfo['icon'];
+                                } elseif ($isChildRegistration) {
+                                    // Child registrations are additional attendees (colaboradores)
+                                    $displayContactType = 'Asistente Adicional';
+                                    $displayContactClass = 'bg-cyan-100 text-cyan-800';
+                                    $displayContactIcon = '👔';
+                                } elseif (!empty($reg['attendee_name']) && empty($reg['is_owner_representative'])) {
+                                    // Registration with attendee who is NOT owner/representative
+                                    $displayContactType = 'Colaborador';
+                                    $displayContactClass = 'bg-cyan-100 text-cyan-800';
+                                    $displayContactIcon = '👔';
+                                } elseif (!empty($reg['is_owner_representative'])) {
+                                    // Owner/Representative
+                                    $displayContactType = 'Dueño/Representante';
+                                    $displayContactClass = 'bg-green-100 text-green-800';
+                                    $displayContactIcon = '✓';
+                                }
+                            ?>
                             <?php if (!empty($reg['attendee_name']) && empty($reg['is_owner_representative'])): ?>
                             <div class="text-xs text-gray-500 mt-1">
                                 <span class="inline-flex items-center px-2 py-0.5 rounded bg-blue-100 text-blue-800">
@@ -186,9 +290,12 @@ function loadFallbackQRLibrary() {
                                     <?php endif; ?>
                                 </span>
                             </div>
-                            <?php elseif (!empty($reg['is_owner_representative'])): ?>
-                            <div class="text-xs text-green-600 mt-1">
-                                ✓ Dueño/Representante
+                            <?php endif; ?>
+                            <?php if ($displayContactType): ?>
+                            <div class="text-xs mt-1">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded <?php echo $displayContactClass; ?>">
+                                    <?php echo $displayContactIcon; ?> <?php echo htmlspecialchars($displayContactType); ?>
+                                </span>
                             </div>
                             <?php endif; ?>
                             <?php if (!empty($reg['guest_rfc'])): ?>
@@ -249,28 +356,52 @@ const Html5QrcodeScannerState = {
     PAUSED: 3
 };
 
-function toggleManualEntry() {
-    const container = document.getElementById('manual-entry-container');
-    const scannerContainer = document.getElementById('qr-scanner-container');
-    const infoAlert = document.getElementById('qr-info-alert');
+// Modal functions
+function openQRScannerModal() {
+    const modal = document.getElementById('qr-scanner-modal');
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
     
-    // Stop scanner if running
+    // Start scanner after modal is visible
+    setTimeout(() => {
+        startQRScanner();
+    }, 100);
+}
+
+function closeQRScannerModal() {
+    const modal = document.getElementById('qr-scanner-modal');
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
     stopQRScanner();
     
-    scannerContainer.classList.add('hidden');
-    infoAlert.classList.add('hidden');
-    container.classList.toggle('hidden');
+    // Clear result
+    document.getElementById('qr-validation-result').classList.add('hidden');
+}
+
+function openManualEntryModal() {
+    const modal = document.getElementById('manual-entry-modal');
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
     
-    if (!container.classList.contains('hidden')) {
+    // Focus on input
+    setTimeout(() => {
         document.getElementById('qr-code-input').focus();
-    }
+    }, 100);
+}
+
+function closeManualEntryModal() {
+    const modal = document.getElementById('manual-entry-modal');
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+    
+    // Clear input and result
+    document.getElementById('qr-code-input').value = '';
+    document.getElementById('manual-validation-result').classList.add('hidden');
 }
 
 // Initialize and start the QR scanner camera
 function initializeScanner() {
-    const container = document.getElementById('qr-scanner-container');
-    const infoAlert = document.getElementById('qr-info-alert');
-    const resultDiv = document.getElementById('validation-result');
+    const resultDiv = document.getElementById('qr-validation-result');
     
     // Create new scanner instance
     html5QrCode = new Html5Qrcode("qr-reader");
@@ -296,7 +427,6 @@ function initializeScanner() {
     ).catch((err) => {
         // Camera access error
         console.error("Camera error:", err);
-        infoAlert.classList.add('hidden');
         resultDiv.innerHTML = '<div class="p-4 bg-yellow-100 border border-yellow-400 text-yellow-800 rounded-lg">' +
             '<p class="font-medium">📷 No se pudo acceder a la cámara</p>' +
             '<p class="mt-2">Posibles causas:</p>' +
@@ -306,22 +436,14 @@ function initializeScanner() {
             '<li>La conexión no es segura (se requiere HTTPS)</li>' +
             '<li>Otra aplicación está usando la cámara</li>' +
             '</ul>' +
-            '<p class="mt-3 text-sm">Usa la opción <strong>"Ingresar Manual"</strong> para escribir el código QR.</p>' +
+            '<p class="mt-3 text-sm">Cierra este modal y usa <strong>"Ingresar Manual"</strong> para escribir el código.</p>' +
             '</div>';
         resultDiv.classList.remove('hidden');
-        container.classList.add('hidden');
     });
 }
 
 function startQRScanner() {
-    const container = document.getElementById('qr-scanner-container');
-    const manualContainer = document.getElementById('manual-entry-container');
-    const infoAlert = document.getElementById('qr-info-alert');
-    const resultDiv = document.getElementById('validation-result');
-    
-    manualContainer.classList.add('hidden');
-    container.classList.remove('hidden');
-    infoAlert.classList.remove('hidden');
+    const resultDiv = document.getElementById('qr-validation-result');
     resultDiv.classList.add('hidden');
     
     // Check if html5QrCode library is available
@@ -331,7 +453,6 @@ function startQRScanner() {
             '<p class="mt-2">No se pudo cargar la librería de escaneo. Por favor, recarga la página e intenta de nuevo.</p>' +
             '</div>';
         resultDiv.classList.remove('hidden');
-        container.classList.add('hidden');
         return;
     }
     
@@ -359,12 +480,6 @@ function startQRScanner() {
 }
 
 function stopQRScanner() {
-    const container = document.getElementById('qr-scanner-container');
-    const infoAlert = document.getElementById('qr-info-alert');
-    
-    container.classList.add('hidden');
-    infoAlert.classList.add('hidden');
-    
     if (html5QrCode) {
         try {
             // Try to get the state - if scanner is running, stop it
@@ -397,16 +512,16 @@ function onQRCodeScanned(code) {
     }
     
     // Validate the QR code
-    validateQRCodeValue(registrationCode);
+    validateQRCodeValue(registrationCode, 'qr-validation-result');
 }
 
 function validateQRCode() {
     const code = document.getElementById('qr-code-input').value.trim();
-    validateQRCodeValue(code);
+    validateQRCodeValue(code, 'manual-validation-result');
 }
 
-function validateQRCodeValue(code) {
-    const resultDiv = document.getElementById('validation-result');
+function validateQRCodeValue(code, resultDivId) {
+    const resultDiv = document.getElementById(resultDivId);
     
     if (!code) {
         resultDiv.innerHTML = '<div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">Por favor, ingrese un código QR.</div>';
@@ -461,6 +576,14 @@ document.getElementById('qr-code-input')?.addEventListener('keypress', function(
     if (e.key === 'Enter') {
         e.preventDefault();
         validateQRCode();
+    }
+});
+
+// Handle Escape key to close modals
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeQRScannerModal();
+        closeManualEntryModal();
     }
 });
 
