@@ -1073,9 +1073,8 @@ HTML;
         // Final fallback: Use local PHP QR code generator
         require_once APP_PATH . '/libs/QRCode.php';
         
-        // Calculate pixel size to achieve desired image size
-        // QR code is 33x33 modules + 8 quiet zone = 41 modules total
-        $pixelSize = max(1, (int) floor($size / 41));
+        // Calculate optimal pixel size for desired image dimensions
+        $pixelSize = QRCode::calculatePixelSize($size);
         
         $qrContent = QRCode::generate($data, $pixelSize);
         if ($qrContent) {

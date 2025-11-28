@@ -6,18 +6,35 @@
  * 
  * Based on the QR Code specification ISO/IEC 18004:2015
  * Supports alphanumeric and byte mode encoding
+ * 
+ * Note: Requires PHP 7.4+ for typed properties
  */
 
 class QRCode {
     
     // QR Code version 4: 33x33 modules (fits ~78 bytes with L correction)
-    private const SIZE = 33;
+    private const MODULE_SIZE = 33;
     private const QUIET_ZONE = 4;
+    private const TOTAL_MODULES = 41; // MODULE_SIZE + 2 * QUIET_ZONE
+    private const MAX_DATA_BYTES = 78; // Maximum bytes for version 4-L
+    private const DATA_CAPACITY_BITS = 640; // Version 4-L capacity in bits (80 bytes)
+    private const EC_BYTES = 18; // Error correction bytes for version 4-L
+    private const DATA_BYTES = 80; // Data bytes for version 4-L
     
     // Galois field elements for Reed-Solomon
-    private static array $gfExp = [];
-    private static array $gfLog = [];
-    private static bool $gfInitialized = false;
+    private static $gfExp = [];
+    private static $gfLog = [];
+    private static $gfInitialized = false;
+    
+    /**
+     * Calculate the optimal pixel size for a target image dimension
+     * 
+     * @param int $targetSize Desired image size in pixels
+     * @return int Pixel size per module
+     */
+    public static function calculatePixelSize(int $targetSize): int {
+        return max(1, (int) floor($targetSize / self::TOTAL_MODULES));
+    }
     
     /**
      * Generate QR code PNG image data
@@ -27,7 +44,7 @@ class QRCode {
      * @return string|null PNG image data or null on failure
      */
     public static function generate(string $data, int $pixelSize = 10): ?string {
-        if (empty($data) || strlen($data) > 78) {
+        if (empty($data) || strlen($data) > self::MAX_DATA_BYTES) {
             // For longer data, return null to trigger fallback
             return null;
         }
@@ -48,7 +65,7 @@ class QRCode {
      * Create the QR code bit matrix
      */
     private static function createMatrix(string $data): ?array {
-        $size = self::SIZE;
+        $size = self::MODULE_SIZE;
         
         // Initialize matrix with -1 (undefined)
         $matrix = array_fill(0, $size, array_fill(0, $size, -1));
@@ -81,7 +98,7 @@ class QRCode {
         }
         
         // Add error correction (version 4-L: 80 data bytes, 18 EC bytes)
-        $finalBits = self::addErrorCorrection($dataBits, 80, 18);
+        $finalBits = self::addErrorCorrection($dataBits, self::DATA_BYTES, self::EC_BYTES);
         
         // Place data in matrix
         self::placeData($matrix, $finalBits, $size);
@@ -220,7 +237,7 @@ class QRCode {
         }
         
         // Terminator (4 bits, or less if near capacity)
-        $capacity = 640; // Version 4-L capacity in bits (80 bytes)
+        $capacity = self::DATA_CAPACITY_BITS;
         $remaining = $capacity - count($bits);
         $terminator = min(4, $remaining);
         for ($i = 0; $i < $terminator; $i++) {
@@ -431,7 +448,7 @@ class QRCode {
      * Render matrix to PNG image
      */
     private static function renderToPng(array $matrix, int $pixelSize): ?string {
-        $size = self::SIZE;
+        $size = self::MODULE_SIZE;
         $quietZone = self::QUIET_ZONE;
         $totalSize = ($size + 2 * $quietZone) * $pixelSize;
         

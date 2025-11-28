@@ -292,8 +292,8 @@ class ApiController extends Controller {
             // Final fallback: Use local PHP QR code generator
             if (!$qrContent) {
                 require_once APP_PATH . '/libs/QRCode.php';
-                // QR code is 33x33 modules + 8 quiet zone = 41 modules total
-                $pixelSize = max(1, (int) floor($qrSize / 41));
+                // Calculate optimal pixel size for desired image dimensions
+                $pixelSize = QRCode::calculatePixelSize($qrSize);
                 $qrContent = QRCode::generate($qrData, $pixelSize);
             }
             

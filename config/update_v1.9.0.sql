@@ -13,12 +13,12 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- =============================================
 
 -- Update existing configuration to use local generation as fallback
-UPDATE `config` SET `config_value` = 'local', `description` = 'Proveedor de QR (qrserver, google, local). Sistema usa fallback local si API externa falla.' 
+UPDATE `config` SET `config_value` = 'local', `description` = 'Proveedor de QR (qrserver, local). Sistema usa fallback local si API externa falla.' 
 WHERE `config_key` = 'qr_api_provider';
 
 -- Insert if not exists with local as default
 INSERT IGNORE INTO `config` (`config_key`, `config_value`, `config_type`, `description`) VALUES
-('qr_api_provider', 'local', 'text', 'Proveedor de QR (qrserver, google, local). Sistema usa fallback local si API externa falla.');
+('qr_api_provider', 'local', 'text', 'Proveedor de QR (qrserver, local). Sistema usa fallback local si API externa falla.');
 
 -- =============================================
 -- ENSURE QR_SIZE CONFIGURATION EXISTS
