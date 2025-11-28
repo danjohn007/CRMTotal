@@ -1034,16 +1034,14 @@ HTML;
      * This is a simple implementation that doesn't require external libraries
      */
     private function generateLocalQR(string $data, int $size = 350): ?string {
-        // Try to use QR Server API as fallback for local generation
-        // since pure PHP QR generation requires additional libraries
+        // Try external API first with cURL
         $qrServerUrl = "https://api.qrserver.com/v1/create-qr-code/?size={$size}x{$size}&data=" . urlencode($data);
         
-        // Use cURL for more reliable fetching
         if (function_exists('curl_init')) {
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $qrServerUrl);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10); // Shorter timeout
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
             $content = curl_exec($ch);
@@ -1055,10 +1053,10 @@ HTML;
             }
         }
         
-        // Fallback to file_get_contents with context
+        // Fallback to file_get_contents with shorter timeout
         $context = stream_context_create([
             'http' => [
-                'timeout' => 30,
+                'timeout' => 5,
                 'ignore_errors' => false
             ],
             'ssl' => [
@@ -1070,6 +1068,18 @@ HTML;
         $content = @file_get_contents($qrServerUrl, false, $context);
         if ($content) {
             return $content;
+        }
+        
+        // Final fallback: Use local PHP QR code generator
+        require_once APP_PATH . '/libs/QRCode.php';
+        
+        // Calculate pixel size to achieve desired image size
+        // QR code is 33x33 modules + 8 quiet zone = 41 modules total
+        $pixelSize = max(1, (int) floor($size / 41));
+        
+        $qrContent = QRCode::generate($data, $pixelSize);
+        if ($qrContent) {
+            return $qrContent;
         }
         
         return null;

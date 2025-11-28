@@ -268,7 +268,7 @@ class ApiController extends Controller {
                 $ch = curl_init();
                 curl_setopt($ch, CURLOPT_URL, $qrServerUrl);
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 10);
                 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
                 curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
                 $qrContent = curl_exec($ch);
@@ -282,7 +282,19 @@ class ApiController extends Controller {
             
             // Fallback to file_get_contents
             if (!$qrContent) {
-                $qrContent = @file_get_contents($qrServerUrl);
+                $context = stream_context_create([
+                    'http' => ['timeout' => 5],
+                    'ssl' => ['verify_peer' => true, 'verify_peer_name' => true]
+                ]);
+                $qrContent = @file_get_contents($qrServerUrl, false, $context);
+            }
+            
+            // Final fallback: Use local PHP QR code generator
+            if (!$qrContent) {
+                require_once APP_PATH . '/libs/QRCode.php';
+                // QR code is 33x33 modules + 8 quiet zone = 41 modules total
+                $pixelSize = max(1, (int) floor($qrSize / 41));
+                $qrContent = QRCode::generate($qrData, $pixelSize);
             }
             
             // Save QR code if generated
