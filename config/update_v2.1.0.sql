@@ -30,6 +30,15 @@ ADD COLUMN `parent_registration_id` INT UNSIGNED NULL COMMENT 'Parent registrati
 CREATE INDEX `idx_parent_registration` ON `event_registrations`(`parent_registration_id`);
 
 -- =============================================
+-- ADD FOREIGN KEY CONSTRAINT
+-- =============================================
+-- Add foreign key to maintain referential integrity for guest registrations
+
+ALTER TABLE `event_registrations`
+ADD CONSTRAINT `fk_parent_registration`
+FOREIGN KEY (`parent_registration_id`) REFERENCES `event_registrations`(`id`) ON DELETE SET NULL;
+
+-- =============================================
 -- AUDIT LOG FOR SCHEMA CHANGE
 -- =============================================
 
@@ -39,7 +48,7 @@ VALUES (
     'schema_update',
     NULL,
     NULL,
-    '{"version":"2.1.0","changes":["Added guest_type column to event_registrations","Added parent_registration_id column to event_registrations","Added idx_parent_registration index"]}',
+    '{"version":"2.1.0","changes":["Added guest_type column to event_registrations","Added parent_registration_id column to event_registrations","Added idx_parent_registration index","Added fk_parent_registration foreign key constraint"]}',
     '127.0.0.1',
     NOW()
 );
@@ -60,3 +69,4 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- 2. The guest_type column allows categorizing different types of guest registrations.
 -- 3. The parent_registration_id column links guest registrations to their primary registration.
 -- 4. The idx_parent_registration index improves query performance for guest lookups.
+-- 5. The fk_parent_registration foreign key ensures referential integrity.
