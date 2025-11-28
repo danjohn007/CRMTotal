@@ -582,8 +582,15 @@ document.getElementById('qr-code-input')?.addEventListener('keypress', function(
 // Handle Escape key to close modals
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
-        closeQRScannerModal();
-        closeManualEntryModal();
+        const qrModal = document.getElementById('qr-scanner-modal');
+        const manualModal = document.getElementById('manual-entry-modal');
+        
+        if (!qrModal.classList.contains('hidden')) {
+            closeQRScannerModal();
+        }
+        if (!manualModal.classList.contains('hidden')) {
+            closeManualEntryModal();
+        }
     }
 });
 
