@@ -47,7 +47,8 @@ class Event extends Model {
     }
     
     public function getRegistrations(int $eventId): array {
-        $sql = "SELECT er.*, c.business_name, c.commercial_name, c.contact_type
+        $sql = "SELECT er.*, c.business_name, c.commercial_name, c.contact_type,
+                       c.owner_name, c.legal_representative
                 FROM event_registrations er
                 LEFT JOIN contacts c ON er.contact_id = c.id
                 WHERE er.event_id = :event_id

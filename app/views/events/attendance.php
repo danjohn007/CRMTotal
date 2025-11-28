@@ -1,4 +1,7 @@
 <!-- Event Attendance Control View -->
+<!-- html5-qrcode library for camera scanning -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
 <div class="space-y-6">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -24,12 +27,12 @@
     <!-- QR Validation Section -->
     <div class="bg-white rounded-lg shadow-sm p-6">
         <h3 class="text-xl font-bold text-gray-900 text-center mb-2">Validar Código QR</h3>
-        <p class="text-gray-500 text-center mb-6">Escanea o ingresa el código de registro del visitante</p>
+        <p class="text-gray-500 text-center mb-6">Escanea o ingresa el código QR del visitante</p>
         
         <div class="max-w-2xl mx-auto">
             <div class="flex space-x-4 mb-6">
                 <button type="button" id="btn-scan-qr" onclick="startQRScanner()"
-                        class="flex-1 inline-flex items-center justify-center px-6 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-lg font-medium">
+                        class="flex-1 inline-flex items-center justify-center px-6 py-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-lg font-medium">
                     <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -37,19 +40,34 @@
                     Escanear QR
                 </button>
                 <button type="button" id="btn-manual-entry" onclick="toggleManualEntry()"
-                        class="flex-1 inline-flex items-center justify-center px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-lg font-medium">
+                        class="flex-1 inline-flex items-center justify-center px-6 py-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition text-lg font-medium">
                     <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                     </svg>
-                    Validar Código QR
+                    Ingresar Manual
                 </button>
+            </div>
+            
+            <!-- Info Alert -->
+            <div id="qr-info-alert" class="hidden mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p class="text-sm text-blue-700">Apunta la cámara hacia el código QR del visitante</p>
+                </div>
             </div>
             
             <!-- QR Scanner Container -->
             <div id="qr-scanner-container" class="hidden mb-6">
-                <div id="qr-reader" class="w-full max-w-md mx-auto"></div>
-                <button type="button" onclick="stopQRScanner()" class="mt-4 w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
-                    Cancelar Escaneo
+                <div id="qr-reader" class="w-full" style="min-height: 300px;"></div>
+                <button type="button" onclick="stopQRScanner()" 
+                        class="mt-4 w-full inline-flex items-center justify-center px-4 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-medium">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>
+                    </svg>
+                    Detener Cámara
                 </button>
             </div>
             
@@ -124,6 +142,20 @@
                             <div class="font-semibold">
                                 <?php echo htmlspecialchars($reg['guest_name'] ?? $reg['business_name'] ?? '-'); ?>
                             </div>
+                            <?php if (!empty($reg['owner_name'])): ?>
+                            <div class="text-xs text-gray-600 mt-1">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded bg-green-100 text-green-800">
+                                    👤 Dueño: <?php echo htmlspecialchars($reg['owner_name']); ?>
+                                </span>
+                            </div>
+                            <?php endif; ?>
+                            <?php if (!empty($reg['legal_representative'])): ?>
+                            <div class="text-xs text-gray-600 mt-1">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded bg-purple-100 text-purple-800">
+                                    📋 Rep. Legal: <?php echo htmlspecialchars($reg['legal_representative']); ?>
+                                </span>
+                            </div>
+                            <?php endif; ?>
                             <?php if (!empty($reg['attendee_name']) && empty($reg['is_owner_representative'])): ?>
                             <div class="text-xs text-gray-500 mt-1">
                                 <span class="inline-flex items-center px-2 py-0.5 rounded bg-blue-100 text-blue-800">
@@ -186,13 +218,18 @@
 
 <script>
 // QR Scanner variables
-let qrScanner = null;
+let html5QrCode = null;
 
 function toggleManualEntry() {
     const container = document.getElementById('manual-entry-container');
     const scannerContainer = document.getElementById('qr-scanner-container');
+    const infoAlert = document.getElementById('qr-info-alert');
+    
+    // Stop scanner if running
+    stopQRScanner();
     
     scannerContainer.classList.add('hidden');
+    infoAlert.classList.add('hidden');
     container.classList.toggle('hidden');
     
     if (!container.classList.contains('hidden')) {
@@ -203,38 +240,106 @@ function toggleManualEntry() {
 function startQRScanner() {
     const container = document.getElementById('qr-scanner-container');
     const manualContainer = document.getElementById('manual-entry-container');
+    const infoAlert = document.getElementById('qr-info-alert');
+    const resultDiv = document.getElementById('validation-result');
     
     manualContainer.classList.add('hidden');
     container.classList.remove('hidden');
+    infoAlert.classList.remove('hidden');
+    resultDiv.classList.add('hidden');
     
-    // Check if html5-qrcode is available (would need to be loaded)
-    // For now, show a message suggesting manual entry
-    const resultDiv = document.getElementById('validation-result');
-    resultDiv.innerHTML = '<div class="p-4 bg-yellow-100 border border-yellow-400 text-yellow-800 rounded-lg">' +
-        '<p class="font-medium">📷 Escaneo de Cámara</p>' +
-        '<p class="mt-2">Para habilitar el escaneo de QR con cámara, es necesario:</p>' +
-        '<ul class="mt-2 list-disc list-inside text-sm">' +
-        '<li>Acceder desde un dispositivo con cámara (teléfono, tablet o laptop)</li>' +
-        '<li>Permitir el acceso a la cámara cuando el navegador lo solicite</li>' +
-        '<li>Usar HTTPS para conexión segura</li>' +
-        '</ul>' +
-        '<p class="mt-3 text-sm">Alternativamente, use la opción <strong>"Ingresar Manual"</strong> para escribir o pegar el código QR del asistente.</p>' +
-        '</div>';
-    resultDiv.classList.remove('hidden');
+    // Check if html5QrCode library is available
+    if (typeof Html5Qrcode === 'undefined') {
+        resultDiv.innerHTML = '<div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">' +
+            '<p class="font-medium">❌ Error al cargar el escáner</p>' +
+            '<p class="mt-2">No se pudo cargar la librería de escaneo. Por favor, recarga la página e intenta de nuevo.</p>' +
+            '</div>';
+        resultDiv.classList.remove('hidden');
+        return;
+    }
+    
+    // Initialize scanner if not already initialized
+    if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("qr-reader");
+    }
+    
+    // Configuration for the scanner
+    const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0
+    };
+    
+    // Start the camera
+    html5QrCode.start(
+        { facingMode: "environment" }, // Use back camera on mobile
+        config,
+        (decodedText, decodedResult) => {
+            // QR code successfully scanned
+            onQRCodeScanned(decodedText);
+        },
+        (errorMessage) => {
+            // QR code scanning error (this is called frequently, ignore)
+        }
+    ).catch((err) => {
+        // Camera access error
+        console.error("Camera error:", err);
+        infoAlert.classList.add('hidden');
+        resultDiv.innerHTML = '<div class="p-4 bg-yellow-100 border border-yellow-400 text-yellow-800 rounded-lg">' +
+            '<p class="font-medium">📷 No se pudo acceder a la cámara</p>' +
+            '<p class="mt-2">Posibles causas:</p>' +
+            '<ul class="mt-2 list-disc list-inside text-sm">' +
+            '<li>El navegador no tiene permisos para acceder a la cámara</li>' +
+            '<li>El dispositivo no tiene cámara disponible</li>' +
+            '<li>La conexión no es segura (se requiere HTTPS)</li>' +
+            '<li>Otra aplicación está usando la cámara</li>' +
+            '</ul>' +
+            '<p class="mt-3 text-sm">Usa la opción <strong>"Ingresar Manual"</strong> para escribir el código QR.</p>' +
+            '</div>';
+        resultDiv.classList.remove('hidden');
+        container.classList.add('hidden');
+    });
 }
 
 function stopQRScanner() {
     const container = document.getElementById('qr-scanner-container');
-    container.classList.add('hidden');
+    const infoAlert = document.getElementById('qr-info-alert');
     
-    if (qrScanner) {
-        qrScanner.stop();
-        qrScanner = null;
+    container.classList.add('hidden');
+    infoAlert.classList.add('hidden');
+    
+    if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().then(() => {
+            console.log("QR Scanner stopped");
+        }).catch((err) => {
+            console.error("Error stopping scanner:", err);
+        });
     }
+}
+
+function onQRCodeScanned(code) {
+    // Stop the scanner after successful scan
+    stopQRScanner();
+    
+    // Extract the registration code from URL if it's a URL
+    let registrationCode = code;
+    if (code.includes('/evento/verificar/')) {
+        const parts = code.split('/evento/verificar/');
+        if (parts.length > 1) {
+            registrationCode = parts[1].split(/[?#]/)[0]; // Remove query params if any
+        }
+    }
+    
+    // Validate the QR code
+    validateQRCodeValue(registrationCode);
 }
 
 function validateQRCode() {
     const code = document.getElementById('qr-code-input').value.trim();
+    validateQRCodeValue(code);
+}
+
+function validateQRCodeValue(code) {
     const resultDiv = document.getElementById('validation-result');
     
     if (!code) {
