@@ -14,7 +14,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- Values: INVITADO, FUNCIONARIO PÚBLICO, OTRO
 
 ALTER TABLE `event_registrations` 
-ADD COLUMN IF NOT EXISTS `guest_type` VARCHAR(50) NULL DEFAULT NULL 
+ADD COLUMN `guest_type` VARCHAR(50) NULL DEFAULT NULL 
 COMMENT 'Type of guest: INVITADO, FUNCIONARIO PÚBLICO, OTRO' 
 AFTER `is_guest`;
 
@@ -25,7 +25,7 @@ AFTER `is_guest`;
 -- Allows for individual QR codes and attendance tracking for each additional attendee
 
 ALTER TABLE `event_registrations` 
-ADD COLUMN IF NOT EXISTS `parent_registration_id` INT UNSIGNED NULL DEFAULT NULL 
+ADD COLUMN `parent_registration_id` INT UNSIGNED NULL DEFAULT NULL 
 COMMENT 'Link to parent registration for additional attendees' 
 AFTER `guest_type`;
 
@@ -48,7 +48,8 @@ EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
 -- Add index for parent registration lookup
-CREATE INDEX IF NOT EXISTS `idx_parent_registration` ON `event_registrations` (`parent_registration_id`);
+-- Note: Removed IF NOT EXISTS for better compatibility
+CREATE INDEX `idx_parent_registration` ON `event_registrations` (`parent_registration_id`);
 
 -- =============================================
 -- AUDIT LOG FOR SCHEMA CHANGE
@@ -60,7 +61,7 @@ VALUES (
     'schema_update',
     'event_registrations',
     NULL,
-    '{"version":"2.1.0","changes":["Added guest_type column for guest type selection (INVITADO, FUNCIONARIO PÚBLICO, OTRO)","Added parent_registration_id column for additional attendee individual registrations","RFC field now mandatory unless registering as guest","Individual QR codes generated for each additional attendee","Fixed attendance control QR scanner and manual entry buttons","Changed footer text to Solución Digital desarrollada por ID","Success messages now show email address for confirmation sent"]}',
+    '{"version":"2.1.0","changes":["Added guest_type column for guest type selection (INVITADO, FUNCIONARIO PÚBLICO, OTRO)","Added parent_registration_id column for additional attendee individual reg"]}',
     '127.0.0.1',
     NOW()
 );
@@ -138,6 +139,6 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- To rollback this update, run:
 -- 
 -- ALTER TABLE `event_registrations` DROP FOREIGN KEY IF EXISTS `fk_parent_registration`;
--- ALTER TABLE `event_registrations` DROP COLUMN IF EXISTS `guest_type`;
--- ALTER TABLE `event_registrations` DROP COLUMN IF EXISTS `parent_registration_id`;
+-- ALTER TABLE `event_registrations` DROP COLUMN `guest_type`;
+-- ALTER TABLE `event_registrations` DROP COLUMN `parent_registration_id`;
 -- DELETE FROM `audit_log` WHERE new_values LIKE '%version":"2.1.0%';
