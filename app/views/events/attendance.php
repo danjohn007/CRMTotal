@@ -523,6 +523,11 @@ function validateQRCode() {
 function validateQRCodeValue(code, resultDivId) {
     const resultDiv = document.getElementById(resultDivId);
     
+    if (!resultDiv) {
+        console.error('Result container not found:', resultDivId);
+        return;
+    }
+    
     if (!code) {
         resultDiv.innerHTML = '<div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">Por favor, ingrese un código QR.</div>';
         resultDiv.classList.remove('hidden');
