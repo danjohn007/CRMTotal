@@ -316,7 +316,7 @@
                 
                 <!-- Footer -->
                 <div class="mt-8 pt-4 border-t border-gray-200 text-center text-sm text-gray-500">
-                    <p>Estrategia Digital desarrollada por <a href="https://www.impactosdigitales.com/" class="text-blue-600 hover:underline" target="_blank">ID</a></p>
+                    <p>Solución Digital desarrollada por&nbsp;<a href="https://www.impactosdigitales.com/" class="text-blue-600 hover:underline" target="_blank">ID</a></p>
                 </div>
             </main>
         </div>

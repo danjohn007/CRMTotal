@@ -1,6 +1,27 @@
 <!-- Event Attendance Control View -->
-<!-- html5-qrcode library for camera scanning - v2.3.8 from cdnjs -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!-- html5-qrcode library for camera scanning - v2.3.8 from cdnjs with fallback -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js" integrity="sha512-r6rDA7W6ZeQhvl8S7yRVQUKVHdexq+GAlNkNNqVC7YyIV+NwqCTJe2hDWCiffTyRNOeGEzRRJ9ifvRm/HCzGYg==" crossorigin="anonymous" referrerpolicy="no-referrer" 
+    onerror="loadFallbackQRLibrary()"></script>
+<script>
+function loadFallbackQRLibrary() {
+    console.warn('CDNJS failed, loading from jsdelivr...');
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js';
+    script.onload = function() {
+        console.log('Html5Qrcode library loaded from fallback CDN');
+    };
+    script.onerror = function() {
+        console.error('Failed to load Html5Qrcode library from all sources');
+        document.getElementById('qr-scanner-error-msg')?.classList.remove('hidden');
+    };
+    document.head.appendChild(script);
+}
+</script>
+<!-- Error message if library fails to load -->
+<div id="qr-scanner-error-msg" class="hidden mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+    <p class="font-medium">⚠️ No se pudo cargar la librería del escáner QR</p>
+    <p class="text-sm mt-1">Por favor, usa la opción "Ingresar Manual" para registrar asistencia.</p>
+</div>
 
 <div class="space-y-6">
     <!-- Header -->
@@ -444,7 +465,7 @@ document.getElementById('qr-code-input')?.addEventListener('keypress', function(
 });
 
 // Search functionality
-document.getElementById('search-input').addEventListener('input', function(e) {
+document.getElementById('search-input')?.addEventListener('input', function(e) {
     const searchTerm = e.target.value.toLowerCase();
     document.querySelectorAll('.attendance-row').forEach(row => {
         const name = row.dataset.name || '';
@@ -482,5 +503,22 @@ document.querySelectorAll('.attendance-toggle').forEach(toggle => {
             alert('Error al guardar la asistencia');
         });
     });
+});
+
+// Verify library loaded and buttons exist
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if library is loaded
+    if (typeof Html5Qrcode === 'undefined') {
+        console.error('Html5Qrcode library not loaded');
+    } else {
+        console.log('Html5Qrcode library loaded successfully');
+    }
+    
+    // Ensure buttons are accessible
+    const scanBtn = document.getElementById('btn-scan-qr');
+    const manualBtn = document.getElementById('btn-manual-entry');
+    if (scanBtn && manualBtn) {
+        console.log('QR buttons found and ready');
+    }
 });
 </script>

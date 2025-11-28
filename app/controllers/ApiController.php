@@ -210,22 +210,45 @@ class ApiController extends Controller {
         );
         
         if ($registration) {
-            // Generate and send QR code after payment confirmation
-            $this->generateAndSendQR($registrationId, [
+            $eventData = [
                 'title' => $registration['title'],
                 'start_date' => $registration['start_date'],
                 'end_date' => $registration['end_date'],
                 'location' => $registration['location'],
                 'address' => $registration['address'],
                 'is_online' => $registration['is_online']
-            ], [
+            ];
+            
+            // Generate and send QR code after payment confirmation
+            $this->generateAndSendQR($registrationId, $eventData, [
                 'guest_name' => $registration['guest_name'],
                 'guest_email' => $registration['guest_email'],
                 'tickets' => $registration['tickets']
             ]);
+            
+            // Generate and send QR codes for additional attendees (child registrations)
+            $additionalRegistrations = $this->db->query(
+                "SELECT id, guest_name, guest_email, tickets FROM event_registrations 
+                 WHERE parent_registration_id = :parent_id",
+                ['parent_id' => $registrationId]
+            );
+            
+            if ($additionalRegistrations) {
+                while ($additionalReg = $additionalRegistrations->fetch()) {
+                    // Update payment status for child registration
+                    $eventModel->updatePaymentStatus($additionalReg['id'], 'paid', $orderId);
+                    
+                    // Generate and send QR code for this additional attendee
+                    $this->generateAndSendQR($additionalReg['id'], $eventData, [
+                        'guest_name' => $additionalReg['guest_name'],
+                        'guest_email' => $additionalReg['guest_email'],
+                        'tickets' => $additionalReg['tickets']
+                    ]);
+                }
+            }
         }
         
-        $this->json(['success' => true]);
+        $this->json(['success' => true, 'email' => $registration['guest_email'] ?? '']);
     }
     
     private function generateAndSendQR(int $registrationId, array $event, array $registrationData): void {
@@ -502,7 +525,7 @@ class ApiController extends Controller {
     
     <!-- Footer -->
     <div style="background-color: #333; padding: 25px; text-align: center;">
-        <p style="color: white; font-size: 18px; margin: 0;">Estrategia Digital desarrollada por <a href="https://www.impactosdigitales.com/" style="color: #4da6ff; text-decoration: none;">ID</a></p>
+        <p style="color: white; font-size: 18px; margin: 0;">Solución Digital desarrollada por&nbsp;<a href="https://www.impactosdigitales.com/" style="color: #4da6ff; text-decoration: none;">ID</a></p>
     </div>
 </body>
 </html>
