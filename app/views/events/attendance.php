@@ -1,6 +1,6 @@
 <!-- Event Attendance Control View -->
 <!-- html5-qrcode library for camera scanning -->
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" integrity="sha384-Qr5p8smqb7TKuzJvJ7+YDH3YExW9Uj4yEfJfTZqGzVb+gQKiXnqNTlY9EHMzaLOl" crossorigin="anonymous"></script>
 
 <div class="space-y-6">
     <!-- Header -->
@@ -220,6 +220,14 @@
 // QR Scanner variables
 let html5QrCode = null;
 
+// Html5QrcodeScannerState enum values (from library)
+const Html5QrcodeScannerState = {
+    UNKNOWN: 0,
+    NOT_STARTED: 1,
+    SCANNING: 2,
+    PAUSED: 3
+};
+
 function toggleManualEntry() {
     const container = document.getElementById('manual-entry-container');
     const scannerContainer = document.getElementById('qr-scanner-container');
@@ -308,12 +316,21 @@ function stopQRScanner() {
     container.classList.add('hidden');
     infoAlert.classList.add('hidden');
     
-    if (html5QrCode && html5QrCode.isScanning) {
-        html5QrCode.stop().then(() => {
-            console.log("QR Scanner stopped");
-        }).catch((err) => {
-            console.error("Error stopping scanner:", err);
-        });
+    if (html5QrCode) {
+        try {
+            // Try to get the state - if scanner is running, stop it
+            const state = html5QrCode.getState();
+            if (state === Html5QrcodeScannerState.SCANNING || state === Html5QrcodeScannerState.PAUSED) {
+                html5QrCode.stop().then(() => {
+                    console.log("QR Scanner stopped");
+                }).catch((err) => {
+                    console.error("Error stopping scanner:", err);
+                });
+            }
+        } catch (e) {
+            // State check failed, try to stop anyway
+            html5QrCode.stop().catch(() => {});
+        }
     }
 }
 
