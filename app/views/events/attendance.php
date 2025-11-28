@@ -263,13 +263,40 @@ function startQRScanner() {
             '<p class="mt-2">No se pudo cargar la librería de escaneo. Por favor, recarga la página e intenta de nuevo.</p>' +
             '</div>';
         resultDiv.classList.remove('hidden');
+        container.classList.add('hidden');
         return;
     }
     
-    // Initialize scanner if not already initialized
-    if (!html5QrCode) {
-        html5QrCode = new Html5Qrcode("qr-reader");
+    // Always create a new scanner instance to avoid state issues
+    try {
+        if (html5QrCode) {
+            // Try to stop and clear existing scanner
+            const state = html5QrCode.getState();
+            if (state === Html5QrcodeScannerState.SCANNING || state === Html5QrcodeScannerState.PAUSED) {
+                html5QrCode.stop().then(() => {
+                    html5QrCode = null;
+                    initializeScanner();
+                }).catch(() => {
+                    html5QrCode = null;
+                    initializeScanner();
+                });
+                return;
+            }
+        }
+    } catch (e) {
+        html5QrCode = null;
     }
+    
+    initializeScanner();
+}
+
+function initializeScanner() {
+    const container = document.getElementById('qr-scanner-container');
+    const infoAlert = document.getElementById('qr-info-alert');
+    const resultDiv = document.getElementById('validation-result');
+    
+    // Create new scanner instance
+    html5QrCode = new Html5Qrcode("qr-reader");
     
     // Configuration for the scanner
     const config = {

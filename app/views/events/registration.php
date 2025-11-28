@@ -114,24 +114,66 @@
         
         <!-- QR Code Display (for free registrations) -->
         <?php if (isset($registrationId) && isset($qrCode) && (!$event['is_paid'] || (isset($totalAmount) && $totalAmount == 0))): ?>
-        <div class="bg-white rounded-lg shadow-sm p-6 mb-6 text-center">
+        <div id="printable-ticket" class="bg-white rounded-lg shadow-sm p-6 mb-6 text-center">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">🎉 ¡Registro Exitoso!</h2>
             <p class="text-gray-600 mb-4">Tu código QR de acceso al evento:</p>
             <div class="flex justify-center mb-4">
                 <img src="<?php echo BASE_URL; ?>/uploads/qr/<?php echo htmlspecialchars($qrCode); ?>" 
-                     alt="Código QR de Acceso" class="w-64 h-64 border-4 border-gray-200 rounded-lg">
+                     alt="Código QR de Acceso" class="w-64 h-64 border-4 border-gray-200 rounded-lg" id="qr-image">
             </div>
             <p class="text-sm text-gray-500 mb-2">Código de registro: <strong><?php echo htmlspecialchars($registrationCode ?? ''); ?></strong></p>
             <p class="text-sm text-gray-500">Presenta este código en la entrada del evento.</p>
-            <a href="<?php echo BASE_URL; ?>/uploads/qr/<?php echo htmlspecialchars($qrCode); ?>" 
-               download="qr-evento.png"
-               class="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                </svg>
-                Descargar QR
-            </a>
+            <div class="mt-4 flex justify-center gap-3 flex-wrap">
+                <a href="<?php echo BASE_URL; ?>/uploads/qr/<?php echo htmlspecialchars($qrCode); ?>" 
+                   download="qr-evento.png"
+                   class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Descargar QR
+                </a>
+                <button type="button" onclick="printTicket()" 
+                        class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                    </svg>
+                    Imprimir Boleto
+                </button>
+            </div>
         </div>
+        
+        <!-- Print Styles (hidden on screen) -->
+        <style>
+            @media print {
+                body * {
+                    visibility: hidden;
+                }
+                #printable-ticket, #printable-ticket * {
+                    visibility: visible;
+                }
+                #printable-ticket {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    width: 100%;
+                    padding: 20px;
+                }
+                #printable-ticket button, 
+                #printable-ticket a[download] {
+                    display: none !important;
+                }
+                #qr-image {
+                    width: 200px !important;
+                    height: 200px !important;
+                }
+            }
+        </style>
+        
+        <script>
+        function printTicket() {
+            window.print();
+        }
+        </script>
         <?php endif; ?>
         
         <!-- PayPal Payment Section (only shown after successful registration for paid events) -->
@@ -212,19 +254,6 @@
                     <p id="lookup-result" class="text-sm mt-2 hidden"></p>
                 </div>
                 
-                <!-- Guest Mode Selection (below company search) -->
-                <div class="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                    <label class="flex items-center cursor-pointer">
-                        <input type="checkbox" id="is_guest" name="is_guest" value="1"
-                               class="rounded border-gray-300 text-purple-600 shadow-sm focus:border-purple-500 focus:ring-purple-500"
-                               onchange="toggleGuestMode()">
-                        <span class="ml-3 text-sm font-medium text-gray-900">Asisto como Invitado</span>
-                    </label>
-                    <p class="text-xs text-gray-600 mt-2 ml-6">
-                        Selecciona esta opción si no eres empresa afiliada y deseas asistir como invitado al evento.
-                    </p>
-                </div>
-                
                 <!-- Main Registration Fields -->
                 <div id="main-fields-section" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="md:col-span-2">
@@ -232,6 +261,14 @@
                             <span id="name-label">Nombre Completo / Empresa</span> *
                         </label>
                         <input type="text" id="name" name="name" required
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    </div>
+                    
+                    <!-- Owner/Representative Name field (preloaded from search, hidden in guest mode) -->
+                    <div id="owner-name-field" class="md:col-span-2">
+                        <label for="owner_name" class="block text-sm font-medium text-gray-700">Dueño o Representante Legal</label>
+                        <input type="text" id="owner_name" name="owner_name"
+                               placeholder="Nombre del dueño o representante legal"
                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                     </div>
                     
@@ -270,6 +307,19 @@
                             <option value="5">5</option>
                         </select>
                     </div>
+                </div>
+                
+                <!-- Guest Mode Selection (below tickets field) -->
+                <div id="guest-mode-section" class="mt-6 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" id="is_guest" name="is_guest" value="1"
+                               class="rounded border-gray-300 text-purple-600 shadow-sm focus:border-purple-500 focus:ring-purple-500"
+                               onchange="toggleGuestMode()">
+                        <span class="ml-3 text-sm font-medium text-gray-900">Asisto como Invitado</span>
+                    </label>
+                    <p class="text-xs text-gray-600 mt-2 ml-6">
+                        Selecciona esta opción si no eres empresa afiliada y deseas asistir como invitado al evento.
+                    </p>
                 </div>
                 
                 <!-- Attendee Information (for affiliate registrations) -->
@@ -420,6 +470,7 @@
         const isGuest = document.getElementById('is_guest').checked;
         const companyLookup = document.getElementById('company-lookup-section');
         const rfcField = document.getElementById('rfc-field');
+        const ownerNameField = document.getElementById('owner-name-field');
         const attendeeSection = document.getElementById('attendee-section');
         const ticketsField = document.getElementById('tickets-field');
         const nameLabel = document.getElementById('name-label');
@@ -427,16 +478,19 @@
         if (isGuest) {
             companyLookup.classList.add('hidden');
             rfcField.classList.add('hidden');
+            ownerNameField.classList.add('hidden');
             attendeeSection.classList.add('hidden');
             ticketsField.classList.add('hidden'); // Guests cannot request additional tickets
             nameLabel.textContent = 'Nombre Completo';
             document.getElementById('contact_id').value = '';
+            document.getElementById('owner_name').value = '';
             document.getElementById('tickets').value = String(GUEST_TICKET_LIMIT); // Reset to max tickets for guests
             isActiveAffiliate = false;
             document.getElementById('is_active_affiliate').value = '0';
         } else {
             companyLookup.classList.remove('hidden');
             rfcField.classList.remove('hidden');
+            ownerNameField.classList.remove('hidden');
             attendeeSection.classList.remove('hidden');
             ticketsField.classList.remove('hidden');
             nameLabel.textContent = 'Nombre Completo / Empresa';
@@ -638,6 +692,9 @@
                     document.getElementById('phone').value = data.company.phone || data.company.whatsapp || '';
                     document.getElementById('rfc').value = data.company.rfc || '';
                     document.getElementById('contact_id').value = data.company.id || '';
+                    
+                    // Preload owner_name field if available
+                    document.getElementById('owner_name').value = data.company.owner_name || '';
                     
                     // Check if active affiliate
                     isActiveAffiliate = data.is_active_affiliate || false;
