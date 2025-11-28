@@ -99,6 +99,9 @@ $secondaryColor = $config['secondary_color'] ?? '#3b82f6';
         <p class="text-center text-sm text-blue-200">
             © <?php echo date('Y'); ?> <?php echo htmlspecialchars($siteName); ?>
         </p>
+        <p class="text-center text-sm text-blue-200 mt-2">
+            Estrategia Digital desarrollada por <a href="https://www.impactosdigitales.com/" class="text-white hover:underline">ID</a>
+        </p>
     </div>
 </div>
 

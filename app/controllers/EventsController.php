@@ -751,7 +751,7 @@ class EventsController extends Controller {
     
     <!-- Footer -->
     <div style="background-color: #333; padding: 25px; text-align: center;">
-        <p style="color: white; font-size: 18px; margin: 0;">CRM CCdeQ</p>
+        <p style="color: white; font-size: 18px; margin: 0;">Estrategia Digital desarrollada por <a href="https://www.impactosdigitales.com/" style="color: #4da6ff; text-decoration: none;">ID</a></p>
     </div>
 </body>
 </html>
@@ -823,7 +823,7 @@ HTML;
     
     <!-- Footer -->
     <div style="background-color: #333; padding: 25px; text-align: center;">
-        <p style="color: white; font-size: 18px; margin: 0;">CRM CCdeQ</p>
+        <p style="color: white; font-size: 18px; margin: 0;">Estrategia Digital desarrollada por <a href="https://www.impactosdigitales.com/" style="color: #4da6ff; text-decoration: none;">ID</a></p>
     </div>
 </body>
 </html>
@@ -1022,7 +1022,7 @@ HTML;
     
     <!-- Footer -->
     <div style="background-color: #333; padding: 25px; text-align: center;">
-        <p style="color: white; font-size: 18px; margin: 0;">CRM CCdeQ</p>
+        <p style="color: white; font-size: 18px; margin: 0;">Estrategia Digital desarrollada por <a href="https://www.impactosdigitales.com/" style="color: #4da6ff; text-decoration: none;">ID</a></p>
     </div>
 </body>
 </html>
