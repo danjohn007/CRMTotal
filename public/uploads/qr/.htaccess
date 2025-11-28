@@ -1,0 +1,17 @@
+# Allow public access to QR code images
+# This file ensures that QR codes can be viewed publicly
+
+Options -Indexes
+
+# Allow access to image files
+<FilesMatch "\.(png|jpg|jpeg|gif)$">
+    Order allow,deny
+    Allow from all
+    Require all granted
+</FilesMatch>
+
+# Prevent PHP execution in this directory for security
+<FilesMatch "\.php$">
+    Order deny,allow
+    Deny from all
+</FilesMatch>

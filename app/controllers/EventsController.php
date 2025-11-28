@@ -496,6 +496,102 @@ class EventsController extends Controller {
         ]);
     }
     
+    /**
+     * Public payment page for pending event registrations
+     */
+    public function payment(): void {
+        $code = $this->params['code'] ?? '';
+        
+        if (empty($code)) {
+            $_SESSION['flash_error'] = 'Código de registro no válido.';
+            $this->redirect('');
+        }
+        
+        // Get registration with event details
+        $registration = $this->eventModel->getRegistrationByCode($code);
+        
+        if (!$registration) {
+            $_SESSION['flash_error'] = 'Registro no encontrado.';
+            $this->redirect('');
+        }
+        
+        // Get full event details
+        $event = $this->eventModel->find($registration['event_id']);
+        
+        if (!$event) {
+            $_SESSION['flash_error'] = 'Evento no encontrado.';
+            $this->redirect('');
+        }
+        
+        // Check if already paid
+        if ($registration['payment_status'] === 'paid' || $registration['payment_status'] === 'free') {
+            // Redirect to ticket page
+            $this->redirect('evento/boleto/' . $code);
+        }
+        
+        // Get PayPal configuration
+        $paypalClientId = $this->configModel->get('paypal_client_id', '');
+        
+        $this->view('events/payment', [
+            'pageTitle' => 'Pago - ' . $event['title'],
+            'event' => $event,
+            'registration' => $registration,
+            'paypalClientId' => $paypalClientId,
+            'csrf_token' => $this->csrfToken()
+        ]);
+    }
+    
+    /**
+     * Public printable ticket page
+     */
+    public function printableTicket(): void {
+        $code = $this->params['code'] ?? '';
+        
+        if (empty($code)) {
+            $_SESSION['flash_error'] = 'Código de registro no válido.';
+            $this->redirect('');
+        }
+        
+        // Get registration with event details
+        $registration = $this->eventModel->getRegistrationByCode($code);
+        
+        if (!$registration) {
+            $_SESSION['flash_error'] = 'Registro no encontrado.';
+            $this->redirect('');
+        }
+        
+        // Get full event details
+        $event = $this->eventModel->find($registration['event_id']);
+        
+        if (!$event) {
+            $_SESSION['flash_error'] = 'Evento no encontrado.';
+            $this->redirect('');
+        }
+        
+        // Check payment status - only show ticket if paid or free
+        if ($registration['payment_status'] !== 'paid' && $registration['payment_status'] !== 'free') {
+            // Redirect to payment page
+            $this->redirect('evento/pago/' . $code);
+        }
+        
+        // Get contact info for owner_name and legal_representative if available
+        $contactModel = new Contact();
+        $contact = null;
+        if (!empty($registration['contact_id'])) {
+            $contact = $contactModel->find($registration['contact_id']);
+        } elseif (!empty($registration['guest_email'])) {
+            $contact = $contactModel->findBy('corporate_email', $registration['guest_email']);
+        }
+        
+        $this->view('events/printable_ticket', [
+            'pageTitle' => 'Boleto de Acceso - ' . $event['title'],
+            'event' => $event,
+            'registration' => $registration,
+            'contact' => $contact,
+            'configModel' => $this->configModel
+        ]);
+    }
+    
     private function handleImageUpload(array $file): array {
         $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
         $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
@@ -930,6 +1026,7 @@ HTML;
         $eventTitle = htmlspecialchars($event['title']);
         $tickets = (int) $registrationData['tickets'];
         $qrUrl = BASE_URL . '/uploads/qr/' . $qrFilename;
+        $ticketUrl = BASE_URL . '/evento/boleto/' . $registrationCode;
         $contactEmail = htmlspecialchars($this->configModel->get('contact_email', 'contacto@camaradecomercioqro.mx'));
         $contactPhone = htmlspecialchars($this->configModel->get('contact_phone', '4425375301'));
         
@@ -944,9 +1041,9 @@ HTML;
 <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa;">
     <!-- Header -->
     <div style="background-color: #1a5a2c; padding: 20px; text-align: right;">
-        <span style="background-color: #2d7a3d; color: white; padding: 12px 24px; border-radius: 5px; font-weight: bold; display: inline-block;">
+        <a href="{$ticketUrl}" style="background-color: #2d7a3d; color: white; padding: 12px 24px; border-radius: 5px; font-weight: bold; display: inline-block; text-decoration: none;">
             🖨️ Imprimir Boleto
-        </span>
+        </a>
     </div>
     
     <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border: 1px solid #e0e0e0;">

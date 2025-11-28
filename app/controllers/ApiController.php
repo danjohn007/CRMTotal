@@ -403,6 +403,7 @@ class ApiController extends Controller {
         $eventTitle = htmlspecialchars($event['title']);
         $tickets = (int) $registrationData['tickets'];
         $qrUrl = BASE_URL . '/uploads/qr/' . $qrFilename;
+        $ticketUrl = BASE_URL . '/evento/boleto/' . $registrationCode;
         $contactEmail = htmlspecialchars($configModel->get('contact_email', 'contacto@camaradecomercioqro.mx'));
         $contactPhone = htmlspecialchars($configModel->get('contact_phone', '4425375301'));
         
@@ -417,9 +418,9 @@ class ApiController extends Controller {
 <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa;">
     <!-- Header -->
     <div style="background-color: #1a5a2c; padding: 20px; text-align: right;">
-        <span style="background-color: #2d7a3d; color: white; padding: 12px 24px; border-radius: 5px; font-weight: bold; display: inline-block;">
+        <a href="{$ticketUrl}" style="background-color: #2d7a3d; color: white; padding: 12px 24px; border-radius: 5px; font-weight: bold; display: inline-block; text-decoration: none;">
             🖨️ Imprimir Boleto
-        </span>
+        </a>
     </div>
     
     <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border: 1px solid #e0e0e0;">

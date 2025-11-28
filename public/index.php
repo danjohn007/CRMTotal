@@ -71,6 +71,12 @@ $router->add('eventos/{id}/asistencia', ['controller' => 'events', 'action' => '
 // Public Event Registration (friendly URL)
 $router->add('evento/{url}', ['controller' => 'events', 'action' => 'publicRegistration']);
 
+// Public Event Payment (friendly URL)
+$router->add('evento/pago/{code}', ['controller' => 'events', 'action' => 'payment']);
+
+// Printable Event Ticket (public access)
+$router->add('evento/boleto/{code}', ['controller' => 'events', 'action' => 'printableTicket']);
+
 // Agenda / Calendar
 $router->add('agenda', ['controller' => 'agenda', 'action' => 'index']);
 $router->add('agenda/nueva', ['controller' => 'agenda', 'action' => 'create']);
