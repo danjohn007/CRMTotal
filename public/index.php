@@ -59,6 +59,13 @@ $router->add('afiliados/{id}/expediente', ['controller' => 'affiliates', 'action
 $router->add('afiliados/vencimientos', ['controller' => 'affiliates', 'action' => 'expirations']);
 $router->add('afiliados/exafiliados', ['controller' => 'affiliates', 'action' => 'former']);
 
+// Expedientes Digitales Únicos (Afiliador Level)
+$router->add('expedientes', ['controller' => 'expedientes', 'action' => 'index']);
+$router->add('expedientes/{id}', ['controller' => 'expedientes', 'action' => 'show']);
+$router->add('expedientes/{id}/etapa-a', ['controller' => 'expedientes', 'action' => 'editStageA']);
+$router->add('expedientes/{id}/etapa-b', ['controller' => 'expedientes', 'action' => 'editStageB']);
+$router->add('expedientes/{id}/etapa-c', ['controller' => 'expedientes', 'action' => 'editStageC']);
+
 // Events
 $router->add('eventos', ['controller' => 'events', 'action' => 'index']);
 $router->add('eventos/nuevo', ['controller' => 'events', 'action' => 'create']);
