@@ -152,10 +152,15 @@
                     <div class="p-3 bg-gray-50 rounded-lg">
                         <label class="text-xs text-gray-500 uppercase tracking-wider">WhatsApp</label>
                         <p class="text-gray-900 font-medium">
-                            <?php if (!empty($contact['whatsapp'])): ?>
-                            <a href="https://wa.me/52<?php echo preg_replace('/[^0-9]/', '', $contact['whatsapp']); ?>" target="_blank" class="text-green-600 hover:underline">
+                            <?php 
+                            $whatsappNumber = preg_replace('/[^0-9]/', '', $contact['whatsapp'] ?? '');
+                            if (!empty($whatsappNumber) && strlen($whatsappNumber) === 10): 
+                            ?>
+                            <a href="https://wa.me/52<?php echo htmlspecialchars($whatsappNumber); ?>" target="_blank" class="text-green-600 hover:underline">
                                 <?php echo htmlspecialchars($contact['whatsapp']); ?>
                             </a>
+                            <?php elseif (!empty($contact['whatsapp'])): ?>
+                            <span class="text-gray-900"><?php echo htmlspecialchars($contact['whatsapp']); ?></span>
                             <?php else: ?>-<?php endif; ?>
                         </p>
                     </div>
@@ -291,8 +296,11 @@
             <div class="bg-white rounded-xl shadow-sm p-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">⚡ Acciones Rápidas</h3>
                 <div class="space-y-2">
-                    <?php if (!empty($contact['whatsapp'])): ?>
-                    <a href="https://wa.me/52<?php echo preg_replace('/[^0-9]/', '', $contact['whatsapp']); ?>" target="_blank"
+                    <?php 
+                    $quickWhatsapp = preg_replace('/[^0-9]/', '', $contact['whatsapp'] ?? '');
+                    if (!empty($quickWhatsapp) && strlen($quickWhatsapp) === 10): 
+                    ?>
+                    <a href="https://wa.me/52<?php echo htmlspecialchars($quickWhatsapp); ?>" target="_blank"
                        class="block w-full px-4 py-2 text-center bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm">
                         💬 WhatsApp
                     </a>

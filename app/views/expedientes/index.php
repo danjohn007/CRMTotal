@@ -116,10 +116,15 @@
                             <?php echo htmlspecialchars($affiliate['rfc'] ?? '-'); ?>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
-                            <?php if (!empty($affiliate['whatsapp'])): ?>
-                            <a href="https://wa.me/52<?php echo preg_replace('/[^0-9]/', '', $affiliate['whatsapp']); ?>" target="_blank" class="text-green-600 hover:underline">
+                            <?php 
+                            $affiliateWhatsapp = preg_replace('/[^0-9]/', '', $affiliate['whatsapp'] ?? '');
+                            if (!empty($affiliateWhatsapp) && strlen($affiliateWhatsapp) === 10): 
+                            ?>
+                            <a href="https://wa.me/52<?php echo htmlspecialchars($affiliateWhatsapp); ?>" target="_blank" class="text-green-600 hover:underline">
                                 <?php echo htmlspecialchars($affiliate['whatsapp']); ?>
                             </a>
+                            <?php elseif (!empty($affiliate['whatsapp'])): ?>
+                            <span class="text-gray-900"><?php echo htmlspecialchars($affiliate['whatsapp']); ?></span>
                             <?php else: ?>
                             <span class="text-gray-500">-</span>
                             <?php endif; ?>

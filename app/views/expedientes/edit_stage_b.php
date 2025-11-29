@@ -84,14 +84,14 @@
                 <div>
                     <label for="sales_contact_name" class="block text-sm font-medium text-gray-700">Nombre</label>
                     <input type="text" id="sales_contact_name" name="sales_contact_name" 
-                           value="<?php echo htmlspecialchars($contact['owner_name'] ?? ''); ?>"
+                           value=""
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border"
                            placeholder="Nombre del contacto de ventas">
                 </div>
                 <div>
                     <label for="sales_contact_email" class="block text-sm font-medium text-gray-700">Email</label>
                     <input type="email" id="sales_contact_email" name="sales_contact_email" 
-                           value="<?php echo htmlspecialchars($contact['corporate_email'] ?? ''); ?>"
+                           value=""
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border"
                            placeholder="email@empresa.com">
                 </div>

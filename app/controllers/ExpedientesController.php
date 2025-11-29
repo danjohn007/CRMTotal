@@ -23,8 +23,15 @@ class ExpedientesController extends Controller {
     public function index(): void {
         $this->requireAuth();
         
-        $userRole = $_SESSION['user_role'] ?? '';
-        $userId = $_SESSION['user_id'] ?? 0;
+        // Validate session variables
+        $userRole = isset($_SESSION['user_role']) ? (string)$_SESSION['user_role'] : '';
+        $userId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
+        
+        // Validate role is one of allowed values
+        $allowedRoles = ['superadmin', 'direccion', 'jefe_comercial', 'afiliador', 'contabilidad', 'consejero', 'mesa_directiva'];
+        if (!in_array($userRole, $allowedRoles)) {
+            $userRole = '';
+        }
         
         // Get affiliates based on user role
         if (in_array($userRole, ['superadmin', 'direccion', 'jefe_comercial'])) {
@@ -252,21 +259,37 @@ class ExpedientesController extends Controller {
                     $salesWhatsapp = $contact['whatsapp'] ?? '';
                 }
                 
-                // Handle products arrays
+                // Handle products arrays - ensure they are valid arrays before processing
                 $productsSells = $this->getInput('products_sells', []);
                 $productsBuys = $this->getInput('products_buys', []);
                 
                 if (is_array($productsSells)) {
-                    $productsSells = array_filter(array_map('trim', $productsSells));
+                    $productsSells = array_filter(array_map(function($item) {
+                        return $this->sanitize(trim((string)$item));
+                    }, $productsSells));
+                } elseif (is_string($productsSells)) {
+                    $productsSells = array_filter(array_map(function($item) {
+                        return $this->sanitize(trim((string)$item));
+                    }, explode(',', $productsSells)));
                 } else {
-                    $productsSells = array_filter(array_map('trim', explode(',', $productsSells)));
+                    $productsSells = [];
                 }
                 
                 if (is_array($productsBuys)) {
-                    $productsBuys = array_filter(array_map('trim', $productsBuys));
+                    $productsBuys = array_filter(array_map(function($item) {
+                        return $this->sanitize(trim((string)$item));
+                    }, $productsBuys));
+                } elseif (is_string($productsBuys)) {
+                    $productsBuys = array_filter(array_map(function($item) {
+                        return $this->sanitize(trim((string)$item));
+                    }, explode(',', $productsBuys)));
                 } else {
-                    $productsBuys = array_filter(array_map('trim', explode(',', $productsBuys)));
+                    $productsBuys = [];
                 }
+                
+                // Ensure arrays are valid before slicing
+                $productsSells = is_array($productsSells) ? array_values($productsSells) : [];
+                $productsBuys = is_array($productsBuys) ? array_values($productsBuys) : [];
                 
                 $data = [
                     'whatsapp_sales' => $salesWhatsapp,
@@ -349,11 +372,17 @@ class ExpedientesController extends Controller {
                 // Update contact notes with services of interest
                 $servicesInterest = $this->getInput('services_interest', []);
                 if (is_array($servicesInterest)) {
+                    // Sanitize each service interest value
+                    $servicesInterest = array_map(function($s) {
+                        return $this->sanitize((string)$s);
+                    }, $servicesInterest);
                     $servicesInterest = implode(', ', $servicesInterest);
                 }
                 
                 $contactNotes = $contact['notes'] ?? '';
                 if (!empty($servicesInterest)) {
+                    // Remove existing services of interest section if present to avoid duplication
+                    $contactNotes = preg_replace('/^Servicios de interés:.*?\n\n/s', '', $contactNotes);
                     $contactNotes = "Servicios de interés: " . $servicesInterest . "\n\n" . $contactNotes;
                 }
                 
