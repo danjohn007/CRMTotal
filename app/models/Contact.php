@@ -8,7 +8,7 @@ class Contact extends Model {
     protected array $fillable = [
         'rfc', 'whatsapp', 'contact_type', 'business_name', 'commercial_name',
         'owner_name', 'legal_representative', 'corporate_email', 'phone',
-        'industry', 'niza_classification', 'products_sells', 'products_buys',
+        'position', 'industry', 'niza_classification', 'products_sells', 'products_buys',
         'discount_percentage', 'commercial_address', 'fiscal_address', 'city',
         'state', 'postal_code', 'google_maps_url', 'website', 'facebook',
         'instagram', 'linkedin', 'twitter', 'whatsapp_sales', 'whatsapp_purchases',

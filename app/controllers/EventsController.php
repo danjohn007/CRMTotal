@@ -396,6 +396,23 @@ class EventsController extends Controller {
                             }
                         }
                         
+                        // Create contact record for the event attendee (when not owner/representative)
+                        if (!$isGuest && !$isOwnerRepresentative && !empty($registrationData['attendee_email'])) {
+                            $existingAttendeeContact = $contactModel->findBy('corporate_email', $registrationData['attendee_email']);
+                            if (!$existingAttendeeContact) {
+                                $contactModel->create([
+                                    'corporate_email' => $registrationData['attendee_email'],
+                                    'phone' => $registrationData['attendee_phone'] ?? '',
+                                    'owner_name' => $registrationData['attendee_name'],
+                                    'position' => $registrationData['attendee_position'] ?? null,
+                                    'contact_type' => 'colaborador_empresa',
+                                    'source_channel' => $event['is_paid'] ? 'evento_pagado' : 'evento_gratuito',
+                                    'profile_completion' => 15,
+                                    'completion_stage' => 'A'
+                                ]);
+                            }
+                        }
+                        
                         // Create individual registrations for additional attendees
                         // This allows them to have their own QR codes and appear individually in attendance control
                         $additionalRegistrationIds = [];
@@ -1063,7 +1080,6 @@ HTML;
             }
             
             // Send QR code email with HTML template
-            $to = $registrationData['guest_email'];
             $subject = "Boleto de Acceso - " . $event['title'];
             
             // Build the HTML email with QR code embedded
@@ -1075,13 +1091,52 @@ HTML;
             $headers .= "MIME-Version: 1.0\r\n";
             $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
             
-            mail($to, $subject, $body, $headers);
+            // Send email to primary and optionally to attendee
+            $this->sendToRegistrantEmails($registrationData, $subject, $body, $headers);
             
             // Update QR sent flag
             $this->eventModel->updateQRSent($registrationId);
         } catch (Exception $e) {
             // Log error but don't fail
             error_log("Error generating/sending QR code: " . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Send email to registrant's primary email and attendee email (if different)
+     * 
+     * This method ensures that the digital ticket is delivered to both the company/main
+     * registrant email and the actual event attendee (when different from owner).
+     * 
+     * @param array $registrationData Registration data containing guest_email and attendee_email
+     * @param string $subject Email subject
+     * @param string $body Email body (HTML)
+     * @param string $headers Email headers
+     * @return void
+     */
+    private function sendToRegistrantEmails(array $registrationData, string $subject, string $body, string $headers): void {
+        // Send to primary email (guest_email - company/main registrant)
+        $primaryEmail = $registrationData['guest_email'];
+        if (filter_var($primaryEmail, FILTER_VALIDATE_EMAIL)) {
+            $primaryResult = @mail($primaryEmail, $subject, $body, $headers);
+            if (!$primaryResult) {
+                error_log("Failed to send ticket email to primary email: " . $primaryEmail);
+            }
+        } else {
+            error_log("Invalid primary email address format: " . $primaryEmail);
+        }
+        
+        // Also send to attendee email if different (when attendee is not owner/representative)
+        $attendeeEmail = $registrationData['attendee_email'] ?? '';
+        if (!empty($attendeeEmail) && strtolower($attendeeEmail) !== strtolower($primaryEmail)) {
+            if (filter_var($attendeeEmail, FILTER_VALIDATE_EMAIL)) {
+                $attendeeResult = @mail($attendeeEmail, $subject, $body, $headers);
+                if (!$attendeeResult) {
+                    error_log("Failed to send ticket email to attendee email: " . $attendeeEmail);
+                }
+            } else {
+                error_log("Invalid attendee email address format: " . $attendeeEmail);
+            }
         }
     }
     
