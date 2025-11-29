@@ -1,13 +1,8 @@
--- CRM Total - Database Update Script
+-- CRM Total - Database Update Script (MySQL 5.7 compatible)
 -- Version: 2.5.0
 -- Date: 2025-11-29
 -- Description: Enhanced Customer Journey with 6 defined stages
---              - Stage 1: Expediente Digital Único registration (basic info)
---              - Stage 2: Products/services registration
---              - Stage 3: Payment & benefits enablement
---              - Stage 4: Cross-selling opportunities
---              - Stage 5: Up-selling with invitation tracking
---              - Stage 6: Council eligibility
+--              Compatible adjustments for MySQL 5.7 (no ALTER ... ADD COLUMN IF NOT EXISTS)
 
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
@@ -18,13 +13,13 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 -- Add journey_stage column to contacts for tracking the 6 stages
 ALTER TABLE `contacts` 
-ADD COLUMN IF NOT EXISTS `journey_stage` TINYINT UNSIGNED DEFAULT 1 
+ADD COLUMN `journey_stage` TINYINT UNSIGNED DEFAULT 1 
 COMMENT 'Customer Journey stage: 1-Registro, 2-Productos, 3-Facturación, 4-CrossSelling, 5-UpSelling, 6-Consejo'
 AFTER `completion_stage`;
 
 -- Add journey_stage_updated to track when stage changed
 ALTER TABLE `contacts` 
-ADD COLUMN IF NOT EXISTS `journey_stage_updated` TIMESTAMP NULL 
+ADD COLUMN `journey_stage_updated` TIMESTAMP NULL 
 COMMENT 'Last journey stage update timestamp'
 AFTER `journey_stage`;
 
@@ -65,7 +60,7 @@ COMMENT 'desayuno, open_day, conferencia, feria, exposicion, curso, taller, expo
 
 -- Add free event types tracking to event_registrations
 ALTER TABLE `event_registrations` 
-ADD COLUMN IF NOT EXISTS `event_category` VARCHAR(50) NULL 
+ADD COLUMN `event_category` VARCHAR(50) NULL 
 COMMENT 'Category for statistics: desayuno, open_day, conferencia, feria, exposicion'
 AFTER `payment_status`;
 
@@ -99,19 +94,19 @@ CREATE TABLE IF NOT EXISTS `council_members` (
 
 -- Add invoice attachment field to affiliations
 ALTER TABLE `affiliations` 
-ADD COLUMN IF NOT EXISTS `invoice_file` VARCHAR(255) NULL 
+ADD COLUMN `invoice_file` VARCHAR(255) NULL 
 COMMENT 'Path to attached invoice file'
 AFTER `invoice_status`;
 
 -- Add benefits enablement date
 ALTER TABLE `affiliations` 
-ADD COLUMN IF NOT EXISTS `benefits_enabled_date` DATE NULL 
+ADD COLUMN `benefits_enabled_date` DATE NULL 
 COMMENT 'Date when benefits were enabled'
 AFTER `invoice_file`;
 
 -- Add seller assignment tracking
 ALTER TABLE `affiliations` 
-ADD COLUMN IF NOT EXISTS `closed_by_user_id` INT UNSIGNED NULL 
+ADD COLUMN `closed_by_user_id` INT UNSIGNED NULL 
 COMMENT 'User who closed the sale (may differ from affiliate_user_id)'
 AFTER `benefits_enabled_date`;
 
@@ -121,7 +116,7 @@ AFTER `benefits_enabled_date`;
 
 -- Add category-specific fields to track all payments
 ALTER TABLE `service_contracts` 
-ADD COLUMN IF NOT EXISTS `service_type` ENUM('salon', 'marketing', 'curso', 'taller', 'expo', 'other') DEFAULT 'other'
+ADD COLUMN `service_type` ENUM('salon', 'marketing', 'curso', 'taller', 'expo', 'other') DEFAULT 'other'
 COMMENT 'Quick service type classification'
 AFTER `service_id`;
 
@@ -131,7 +126,7 @@ AFTER `service_id`;
 
 -- Add upselling order to membership types
 ALTER TABLE `membership_types` 
-ADD COLUMN IF NOT EXISTS `upsell_order` TINYINT UNSIGNED DEFAULT 0 
+ADD COLUMN `upsell_order` TINYINT UNSIGNED DEFAULT 0 
 COMMENT 'Order in upselling hierarchy: 1=Pyme, 2=Visionario, 3=Premier, 4=Patrocinador'
 AFTER `benefits`;
 
@@ -161,7 +156,7 @@ VALUES (
     'schema_update',
     NULL,
     NULL,
-    '{"version":"2.5.0","changes":["Enhanced Customer Journey with 6 stages","Upselling invitation tracking table","Council eligibility tracking","Invoice attachment support","Benefits enablement date tracking","Seller assignment tracking","Membership upsell hierarchy"]}',
+    '{"version":"2.5.0","changes":["Enhanced Customer Journey with 6 stages","Upselling invitation tracking table","Council eligibility tracking","Invoice attachment support","Benefits enablement date"]}',
     '127.0.0.1',
     NOW()
 );
@@ -234,14 +229,14 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- =============================================
 -- ROLLBACK SCRIPT (if needed)
 -- =============================================
--- ALTER TABLE contacts DROP COLUMN IF EXISTS journey_stage;
--- ALTER TABLE contacts DROP COLUMN IF EXISTS journey_stage_updated;
+-- ALTER TABLE contacts DROP COLUMN journey_stage;
+-- ALTER TABLE contacts DROP COLUMN journey_stage_updated;
 -- DROP TABLE IF EXISTS upselling_invitations;
 -- DROP TABLE IF EXISTS council_members;
--- ALTER TABLE affiliations DROP COLUMN IF EXISTS invoice_file;
--- ALTER TABLE affiliations DROP COLUMN IF EXISTS benefits_enabled_date;
--- ALTER TABLE affiliations DROP COLUMN IF EXISTS closed_by_user_id;
--- ALTER TABLE service_contracts DROP COLUMN IF EXISTS service_type;
--- ALTER TABLE membership_types DROP COLUMN IF EXISTS upsell_order;
+-- ALTER TABLE affiliations DROP COLUMN invoice_file;
+-- ALTER TABLE affiliations DROP COLUMN benefits_enabled_date;
+-- ALTER TABLE affiliations DROP COLUMN closed_by_user_id;
+-- ALTER TABLE service_contracts DROP COLUMN service_type;
+-- ALTER TABLE membership_types DROP COLUMN upsell_order;
 -- DELETE FROM membership_types WHERE code = 'VISIONARIO';
--- DELETE FROM audit_log WHERE new_values LIKE '%version":"2.5.0%';
+-- DELETE FROM audit_log WHERE new_values LIKE '%"version":"2.5.0"%';
