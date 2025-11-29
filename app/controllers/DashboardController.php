@@ -41,7 +41,6 @@ class DashboardController extends Controller {
         $affiliationModel = new Affiliation();
         $activityModel = new Activity();
         $notificationModel = new Notification();
-        $eventModel = new Event();
         
         // Get metrics for this affiliator
         $prospects = $contactModel->getProspects($userId);
