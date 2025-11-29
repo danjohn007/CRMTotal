@@ -1091,21 +1091,33 @@ HTML;
             $headers .= "MIME-Version: 1.0\r\n";
             $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
             
-            // Send to primary email (guest_email - company/main registrant)
-            $primaryEmail = $registrationData['guest_email'];
-            mail($primaryEmail, $subject, $body, $headers);
-            
-            // Also send to attendee email if different (when attendee is not owner/representative)
-            $attendeeEmail = $registrationData['attendee_email'] ?? '';
-            if (!empty($attendeeEmail) && strtolower($attendeeEmail) !== strtolower($primaryEmail)) {
-                mail($attendeeEmail, $subject, $body, $headers);
-            }
+            // Send email to primary and optionally to attendee
+            $this->sendToRegistrantEmails($registrationData, $subject, $body, $headers);
             
             // Update QR sent flag
             $this->eventModel->updateQRSent($registrationId);
         } catch (Exception $e) {
             // Log error but don't fail
             error_log("Error generating/sending QR code: " . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Send email to registrant's primary email and attendee email (if different)
+     * @param array $registrationData Registration data containing guest_email and attendee_email
+     * @param string $subject Email subject
+     * @param string $body Email body (HTML)
+     * @param string $headers Email headers
+     */
+    private function sendToRegistrantEmails(array $registrationData, string $subject, string $body, string $headers): void {
+        // Send to primary email (guest_email - company/main registrant)
+        $primaryEmail = $registrationData['guest_email'];
+        mail($primaryEmail, $subject, $body, $headers);
+        
+        // Also send to attendee email if different (when attendee is not owner/representative)
+        $attendeeEmail = $registrationData['attendee_email'] ?? '';
+        if (!empty($attendeeEmail) && strtolower($attendeeEmail) !== strtolower($primaryEmail)) {
+            mail($attendeeEmail, $subject, $body, $headers);
         }
     }
     

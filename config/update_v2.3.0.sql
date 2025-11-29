@@ -20,7 +20,7 @@ SET @column_exists = (SELECT COUNT(*)
     AND COLUMN_NAME = 'position');
 
 SET @sql = IF(@column_exists = 0,
-    'ALTER TABLE `contacts` ADD COLUMN `position` VARCHAR(100) NULL COMMENT "Cargo del contacto (para colaboradores de empresa)" AFTER `phone`;',
+    'ALTER TABLE `contacts` ADD COLUMN `position` VARCHAR(100) NULL COMMENT "Position/job title for company collaborators" AFTER `phone`;',
     'SELECT ''Column position already exists in contacts table, skipping...'' AS message;'
 );
 
