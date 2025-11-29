@@ -13,7 +13,7 @@ class Affiliation extends Model {
     
     public function getByContact(int $contactId): array {
         $sql = "SELECT a.*, m.name as membership_name, m.code as membership_code,
-                       u.name as affiliate_name
+                       m.upsell_order, u.name as affiliate_name
                 FROM {$this->table} a
                 JOIN membership_types m ON a.membership_type_id = m.id
                 LEFT JOIN users u ON a.affiliate_user_id = u.id

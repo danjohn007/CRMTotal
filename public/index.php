@@ -98,9 +98,11 @@ $router->add('buscador/no-match', ['controller' => 'search', 'action' => 'noMatc
 
 // Customer Journey
 $router->add('journey', ['controller' => 'journey', 'action' => 'index']);
-$router->add('journey/{id}', ['controller' => 'journey', 'action' => 'show']);
 $router->add('journey/upselling', ['controller' => 'journey', 'action' => 'upselling']);
 $router->add('journey/crossselling', ['controller' => 'journey', 'action' => 'crossselling']);
+$router->add('journey/council', ['controller' => 'journey', 'action' => 'council']);
+$router->add('journey/sendUpsellingInvitation', ['controller' => 'journey', 'action' => 'sendUpsellingInvitation']);
+$router->add('journey/{id}', ['controller' => 'journey', 'action' => 'show']);
 
 // Notifications
 $router->add('notificaciones', ['controller' => 'notifications', 'action' => 'index']);
