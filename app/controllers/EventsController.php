@@ -396,6 +396,23 @@ class EventsController extends Controller {
                             }
                         }
                         
+                        // Create contact record for the event attendee (when not owner/representative)
+                        if (!$isGuest && !$isOwnerRepresentative && !empty($registrationData['attendee_email'])) {
+                            $existingAttendeeContact = $contactModel->findBy('corporate_email', $registrationData['attendee_email']);
+                            if (!$existingAttendeeContact) {
+                                $contactModel->create([
+                                    'corporate_email' => $registrationData['attendee_email'],
+                                    'phone' => $registrationData['attendee_phone'] ?? '',
+                                    'owner_name' => $registrationData['attendee_name'],
+                                    'position' => $registrationData['attendee_position'] ?? null,
+                                    'contact_type' => 'colaborador_empresa',
+                                    'source_channel' => $event['is_paid'] ? 'evento_pagado' : 'evento_gratuito',
+                                    'profile_completion' => 15,
+                                    'completion_stage' => 'A'
+                                ]);
+                            }
+                        }
+                        
                         // Create individual registrations for additional attendees
                         // This allows them to have their own QR codes and appear individually in attendance control
                         $additionalRegistrationIds = [];
@@ -1063,7 +1080,6 @@ HTML;
             }
             
             // Send QR code email with HTML template
-            $to = $registrationData['guest_email'];
             $subject = "Boleto de Acceso - " . $event['title'];
             
             // Build the HTML email with QR code embedded
@@ -1075,7 +1091,15 @@ HTML;
             $headers .= "MIME-Version: 1.0\r\n";
             $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
             
-            mail($to, $subject, $body, $headers);
+            // Send to primary email (guest_email - company/main registrant)
+            $primaryEmail = $registrationData['guest_email'];
+            mail($primaryEmail, $subject, $body, $headers);
+            
+            // Also send to attendee email if different (when attendee is not owner/representative)
+            $attendeeEmail = $registrationData['attendee_email'] ?? '';
+            if (!empty($attendeeEmail) && strtolower($attendeeEmail) !== strtolower($primaryEmail)) {
+                mail($attendeeEmail, $subject, $body, $headers);
+            }
             
             // Update QR sent flag
             $this->eventModel->updateQRSent($registrationId);

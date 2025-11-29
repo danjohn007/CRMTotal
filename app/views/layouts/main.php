@@ -55,11 +55,14 @@
         [x-cloak] { display: none !important; }
         .sidebar-link.active { background-color: <?php echo htmlspecialchars($primaryColor); ?>20; color: <?php echo htmlspecialchars($primaryColor); ?>; }
         .sidebar-header { background-color: <?php echo htmlspecialchars($primaryColor); ?>; }
-        .btn-primary { background-color: <?php echo htmlspecialchars($primaryColor); ?>; }
-        .btn-primary:hover { background-color: <?php echo htmlspecialchars($secondaryColor); ?>; }
+        .btn-primary { background-color: <?php echo htmlspecialchars($primaryColor); ?> !important; color: white !important; }
+        .btn-primary:hover { background-color: <?php echo htmlspecialchars($secondaryColor); ?> !important; }
         .btn-accent { background-color: <?php echo htmlspecialchars($accentColor); ?>; }
         .text-primary { color: <?php echo htmlspecialchars($primaryColor); ?>; }
         .bg-primary { background-color: <?php echo htmlspecialchars($primaryColor); ?>; }
+        /* Override hardcoded blue buttons with primary color */
+        .bg-blue-600 { background-color: <?php echo htmlspecialchars($primaryColor); ?> !important; }
+        .bg-blue-600:hover, .hover\:bg-blue-700:hover { background-color: <?php echo htmlspecialchars($secondaryColor); ?> !important; }
     </style>
     
     <!-- Alpine.js for interactivity -->

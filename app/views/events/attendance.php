@@ -252,30 +252,30 @@ function loadFallbackQRLibrary() {
                                 $displayContactClass = 'bg-gray-100 text-gray-800';
                                 $displayContactIcon = '👤';
                                 
-                                // Check if it's a guest registration
-                                if (!empty($reg['is_guest'])) {
+                                // Priority 1: Child registrations are always "Colaborador" (additional attendees)
+                                if ($isChildRegistration) {
+                                    $displayContactType = 'Colaborador';
+                                    $displayContactClass = 'bg-cyan-100 text-cyan-800';
+                                    $displayContactIcon = '👔';
+                                } elseif (!empty($reg['is_guest'])) {
+                                    // Priority 2: Check if it's a guest registration
                                     $guestType = $reg['guest_type'] ?? 'INVITADO';
                                     $displayContactType = $guestType;
                                     $displayContactClass = 'bg-purple-100 text-purple-800';
                                     $displayContactIcon = '🎫';
+                                } elseif (!empty($reg['attendee_name']) && empty($reg['is_owner_representative'])) {
+                                    // Priority 3: Registration with attendee who is NOT owner/representative
+                                    $displayContactType = 'Colaborador';
+                                    $displayContactClass = 'bg-cyan-100 text-cyan-800';
+                                    $displayContactIcon = '👔';
                                 } elseif (!empty($reg['contact_type']) && isset($contactTypeLabels[$reg['contact_type']])) {
-                                    // Use contact_type from DB if available
+                                    // Priority 4: Use contact_type from DB if available
                                     $typeInfo = $contactTypeLabels[$reg['contact_type']];
                                     $displayContactType = $typeInfo['label'];
                                     $displayContactClass = $typeInfo['class'];
                                     $displayContactIcon = $typeInfo['icon'];
-                                } elseif ($isChildRegistration) {
-                                    // Child registrations are additional attendees (colaboradores)
-                                    $displayContactType = 'Asistente Adicional';
-                                    $displayContactClass = 'bg-cyan-100 text-cyan-800';
-                                    $displayContactIcon = '👔';
-                                } elseif (!empty($reg['attendee_name']) && empty($reg['is_owner_representative'])) {
-                                    // Registration with attendee who is NOT owner/representative
-                                    $displayContactType = 'Colaborador';
-                                    $displayContactClass = 'bg-cyan-100 text-cyan-800';
-                                    $displayContactIcon = '👔';
                                 } elseif (!empty($reg['is_owner_representative'])) {
-                                    // Owner/Representative
+                                    // Priority 5: Owner/Representative
                                     $displayContactType = 'Dueño/Representante';
                                     $displayContactClass = 'bg-green-100 text-green-800';
                                     $displayContactIcon = '✓';
