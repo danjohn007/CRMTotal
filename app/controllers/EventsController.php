@@ -788,6 +788,21 @@ class EventsController extends Controller {
         $tickets = (int) $registrationData['tickets'];
         $formattedAmount = number_format($amount, 2);
         
+        // Get system colors from config
+        $primaryColor = $this->configModel->get('primary_color', '#1e40af');
+        $secondaryColor = $this->configModel->get('secondary_color', '#3b82f6');
+        $accentColor = $this->configModel->get('accent_color', '#10b981');
+        
+        // Get logo URL
+        $siteLogo = $this->configModel->get('site_logo', '');
+        $logoHtml = '';
+        if (!empty($siteLogo)) {
+            $logoUrl = BASE_URL . $siteLogo;
+            $logoHtml = '<img src="' . htmlspecialchars($logoUrl) . '" alt="Logo" style="max-height: 60px; max-width: 200px;">';
+        } else {
+            $logoHtml = '<span style="color: white; font-weight: bold; font-size: 18px;">CÁMARA DE COMERCIO DE QUERÉTARO</span>';
+        }
+        
         return <<<HTML
 <!DOCTYPE html>
 <html lang="es">
@@ -797,8 +812,10 @@ class EventsController extends Controller {
     <title>Registro Pendiente - {$eventTitle}</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa;">
-    <!-- Header -->
-    <div style="background-color: #2d3e92; height: 8px; width: 100%;"></div>
+    <!-- Header with Logo -->
+    <div style="background-color: {$primaryColor}; padding: 20px; text-align: center;">
+        {$logoHtml}
+    </div>
     
     <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 40px;">
         <!-- Greeting -->
@@ -809,35 +826,35 @@ class EventsController extends Controller {
         </p>
         
         <!-- Event Info Box -->
-        <div style="border: 2px solid #2d3e92; border-radius: 15px; padding: 30px; margin: 30px 0;">
-            <h2 style="color: #2d3e92; text-align: center; font-size: 22px; margin: 0 0 25px 0;">Información del Evento</h2>
+        <div style="border: 2px solid {$primaryColor}; border-radius: 15px; padding: 30px; margin: 30px 0;">
+            <h2 style="color: {$primaryColor}; text-align: center; font-size: 22px; margin: 0 0 25px 0;">Información del Evento</h2>
             
             <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
-                <span style="color: #2d3e92; font-weight: bold;">Evento:</span> {$eventTitle}
+                <span style="color: {$primaryColor}; font-weight: bold;">Evento:</span> {$eventTitle}
             </div>
             
             <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
-                <span style="color: #2d3e92; font-weight: bold;">Fecha:</span> {$eventDate}
+                <span style="color: {$primaryColor}; font-weight: bold;">Fecha:</span> {$eventDate}
             </div>
             
             <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
-                <span style="color: #2d3e92; font-weight: bold;">Hora:</span> {$eventTime}
+                <span style="color: {$primaryColor}; font-weight: bold;">Hora:</span> {$eventTime}
             </div>
             
             <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
-                <span style="color: #2d3e92; font-weight: bold;">Ubicación:</span> {$location}
+                <span style="color: {$primaryColor}; font-weight: bold;">Ubicación:</span> {$location}
             </div>
             
             <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
-                <span style="color: #2d3e92; font-weight: bold;">Nombre:</span> {$guestName}
+                <span style="color: {$primaryColor}; font-weight: bold;">Nombre:</span> {$guestName}
             </div>
             
             <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
-                <span style="color: #2d3e92; font-weight: bold;">Empresa/Razón Social:</span> {$guestName}
+                <span style="color: {$primaryColor}; font-weight: bold;">Empresa/Razón Social:</span> {$guestName}
             </div>
             
             <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
-                <span style="color: #2d3e92; font-weight: bold;">Boletos Solicitados:</span> {$tickets}
+                <span style="color: {$primaryColor}; font-weight: bold;">Boletos Solicitados:</span> {$tickets}
             </div>
         </div>
         
@@ -851,13 +868,21 @@ class EventsController extends Controller {
                 Para completar tu registro y recibir tus boletos, debes realizar el pago de:
             </p>
             
-            <p style="color: #2d3e92; font-size: 42px; font-weight: bold; margin: 0 0 25px 0;">
+            <p style="color: {$primaryColor}; font-size: 42px; font-weight: bold; margin: 0 0 25px 0;">
                 \${$formattedAmount} MXN
             </p>
             
-            <a href="{$paymentUrl}" style="display: inline-block; background-color: #2d3e92; color: white; text-decoration: none; padding: 18px 45px; border-radius: 12px; font-size: 18px; font-weight: bold;">
+            <!--[if mso]>
+            <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{$paymentUrl}" style="height:50px;v-text-anchor:middle;width:250px;" arcsize="10%" stroke="f" fillcolor="{$primaryColor}">
+                <w:anchorlock/>
+                <center style="color:#ffffff;font-family:sans-serif;font-size:18px;font-weight:bold;">💳 Realizar Pago Ahora</center>
+            </v:roundrect>
+            <![endif]-->
+            <!--[if !mso]><!-->
+            <a href="{$paymentUrl}" style="display: inline-block; background-color: {$primaryColor}; color: #ffffff !important; text-decoration: none; padding: 18px 45px; border-radius: 12px; font-size: 18px; font-weight: bold; mso-hide: all;">
                 💳 Realizar Pago Ahora
             </a>
+            <!--<![endif]-->
             
             <p style="color: #666; font-size: 14px; margin: 25px 0 0 0;">
                 También puedes acceder al enlace de pago desde tu código de registro:<br>
@@ -898,6 +923,19 @@ HTML;
         $eventTitle = htmlspecialchars($event['title']);
         $tickets = (int) $registrationData['tickets'];
         
+        // Get system colors from config
+        $primaryColor = $this->configModel->get('primary_color', '#1e40af');
+        
+        // Get logo URL
+        $siteLogo = $this->configModel->get('site_logo', '');
+        $logoHtml = '';
+        if (!empty($siteLogo)) {
+            $logoUrl = BASE_URL . $siteLogo;
+            $logoHtml = '<img src="' . htmlspecialchars($logoUrl) . '" alt="Logo" style="max-height: 60px; max-width: 200px;">';
+        } else {
+            $logoHtml = '<span style="color: white; font-weight: bold; font-size: 18px;">CÁMARA DE COMERCIO DE QUERÉTARO</span>';
+        }
+        
         return <<<HTML
 <!DOCTYPE html>
 <html lang="es">
@@ -907,8 +945,10 @@ HTML;
     <title>Registro Exitoso - {$eventTitle}</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa;">
-    <!-- Header -->
-    <div style="background-color: #2d3e92; height: 8px; width: 100%;"></div>
+    <!-- Header with Logo -->
+    <div style="background-color: {$primaryColor}; padding: 20px; text-align: center;">
+        {$logoHtml}
+    </div>
     
     <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 40px;">
         <h1 style="font-size: 28px; color: #333; margin: 0 0 20px 0;">Hola {$guestName},</h1>
@@ -921,27 +961,27 @@ HTML;
             En unos momentos recibirás otro correo con tu código QR de acceso.
         </p>
         
-        <div style="border: 2px solid #2d3e92; border-radius: 15px; padding: 30px; margin: 30px 0;">
-            <h2 style="color: #2d3e92; text-align: center; font-size: 22px; margin: 0 0 25px 0;">Información del Evento</h2>
+        <div style="border: 2px solid {$primaryColor}; border-radius: 15px; padding: 30px; margin: 30px 0;">
+            <h2 style="color: {$primaryColor}; text-align: center; font-size: 22px; margin: 0 0 25px 0;">Información del Evento</h2>
             
             <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
-                <span style="color: #2d3e92; font-weight: bold;">Evento:</span> {$eventTitle}
+                <span style="color: {$primaryColor}; font-weight: bold;">Evento:</span> {$eventTitle}
             </div>
             
             <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
-                <span style="color: #2d3e92; font-weight: bold;">Fecha:</span> {$eventDate}
+                <span style="color: {$primaryColor}; font-weight: bold;">Fecha:</span> {$eventDate}
             </div>
             
             <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
-                <span style="color: #2d3e92; font-weight: bold;">Hora:</span> {$eventTime}
+                <span style="color: {$primaryColor}; font-weight: bold;">Hora:</span> {$eventTime}
             </div>
             
             <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
-                <span style="color: #2d3e92; font-weight: bold;">Ubicación:</span> {$location}
+                <span style="color: {$primaryColor}; font-weight: bold;">Ubicación:</span> {$location}
             </div>
             
             <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
-                <span style="color: #2d3e92; font-weight: bold;">Boletos:</span> {$tickets}
+                <span style="color: {$primaryColor}; font-weight: bold;">Boletos:</span> {$tickets}
             </div>
         </div>
         
@@ -1063,6 +1103,21 @@ HTML;
         $contactEmail = htmlspecialchars($this->configModel->get('contact_email', 'contacto@camaradecomercioqro.mx'));
         $contactPhone = htmlspecialchars($this->configModel->get('contact_phone', '4425375301'));
         
+        // Get system colors from config
+        $primaryColor = $this->configModel->get('primary_color', '#1e40af');
+        $secondaryColor = $this->configModel->get('secondary_color', '#3b82f6');
+        $accentColor = $this->configModel->get('accent_color', '#10b981');
+        
+        // Get logo URL
+        $siteLogo = $this->configModel->get('site_logo', '');
+        $logoHtml = '';
+        if (!empty($siteLogo)) {
+            $logoUrl = BASE_URL . $siteLogo;
+            $logoHtml = '<img src="' . htmlspecialchars($logoUrl) . '" alt="Logo" style="max-height: 60px; max-width: 200px;">';
+        } else {
+            $logoHtml = '<div style="background-color: white; display: inline-block; padding: 10px; border-radius: 5px;"><span style="color: ' . $primaryColor . '; font-weight: bold; font-size: 12px;">CÁMARA<br>DE COMERCIO<br>DE QUERÉTARO</span></div>';
+        }
+        
         return <<<HTML
 <!DOCTYPE html>
 <html lang="es">
@@ -1072,48 +1127,56 @@ HTML;
     <title>Boleto de Acceso - {$eventTitle}</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa;">
-    <!-- Header -->
-    <div style="background-color: #1a5a2c; padding: 20px; text-align: right;">
-        <a href="{$ticketUrl}" style="background-color: #2d7a3d; color: white; padding: 12px 24px; border-radius: 5px; font-weight: bold; display: inline-block; text-decoration: none;">
-            🖨️ Imprimir Boleto
-        </a>
+    <!-- Header with Logo -->
+    <div style="background-color: {$primaryColor}; padding: 20px; text-align: center;">
+        <table style="width: 100%;">
+            <tr>
+                <td style="text-align: left; vertical-align: middle;">
+                    {$logoHtml}
+                </td>
+                <td style="text-align: right; vertical-align: middle;">
+                    <!--[if mso]>
+                    <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{$ticketUrl}" style="height:40px;v-text-anchor:middle;width:150px;" arcsize="10%" stroke="f" fillcolor="{$accentColor}">
+                        <w:anchorlock/>
+                        <center style="color:#ffffff;font-family:sans-serif;font-size:14px;font-weight:bold;">🖨️ Imprimir Boleto</center>
+                    </v:roundrect>
+                    <![endif]-->
+                    <!--[if !mso]><!-->
+                    <a href="{$ticketUrl}" style="background-color: {$accentColor}; color: #ffffff !important; padding: 12px 24px; border-radius: 5px; font-weight: bold; display: inline-block; text-decoration: none; mso-hide: all;">
+                        🖨️ Imprimir Boleto
+                    </a>
+                    <!--<![endif]-->
+                </td>
+            </tr>
+        </table>
     </div>
     
     <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border: 1px solid #e0e0e0;">
-        <!-- Logo and Title -->
-        <div style="display: table; width: 100%; margin-bottom: 20px;">
-            <div style="display: table-cell; width: 40%; vertical-align: middle;">
-                <div style="background-color: #1a5a2c; padding: 15px; border-radius: 8px; text-align: center;">
-                    <div style="background-color: white; display: inline-block; padding: 10px; border-radius: 5px;">
-                        <span style="color: #1a5a2c; font-weight: bold; font-size: 12px;">CÁMARA<br>DE COMERCIO<br>DE QUERÉTARO</span>
-                    </div>
-                </div>
-            </div>
-            <div style="display: table-cell; width: 60%; vertical-align: middle; text-align: right;">
-                <h1 style="color: #1a5a2c; font-size: 24px; margin: 0; font-weight: bold;">BOLETO DE ACCESO</h1>
-                <p style="color: #666; font-size: 14px; margin: 5px 0 0 0;">Personal e Intransferible</p>
-            </div>
+        <!-- Header Title -->
+        <div style="text-align: center; margin-bottom: 20px;">
+            <h1 style="color: {$primaryColor}; font-size: 24px; margin: 0; font-weight: bold;">BOLETO DE ACCESO</h1>
+            <p style="color: #666; font-size: 14px; margin: 5px 0 0 0;">Personal e Intransferible</p>
         </div>
         
         <!-- Event Title -->
-        <div style="background-color: #f5f5f5; border-top: 3px solid #1a5a2c; border-bottom: 3px solid #1a5a2c; padding: 15px; text-align: center; margin: 20px 0;">
-            <h2 style="color: #1a5a2c; font-size: 22px; margin: 0; font-weight: bold;">{$eventTitle}</h2>
+        <div style="background-color: #f5f5f5; border-top: 3px solid {$primaryColor}; border-bottom: 3px solid {$primaryColor}; padding: 15px; text-align: center; margin: 20px 0;">
+            <h2 style="color: {$primaryColor}; font-size: 22px; margin: 0; font-weight: bold;">{$eventTitle}</h2>
         </div>
         
         <!-- Event Details -->
         <div style="display: table; width: 100%; margin: 20px 0;">
             <div style="display: table-row;">
                 <div style="display: table-cell; width: 50%; padding: 5px 10px;">
-                    <span style="color: #1a5a2c;">📅</span> <strong>{$eventDate}</strong>
+                    <span style="color: {$primaryColor};">📅</span> <strong>{$eventDate}</strong>
                 </div>
                 <div style="display: table-cell; width: 50%; padding: 5px 10px;">
-                    <span style="color: #1a5a2c;">🕐</span> {$eventTime}
+                    <span style="color: {$primaryColor};">🕐</span> {$eventTime}
                 </div>
             </div>
         </div>
         
         <div style="margin: 10px 0; color: #666;">
-            <span style="color: #1a5a2c;">📍</span> {$address}
+            <span style="color: {$primaryColor};">📍</span> {$address}
         </div>
         
         <!-- Attendee Info and QR Code -->
@@ -1128,7 +1191,7 @@ HTML;
             <div style="display: table-cell; width: 50%; vertical-align: top; text-align: center;">
                 <h3 style="color: #333; font-size: 14px; margin: 0 0 15px 0; text-transform: uppercase;">CÓDIGO QR</h3>
                 <img src="{$qrUrl}" alt="Código QR" style="width: 180px; height: 180px; border: 1px solid #ddd;">
-                <p style="color: #1a5a2c; font-size: 12px; font-family: monospace; margin: 10px 0 0 0; word-break: break-all;">{$registrationCode}</p>
+                <p style="color: {$primaryColor}; font-size: 12px; font-family: monospace; margin: 10px 0 0 0; word-break: break-all;">{$registrationCode}</p>
             </div>
         </div>
         
@@ -1141,7 +1204,7 @@ HTML;
     
     <!-- Instructions -->
     <div style="max-width: 600px; margin: 0 auto; background-color: #f8f9fa; padding: 25px 30px; border: 1px solid #e0e0e0; border-top: none;">
-        <h3 style="color: #2d3e92; font-size: 16px; margin: 0 0 15px 0;">ℹ️ Instrucciones</h3>
+        <h3 style="color: {$primaryColor}; font-size: 16px; margin: 0 0 15px 0;">ℹ️ Instrucciones</h3>
         <ul style="color: #333; font-size: 14px; line-height: 1.8; margin: 0; padding-left: 20px;">
             <li>Imprime este boleto o guárdalo en tu dispositivo móvil</li>
             <li>Llega con 15 minutos de anticipación</li>
