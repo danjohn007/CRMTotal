@@ -264,20 +264,108 @@ class AffiliatesController extends Controller {
             $this->redirect('afiliados');
         }
         
-        // Full digital file view
+        // Full digital file view with comprehensive company dashboard data
         $affiliations = $this->affiliationModel->getByContact($id);
+        $currentAffiliation = !empty($affiliations) ? $affiliations[0] : null;
+        
+        // Calculate days remaining for current affiliation
+        $daysRemaining = 0;
+        if ($currentAffiliation && !empty($currentAffiliation['expiration_date'])) {
+            $daysRemaining = max(0, floor((strtotime($currentAffiliation['expiration_date']) - time()) / 86400));
+        }
+        
+        // Get activities history
         $activityModel = new Activity();
         $activities = $activityModel->getByContact($id);
+        
+        // Get service contracts (cross & upselling)
         $serviceContract = new ServiceContract();
         $contracts = $serviceContract->getByContact($id);
+        
+        // Get event registrations and attendance for this contact
+        $eventModel = new Event();
+        $eventRegistrations = $this->db->fetchAll(
+            "SELECT er.*, e.title as event_title, e.start_date, e.location, e.event_type
+             FROM event_registrations er
+             JOIN events e ON er.event_id = e.id
+             WHERE er.guest_email = :email OR er.guest_rfc = :rfc
+             ORDER BY e.start_date DESC
+             LIMIT 20",
+            ['email' => $contact['corporate_email'], 'rfc' => $contact['rfc'] ?? '']
+        );
+        
+        // Get attendance count
+        $attendanceCount = $this->db->queryOne(
+            "SELECT COUNT(*) as count
+             FROM event_registrations er
+             WHERE (er.guest_email = :email OR er.guest_rfc = :rfc)
+             AND er.attended = 1",
+            ['email' => $contact['corporate_email'], 'rfc' => $contact['rfc'] ?? '']
+        );
+        
+        // Calculate total amount paid in the year
+        $yearlyPayments = $this->db->queryOne(
+            "SELECT COALESCE(SUM(amount), 0) as total
+             FROM affiliations
+             WHERE contact_id = :id
+             AND payment_status = 'paid'
+             AND YEAR(affiliation_date) = YEAR(CURDATE())",
+            ['id' => $id]
+        );
+        
+        // Get invoice history
+        $invoices = $this->db->fetchAll(
+            "SELECT * FROM affiliations
+             WHERE contact_id = :id
+             AND invoice_number IS NOT NULL
+             ORDER BY affiliation_date DESC",
+            ['id' => $id]
+        );
+        
+        // Get membership benefits if applicable
+        $membershipBenefits = null;
+        if ($currentAffiliation && !empty($currentAffiliation['membership_type_id'])) {
+            $membershipBenefits = $this->membershipModel->find($currentAffiliation['membership_type_id']);
+        }
+        
+        // Get collaborators (contacts linked as colaborador_empresa with same RFC or email domain)
+        $emailDomain = '';
+        if (!empty($contact['corporate_email'])) {
+            $parts = explode('@', $contact['corporate_email']);
+            $emailDomain = count($parts) > 1 ? $parts[1] : '';
+        }
+        
+        $collaborators = [];
+        if (!empty($emailDomain) || !empty($contact['rfc'])) {
+            $collaborators = $this->db->fetchAll(
+                "SELECT * FROM contacts
+                 WHERE contact_type = 'colaborador_empresa'
+                 AND id != :id
+                 AND (
+                     (corporate_email LIKE :domain AND :domain != '')
+                     OR (rfc = :rfc AND :rfc != '')
+                 )
+                 ORDER BY created_at DESC
+                 LIMIT 20",
+                ['id' => $id, 'domain' => '%@' . $emailDomain, 'rfc' => $contact['rfc'] ?? '']
+            );
+        }
         
         $this->view('affiliates/digital_file', [
             'pageTitle' => 'Expediente Digital - ' . $contact['business_name'],
             'currentPage' => 'afiliados',
             'contact' => $contact,
             'affiliations' => $affiliations,
+            'currentAffiliation' => $currentAffiliation,
+            'daysRemaining' => $daysRemaining,
             'activities' => $activities,
-            'contracts' => $contracts
+            'contracts' => $contracts,
+            'eventRegistrations' => $eventRegistrations,
+            'attendanceCount' => $attendanceCount['count'] ?? 0,
+            'yearlyPayments' => $yearlyPayments['total'] ?? 0,
+            'invoices' => $invoices,
+            'membershipBenefits' => $membershipBenefits,
+            'collaborators' => $collaborators
         ]);
     }
     
