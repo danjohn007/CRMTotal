@@ -122,4 +122,71 @@ class Affiliation extends Model {
         $total = $result['active'] + $result['expired'];
         return $total > 0 ? round(($result['active'] / $total) * 100, 1) : 0;
     }
+    
+    /**
+     * Get sales statistics for a specific user by period
+     * @param int $userId
+     * @param string $period 'today', 'yesterday', 'current_week', 'last_week', 'current_month', 'last_month', 'year'
+     * @return array
+     */
+    public function getSalesStatsByPeriod(int $userId, string $period): array {
+        $dateCondition = match($period) {
+            'today' => "DATE(affiliation_date) = CURDATE()",
+            'yesterday' => "DATE(affiliation_date) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)",
+            'current_week' => "YEARWEEK(affiliation_date, 1) = YEARWEEK(CURDATE(), 1)",
+            'last_week' => "YEARWEEK(affiliation_date, 1) = YEARWEEK(DATE_SUB(CURDATE(), INTERVAL 1 WEEK), 1)",
+            'current_month' => "MONTH(affiliation_date) = MONTH(CURDATE()) AND YEAR(affiliation_date) = YEAR(CURDATE())",
+            'last_month' => "MONTH(affiliation_date) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND YEAR(affiliation_date) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))",
+            'year' => "YEAR(affiliation_date) = YEAR(CURDATE())",
+            default => "DATE(affiliation_date) = CURDATE()"
+        };
+        
+        $sql = "SELECT 
+                    COUNT(*) as count,
+                    COALESCE(SUM(amount), 0) as amount
+                FROM {$this->table}
+                WHERE affiliate_user_id = :user_id 
+                AND {$dateCondition}
+                AND payment_status = 'paid'";
+        return $this->rawOne($sql, ['user_id' => $userId]) ?? ['count' => 0, 'amount' => 0];
+    }
+    
+    /**
+     * Get daily sales for the current week for charts
+     * @param int $userId
+     * @return array
+     */
+    public function getWeeklySalesChart(int $userId): array {
+        $sql = "SELECT 
+                    DATE(affiliation_date) as date,
+                    DAYOFWEEK(affiliation_date) as day_num,
+                    COUNT(*) as count,
+                    COALESCE(SUM(amount), 0) as amount
+                FROM {$this->table}
+                WHERE affiliate_user_id = :user_id
+                AND YEARWEEK(affiliation_date, 1) = YEARWEEK(CURDATE(), 1)
+                AND payment_status = 'paid'
+                GROUP BY DATE(affiliation_date)
+                ORDER BY date";
+        return $this->raw($sql, ['user_id' => $userId]);
+    }
+    
+    /**
+     * Get monthly sales for the current year for charts
+     * @param int $userId
+     * @return array
+     */
+    public function getMonthlySalesChart(int $userId): array {
+        $sql = "SELECT 
+                    MONTH(affiliation_date) as month,
+                    COUNT(*) as count,
+                    COALESCE(SUM(amount), 0) as amount
+                FROM {$this->table}
+                WHERE affiliate_user_id = :user_id
+                AND YEAR(affiliation_date) = YEAR(CURDATE())
+                AND payment_status = 'paid'
+                GROUP BY MONTH(affiliation_date)
+                ORDER BY month";
+        return $this->raw($sql, ['user_id' => $userId]);
+    }
 }

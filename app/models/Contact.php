@@ -198,4 +198,64 @@ class Contact extends Model {
                 GROUP BY source_channel";
         return $this->raw($sql);
     }
+    
+    /**
+     * Get newly assigned prospects for an affiliator (from last 7 days)
+     * Includes source channel (chatbot, events, manual)
+     * @param int $affiliatorId
+     * @return array
+     */
+    public function getNewAssignedProspects(int $affiliatorId): array {
+        $sql = "SELECT c.*, 
+                       DATEDIFF(CURDATE(), DATE(c.created_at)) as days_ago
+                FROM {$this->table} c 
+                WHERE c.contact_type = 'prospecto'
+                AND c.assigned_affiliate_id = :affiliator_id
+                AND c.created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                ORDER BY c.created_at DESC
+                LIMIT 20";
+        return $this->raw($sql, ['affiliator_id' => $affiliatorId]);
+    }
+    
+    /**
+     * Get prospects by source channel for an affiliator
+     * @param int $affiliatorId
+     * @param string $channel
+     * @return array
+     */
+    public function getProspectsByChannel(int $affiliatorId, string $channel): array {
+        $sql = "SELECT c.* 
+                FROM {$this->table} c 
+                WHERE c.contact_type = 'prospecto'
+                AND c.assigned_affiliate_id = :affiliator_id
+                AND c.source_channel = :channel
+                ORDER BY c.created_at DESC";
+        return $this->raw($sql, ['affiliator_id' => $affiliatorId, 'channel' => $channel]);
+    }
+    
+    /**
+     * Get company/contact with full affiliation details for company dashboard
+     * @param int $contactId
+     * @return array|null
+     */
+    public function getCompanyDashboardData(int $contactId): ?array {
+        $sql = "SELECT c.*, 
+                       a.id as affiliation_id,
+                       a.affiliation_date,
+                       a.expiration_date,
+                       a.status as affiliation_status,
+                       a.payment_status,
+                       a.amount as affiliation_amount,
+                       a.invoice_number,
+                       a.invoice_status,
+                       m.name as membership_name,
+                       m.code as membership_code,
+                       m.benefits as membership_benefits,
+                       DATEDIFF(a.expiration_date, CURDATE()) as days_remaining
+                FROM {$this->table} c
+                LEFT JOIN affiliations a ON c.id = a.contact_id AND a.status = 'active'
+                LEFT JOIN membership_types m ON a.membership_type_id = m.id
+                WHERE c.id = :contact_id";
+        return $this->rawOne($sql, ['contact_id' => $contactId]);
+    }
 }

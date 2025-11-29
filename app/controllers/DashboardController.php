@@ -52,6 +52,24 @@ class DashboardController extends Controller {
         $yearlyStats = $affiliationModel->countByAffiliate($userId, 'year');
         $expiringAffiliations = $affiliationModel->getExpiringSoon(30);
         
+        // New data for enhanced dashboard
+        $todayAppointments = $activityModel->getTodayAppointments($userId);
+        $newProspects = $contactModel->getNewAssignedProspects($userId);
+        $upcomingActivities = $activityModel->getUpcoming($userId, 'week');
+        
+        // Sales statistics for charts
+        $salesYesterday = $affiliationModel->getSalesStatsByPeriod($userId, 'yesterday');
+        $salesCurrentWeek = $affiliationModel->getSalesStatsByPeriod($userId, 'current_week');
+        $salesLastWeek = $affiliationModel->getSalesStatsByPeriod($userId, 'last_week');
+        $salesLastMonth = $affiliationModel->getSalesStatsByPeriod($userId, 'last_month');
+        $salesCurrentMonth = $affiliationModel->getSalesStatsByPeriod($userId, 'current_month');
+        $salesYear = $affiliationModel->getSalesStatsByPeriod($userId, 'year');
+        $salesToday = $affiliationModel->getSalesStatsByPeriod($userId, 'today');
+        
+        // Chart data
+        $weeklySalesChart = $affiliationModel->getWeeklySalesChart($userId);
+        $monthlySalesChart = $affiliationModel->getMonthlySalesChart($userId);
+        
         // Filter expiring to only this user's affiliates
         $myExpiring = array_filter($expiringAffiliations, fn($a) => ($a['affiliate_id'] ?? 0) == $userId);
         
@@ -77,7 +95,20 @@ class DashboardController extends Controller {
             'monthlyCommission' => $monthlyCommission,
             'newAffiliationsGoal' => $newAffiliationsGoal,
             'reaffiliationsGoal' => $reaffiliationsGoal,
-            'notificationCount' => $notificationModel->countUnread($userId)
+            'notificationCount' => $notificationModel->countUnread($userId),
+            // New data
+            'todayAppointments' => $todayAppointments,
+            'newProspects' => $newProspects,
+            'upcomingActivities' => $upcomingActivities,
+            'salesYesterday' => $salesYesterday,
+            'salesCurrentWeek' => $salesCurrentWeek,
+            'salesLastWeek' => $salesLastWeek,
+            'salesLastMonth' => $salesLastMonth,
+            'salesCurrentMonth' => $salesCurrentMonth,
+            'salesYear' => $salesYear,
+            'salesToday' => $salesToday,
+            'weeklySalesChart' => $weeklySalesChart,
+            'monthlySalesChart' => $monthlySalesChart
         ]);
     }
     

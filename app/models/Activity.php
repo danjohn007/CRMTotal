@@ -109,4 +109,47 @@ class Activity extends Model {
                 GROUP BY activity_type";
         return $this->raw($sql, ['user_id' => $userId]);
     }
+    
+    /**
+     * Get today's appointments (citas) with contact details
+     * @param int $userId
+     * @return array
+     */
+    public function getTodayAppointments(int $userId): array {
+        $sql = "SELECT a.*, 
+                       c.business_name, c.commercial_name, c.phone, c.whatsapp, 
+                       c.owner_name, c.corporate_email, c.id as contact_id
+                FROM {$this->table} a
+                LEFT JOIN contacts c ON a.contact_id = c.id
+                WHERE a.user_id = :user_id 
+                AND DATE(a.scheduled_date) = CURDATE()
+                AND a.activity_type IN ('reunion', 'visita', 'llamada')
+                ORDER BY a.scheduled_date";
+        return $this->raw($sql, ['user_id' => $userId]);
+    }
+    
+    /**
+     * Get upcoming activities for the week or until end of month
+     * @param int $userId
+     * @param string $range 'week' or 'month'
+     * @return array
+     */
+    public function getUpcoming(int $userId, string $range = 'week'): array {
+        $endDate = $range === 'month' 
+            ? "LAST_DAY(CURDATE())"
+            : "DATE_ADD(CURDATE(), INTERVAL 7 DAY)";
+            
+        $sql = "SELECT a.*, 
+                       c.business_name, c.commercial_name, c.phone, c.whatsapp,
+                       c.owner_name, c.id as contact_id
+                FROM {$this->table} a
+                LEFT JOIN contacts c ON a.contact_id = c.id
+                WHERE a.user_id = :user_id 
+                AND DATE(a.scheduled_date) > CURDATE()
+                AND DATE(a.scheduled_date) <= {$endDate}
+                AND a.status IN ('pendiente', 'en_progreso')
+                ORDER BY a.scheduled_date
+                LIMIT 15";
+        return $this->raw($sql, ['user_id' => $userId]);
+    }
 }
