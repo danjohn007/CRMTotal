@@ -348,13 +348,10 @@ function loadFallbackQRLibrary() {
 // QR Scanner variables
 let html5QrCode = null;
 
-// Html5QrcodeScannerState enum values (from library)
-const Html5QrcodeScannerState = {
-    UNKNOWN: 0,
-    NOT_STARTED: 1,
-    SCANNING: 2,
-    PAUSED: 3
-};
+// Scanner state constants - use values directly to avoid conflicts with library's global
+// Html5QrcodeScannerState: UNKNOWN=0, NOT_STARTED=1, SCANNING=2, PAUSED=3
+const SCANNER_STATE_SCANNING = 2;
+const SCANNER_STATE_PAUSED = 3;
 
 // Modal functions
 function openQRScannerModal() {
@@ -461,7 +458,7 @@ function startQRScanner() {
         if (html5QrCode) {
             // Try to stop and clear existing scanner
             const state = html5QrCode.getState();
-            if (state === Html5QrcodeScannerState.SCANNING || state === Html5QrcodeScannerState.PAUSED) {
+            if (state === SCANNER_STATE_SCANNING || state === SCANNER_STATE_PAUSED) {
                 html5QrCode.stop().then(() => {
                     html5QrCode = null;
                     initializeScanner();
@@ -484,7 +481,7 @@ function stopQRScanner() {
         try {
             // Try to get the state - if scanner is running, stop it
             const state = html5QrCode.getState();
-            if (state === Html5QrcodeScannerState.SCANNING || state === Html5QrcodeScannerState.PAUSED) {
+            if (state === SCANNER_STATE_SCANNING || state === SCANNER_STATE_PAUSED) {
                 html5QrCode.stop().then(() => {
                     console.log("QR Scanner stopped");
                 }).catch((err) => {
