@@ -413,20 +413,31 @@ class ApiController extends Controller {
     
     /**
      * Send email to registrant's primary email and attendee email (if different)
+     * 
+     * This method ensures that the digital ticket is delivered to both the company/main
+     * registrant email and the actual event attendee (when different from owner).
+     * 
      * @param array $registrationData Registration data containing guest_email and attendee_email
      * @param string $subject Email subject
      * @param string $body Email body (HTML)
      * @param string $headers Email headers
+     * @return void
      */
     private function sendToRegistrantEmails(array $registrationData, string $subject, string $body, string $headers): void {
         // Send to primary email (guest_email - company/main registrant)
         $primaryEmail = $registrationData['guest_email'];
-        mail($primaryEmail, $subject, $body, $headers);
+        $primaryResult = @mail($primaryEmail, $subject, $body, $headers);
+        if (!$primaryResult) {
+            error_log("Failed to send ticket email to primary email: " . $primaryEmail);
+        }
         
         // Also send to attendee email if different (when attendee is not owner/representative)
         $attendeeEmail = $registrationData['attendee_email'] ?? '';
         if (!empty($attendeeEmail) && strtolower($attendeeEmail) !== strtolower($primaryEmail)) {
-            mail($attendeeEmail, $subject, $body, $headers);
+            $attendeeResult = @mail($attendeeEmail, $subject, $body, $headers);
+            if (!$attendeeResult) {
+                error_log("Failed to send ticket email to attendee email: " . $attendeeEmail);
+            }
         }
     }
     
