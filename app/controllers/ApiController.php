@@ -426,17 +426,25 @@ class ApiController extends Controller {
     private function sendToRegistrantEmails(array $registrationData, string $subject, string $body, string $headers): void {
         // Send to primary email (guest_email - company/main registrant)
         $primaryEmail = $registrationData['guest_email'];
-        $primaryResult = @mail($primaryEmail, $subject, $body, $headers);
-        if (!$primaryResult) {
-            error_log("Failed to send ticket email to primary email: " . $primaryEmail);
+        if (filter_var($primaryEmail, FILTER_VALIDATE_EMAIL)) {
+            $primaryResult = @mail($primaryEmail, $subject, $body, $headers);
+            if (!$primaryResult) {
+                error_log("Failed to send ticket email to primary email: " . $primaryEmail);
+            }
+        } else {
+            error_log("Invalid primary email address format: " . $primaryEmail);
         }
         
         // Also send to attendee email if different (when attendee is not owner/representative)
         $attendeeEmail = $registrationData['attendee_email'] ?? '';
         if (!empty($attendeeEmail) && strtolower($attendeeEmail) !== strtolower($primaryEmail)) {
-            $attendeeResult = @mail($attendeeEmail, $subject, $body, $headers);
-            if (!$attendeeResult) {
-                error_log("Failed to send ticket email to attendee email: " . $attendeeEmail);
+            if (filter_var($attendeeEmail, FILTER_VALIDATE_EMAIL)) {
+                $attendeeResult = @mail($attendeeEmail, $subject, $body, $headers);
+                if (!$attendeeResult) {
+                    error_log("Failed to send ticket email to attendee email: " . $attendeeEmail);
+                }
+            } else {
+                error_log("Invalid attendee email address format: " . $attendeeEmail);
             }
         }
     }
