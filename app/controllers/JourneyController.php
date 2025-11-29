@@ -267,7 +267,8 @@ class JourneyController extends Controller {
     
     private function getUpsellingOpportunities(): array {
         // Get affiliates who can upgrade - ordered by upsell_order hierarchy
-        $sql = "SELECT c.*, a.id as affiliation_id, m.name as current_membership, m.code as membership_code,
+        $sql = "SELECT c.*, a.id as affiliation_id, a.membership_type_id as current_membership_type_id,
+                       m.name as current_membership, m.code as membership_code,
                        m.upsell_order, a.affiliation_date, a.expiration_date, u.name as affiliator_name,
                        (SELECT COUNT(*) FROM upselling_invitations ui 
                         WHERE ui.contact_id = c.id AND YEAR(ui.invitation_date) = YEAR(CURDATE())) as invitations_this_year
@@ -498,6 +499,24 @@ class JourneyController extends Controller {
     }
     
     /**
+     * Get the next membership level based on current upsell_order
+     */
+    private function getNextMembershipLevel(int $currentUpsellOrder): ?array {
+        if ($currentUpsellOrder >= 4) {
+            return null; // Already at highest level
+        }
+        
+        $sql = "SELECT id, name, code, price, upsell_order 
+                FROM membership_types 
+                WHERE upsell_order > :current_order 
+                AND is_active = 1 
+                ORDER BY upsell_order ASC 
+                LIMIT 1";
+        
+        return $this->db->queryOne($sql, ['current_order' => $currentUpsellOrder]);
+    }
+    
+    /**
      * Update contact's journey stage
      */
     private function updateContactJourneyStage(int $contactId, int $newStage): void {
@@ -535,10 +554,12 @@ class JourneyController extends Controller {
         }
         
         // Stage 1: Expediente Digital Único - Basic registration
-        // Completed if RFC, owner/rep legal, business_name, address, whatsapp are filled
-        $stage1Complete = !empty($contact['rfc']) || !empty($contact['whatsapp']);
-        $stage1Complete = $stage1Complete && (!empty($contact['owner_name']) || !empty($contact['legal_representative']));
-        $stage1Complete = $stage1Complete && !empty($contact['business_name']);
+        // Completed when the contact has basic identification data
+        // Requires at least: (RFC or WhatsApp) AND (owner or legal_representative) AND business_name
+        $hasIdentifier = !empty($contact['rfc']) || !empty($contact['whatsapp']);
+        $hasOwner = !empty($contact['owner_name']) || !empty($contact['legal_representative']);
+        $hasBusinessName = !empty($contact['business_name']);
+        $stage1Complete = $hasIdentifier && $hasOwner && $hasBusinessName;
         
         if ($stage1Complete) {
             $stage['stages'][1]['status'] = 'completed';
@@ -675,9 +696,12 @@ class JourneyController extends Controller {
         // Stage 5: Up-selling - Check if needs invitation (2x per year)
         if (!empty($affiliations)) {
             $currentMembership = $affiliations[0]['membership_code'] ?? '';
-            $upsellingTargets = ['BASICA' => 'PYME', 'PYME' => 'VISIONARIO', 'VISIONARIO' => 'PREMIER', 'PREMIER' => 'PATROCINADOR'];
+            $currentUpsellOrder = $affiliations[0]['upsell_order'] ?? 0;
             
-            if (isset($upsellingTargets[$currentMembership])) {
+            // Get the next membership level from the database based on upsell_order
+            $nextMembership = $this->getNextMembershipLevel($currentUpsellOrder);
+            
+            if ($nextMembership) {
                 // Count invitations this year
                 $invitationsThisYear = count(array_filter($upsellingInvitations, function($inv) {
                     return date('Y', strtotime($inv['invitation_date'])) === date('Y');
@@ -688,7 +712,7 @@ class JourneyController extends Controller {
                         'type' => 'stage5',
                         'stage' => 5,
                         'title' => 'Enviar Invitación de Upgrade',
-                        'description' => 'El afiliado tiene ' . $invitationsThisYear . '/2 invitaciones de upgrade este año. Ofrecer ' . $upsellingTargets[$currentMembership] . '.',
+                        'description' => 'El afiliado tiene ' . $invitationsThisYear . '/2 invitaciones de upgrade este año. Ofrecer ' . $nextMembership['name'] . '.',
                         'action' => 'journey/upselling',
                         'priority' => $invitationsThisYear === 0 ? 'high' : 'medium'
                     ];

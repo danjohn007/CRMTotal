@@ -148,6 +148,9 @@ SELECT 'Membresía Visionario', 'VISIONARIO', 10000.00, 360,
        2, 1
 WHERE NOT EXISTS (SELECT 1 FROM `membership_types` WHERE `code` = 'VISIONARIO');
 
+-- Ensure VISIONARIO has correct upsell_order even if it already existed
+UPDATE `membership_types` SET `upsell_order` = 2 WHERE `code` = 'VISIONARIO';
+
 -- =============================================
 -- AUDIT LOG FOR VERSION UPDATE
 -- =============================================

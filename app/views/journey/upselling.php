@@ -206,7 +206,7 @@
                                     Ver Journey
                                 </a>
                                 <?php if ($invCount < 2): ?>
-                                <button onclick="openInvitationModal(<?php echo $opp['id']; ?>, '<?php echo addslashes($opp['business_name']); ?>', <?php echo $opp['affiliation_id']; ?>)" 
+                                <button onclick="openInvitationModal(<?php echo $opp['id']; ?>, '<?php echo addslashes($opp['business_name']); ?>', <?php echo $opp['current_membership_type_id'] ?? 0; ?>)" 
                                         class="text-yellow-600 hover:text-yellow-800 text-sm font-medium">
                                     Enviar Invitación
                                 </button>

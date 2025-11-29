@@ -309,7 +309,22 @@
                     </div>
                     <div>
                         <label class="text-xs text-gray-500 uppercase">Tipo de Contacto</label>
-                        <p class="text-gray-900"><?php echo ucfirst($contact['contact_type'] ?? 'prospecto'); ?></p>
+                        <?php
+                        $contactTypeLabels = [
+                            'prospecto' => 'Prospecto',
+                            'afiliado' => 'Afiliado',
+                            'exafiliado' => 'Ex-Afiliado',
+                            'nuevo_usuario' => 'Nuevo Usuario',
+                            'funcionario' => 'Funcionario',
+                            'publico_general' => 'Público General',
+                            'consejero_propietario' => 'Consejero Propietario',
+                            'consejero_invitado' => 'Consejero Invitado',
+                            'mesa_directiva' => 'Mesa Directiva',
+                            'colaborador_empresa' => 'Colaborador de Empresa'
+                        ];
+                        $contactType = $contact['contact_type'] ?? 'prospecto';
+                        ?>
+                        <p class="text-gray-900"><?php echo $contactTypeLabels[$contactType] ?? ucfirst($contactType); ?></p>
                     </div>
                 </div>
             </div>
