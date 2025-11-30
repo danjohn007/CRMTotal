@@ -85,30 +85,65 @@ INSERT INTO `motivational_messages` (`context`, `icon`, `title`, `message`) VALU
 
 -- The activities table already uses ENUM, so we need to modify it
 -- This adds new activity types for the affiliator workflow
+-- 
+-- IMPORTANT: This ALTER TABLE can take time on large tables as MySQL
+-- rebuilds the table. For production environments with large data:
+-- 1. Consider running during maintenance window
+-- 2. Use pt-online-schema-change for zero-downtime migration
+-- 3. Or create a new column and migrate data
 
-ALTER TABLE `activities` 
-MODIFY COLUMN `activity_type` ENUM(
-    'llamada', 
-    'whatsapp', 
-    'email', 
-    'visita', 
-    'reunion', 
-    'seguimiento', 
-    'invitacion',           -- NEW: Sending invitations
-    'prospectacion',        -- NEW: Territory prospecting
-    'captura',              -- NEW: Prospect capture
-    'factura',              -- NEW: Invoice request
-    'otro'
-) NOT NULL;
+-- Check if column already has new values to avoid re-running
+SET @column_type = (SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_SCHEMA = DATABASE() 
+                    AND TABLE_NAME = 'activities' 
+                    AND COLUMN_NAME = 'activity_type');
+
+-- Only alter if 'invitacion' type is not already present
+SET @alter_needed = IF(@column_type LIKE '%invitacion%', 0, 1);
+
+SET @sql = IF(@alter_needed = 1,
+    "ALTER TABLE `activities` 
+    MODIFY COLUMN `activity_type` ENUM(
+        'llamada', 
+        'whatsapp', 
+        'email', 
+        'visita', 
+        'reunion', 
+        'seguimiento', 
+        'invitacion',
+        'prospectacion',
+        'captura',
+        'factura',
+        'otro'
+    ) NOT NULL",
+    "SELECT 'Activity types already updated' AS status"
+);
+
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- =============================================
 -- ADD SOURCE TRACKING TO NOTIFICATIONS
 -- =============================================
 
-ALTER TABLE `notifications`
-ADD COLUMN `source_section` VARCHAR(50) NULL 
-COMMENT 'Original section: agenda, requirements, notifications'
-AFTER `related_type`;
+-- Check if column exists before adding
+SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                   WHERE TABLE_SCHEMA = DATABASE() 
+                   AND TABLE_NAME = 'notifications' 
+                   AND COLUMN_NAME = 'source_section');
+
+SET @add_col = IF(@col_exists = 0,
+    "ALTER TABLE `notifications`
+    ADD COLUMN `source_section` VARCHAR(50) NULL 
+    COMMENT 'Original section: agenda, requirements, notifications'
+    AFTER `related_type`",
+    "SELECT 'source_section column already exists' AS status"
+);
+
+PREPARE stmt FROM @add_col;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- Update existing notifications to set source
 UPDATE `notifications` SET `source_section` = 'notifications' WHERE `source_section` IS NULL;
@@ -117,20 +152,35 @@ UPDATE `notifications` SET `source_section` = 'notifications' WHERE `source_sect
 -- ADD NOTIFICATION TYPE FOR NEW UNIFIED SECTION
 -- =============================================
 
-ALTER TABLE `notifications`
-MODIFY COLUMN `type` ENUM(
-    'vencimiento', 
-    'actividad', 
-    'no_match', 
-    'oportunidad', 
-    'beneficio', 
-    'sistema',
-    'cross_selling',        -- NEW: Cross-selling opportunity
-    'up_selling',           -- NEW: Up-selling opportunity
-    'evento',               -- NEW: Event notification
-    'prospecto',            -- NEW: New prospect notification
-    'felicitacion'          -- NEW: Congratulation message
-) NOT NULL;
+-- Check if notification types already updated
+SET @notif_type = (SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS 
+                   WHERE TABLE_SCHEMA = DATABASE() 
+                   AND TABLE_NAME = 'notifications' 
+                   AND COLUMN_NAME = 'type');
+
+SET @notif_alter_needed = IF(@notif_type LIKE '%cross_selling%', 0, 1);
+
+SET @notif_sql = IF(@notif_alter_needed = 1,
+    "ALTER TABLE `notifications`
+    MODIFY COLUMN `type` ENUM(
+        'vencimiento', 
+        'actividad', 
+        'no_match', 
+        'oportunidad', 
+        'beneficio', 
+        'sistema',
+        'cross_selling',
+        'up_selling',
+        'evento',
+        'prospecto',
+        'felicitacion'
+    ) NOT NULL",
+    "SELECT 'Notification types already updated' AS status"
+);
+
+PREPARE stmt FROM @notif_sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- =============================================
 -- PERFORMANCE GOALS TABLE (Optional for tracking targets)

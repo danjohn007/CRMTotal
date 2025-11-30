@@ -356,9 +356,15 @@ class CommercialAgendaController extends Controller {
         ]);
         
         // Generate WhatsApp URL
+        // Note: Phone numbers should include country code. If not present, default to Mexico (52)
         $phone = preg_replace('/[^0-9]/', '', $contact['whatsapp']);
+        // If phone number doesn't have country code (typically starts with country code and has 12+ digits)
+        // For Mexico, local numbers are 10 digits. If it's just 10 digits, prepend 52
+        if (strlen($phone) === 10) {
+            $phone = '52' . $phone;
+        }
         $encodedMessage = urlencode($message);
-        $whatsappUrl = "https://wa.me/52{$phone}?text={$encodedMessage}";
+        $whatsappUrl = "https://wa.me/{$phone}?text={$encodedMessage}";
         
         $_SESSION['flash_success'] = 'Acción registrada. Redirigiendo a WhatsApp...';
         header('Location: ' . $whatsappUrl);
@@ -653,9 +659,28 @@ class CommercialAgendaController extends Controller {
     
     /**
      * Log user activity for tracking purposes
+     * Note: This method gracefully handles the case where user_activity_log table
+     * doesn't exist yet (before running update_v2.7.0.sql migration)
      */
     private function logUserActivity(int $userId, string $action, ?int $relatedId = null, ?array $metadata = null): void {
         try {
+            // First check if the table exists to avoid repeated failed queries
+            static $tableExists = null;
+            
+            if ($tableExists === null) {
+                try {
+                    $checkSql = "SHOW TABLES LIKE 'user_activity_log'";
+                    $result = $this->db->fetchAll($checkSql);
+                    $tableExists = !empty($result);
+                } catch (Exception $e) {
+                    $tableExists = false;
+                }
+            }
+            
+            if (!$tableExists) {
+                return; // Table doesn't exist yet, skip logging
+            }
+            
             $currentHour = (int)date('H');
             $currentDay = (int)date('N');
             $isOutsideHours = !$this->isWorkingHours($currentHour, $currentDay);
@@ -671,7 +696,8 @@ class CommercialAgendaController extends Controller {
                 'is_outside_hours' => $isOutsideHours ? 1 : 0
             ]);
         } catch (Exception $e) {
-            // Table might not exist yet - silently fail
+            // Log the error but don't break the user experience
+            // This could happen during table creation or other edge cases
             error_log("CommercialAgendaController: Unable to log activity - " . $e->getMessage());
         }
     }

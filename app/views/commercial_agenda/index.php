@@ -419,19 +419,23 @@
                                     <?php if ($prospect['whatsapp']): ?>
                                     <a href="https://wa.me/52<?php echo preg_replace('/[^0-9]/', '', $prospect['whatsapp']); ?>" 
                                        target="_blank"
-                                       class="p-1 text-green-600 hover:text-green-800">
+                                       class="p-1 text-green-600 hover:text-green-800" title="WhatsApp">
                                         💬
                                     </a>
                                     <?php endif; ?>
                                     <?php if ($prospect['corporate_email']): ?>
                                     <a href="mailto:<?php echo htmlspecialchars($prospect['corporate_email']); ?>" 
-                                       class="p-1 text-blue-600 hover:text-blue-800">
+                                       class="p-1 text-blue-600 hover:text-blue-800" title="Email">
                                         ✉️
                                     </a>
                                     <?php endif; ?>
                                     <a href="<?php echo BASE_URL; ?>/agenda-comercial/nueva?contact_id=<?php echo $prospect['id']; ?>" 
-                                       class="p-1 text-indigo-600 hover:text-indigo-800">
+                                       class="p-1 text-indigo-600 hover:text-indigo-800" title="Agendar actividad">
                                         📅
+                                    </a>
+                                    <a href="<?php echo BASE_URL; ?>/prospectos/<?php echo $prospect['id']; ?>" 
+                                       class="p-1 text-gray-600 hover:text-gray-800" title="Ver expediente">
+                                        📄
                                     </a>
                                 </div>
                             </td>
@@ -455,17 +459,24 @@
                 <div class="p-4 rounded-lg border border-gray-200 hover:border-indigo-300 transition">
                     <div class="flex items-start justify-between">
                         <div>
-                            <p class="font-medium text-gray-900"><?php echo htmlspecialchars($opp['business_name'] ?? ''); ?></p>
+                            <a href="<?php echo BASE_URL; ?>/expedientes/<?php echo $opp['id']; ?>" 
+                               class="font-medium text-gray-900 hover:text-indigo-600">
+                                <?php echo htmlspecialchars($opp['business_name'] ?? ''); ?>
+                            </a>
                             <p class="text-sm text-gray-500">Membresía: <?php echo htmlspecialchars($opp['membership_name'] ?? ''); ?></p>
                         </div>
                         <span class="px-2 py-1 text-xs rounded-full bg-indigo-100 text-indigo-800">
                             <?php echo $opp['days_until_expiration'] ?? 0; ?> días
                         </span>
                     </div>
-                    <div class="mt-3 flex space-x-2">
+                    <div class="mt-3 flex space-x-3">
                         <a href="<?php echo BASE_URL; ?>/agenda-comercial/nueva?contact_id=<?php echo $opp['id']; ?>&type=seguimiento" 
                            class="text-xs text-indigo-600 hover:text-indigo-800">
-                            + Agendar seguimiento
+                            📅 Agendar seguimiento
+                        </a>
+                        <a href="<?php echo BASE_URL; ?>/expedientes/<?php echo $opp['id']; ?>" 
+                           class="text-xs text-gray-600 hover:text-gray-800">
+                            📄 Ver EDA
                         </a>
                     </div>
                 </div>
@@ -486,7 +497,10 @@
                 <div class="p-4 rounded-lg border border-gray-200 hover:border-emerald-300 transition">
                     <div class="flex items-start justify-between">
                         <div>
-                            <p class="font-medium text-gray-900"><?php echo htmlspecialchars($opp['business_name'] ?? ''); ?></p>
+                            <a href="<?php echo BASE_URL; ?>/expedientes/<?php echo $opp['id']; ?>" 
+                               class="font-medium text-gray-900 hover:text-emerald-600">
+                                <?php echo htmlspecialchars($opp['business_name'] ?? ''); ?>
+                            </a>
                             <p class="text-sm text-gray-500">
                                 <?php echo htmlspecialchars($opp['current_membership'] ?? ''); ?> → 
                                 <span class="text-emerald-600 font-medium"><?php echo htmlspecialchars($opp['suggested_upgrade'] ?? ''); ?></span>
@@ -495,6 +509,16 @@
                         <span class="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-800">
                             Renovación en <?php echo $opp['days_until_expiration'] ?? 0; ?> días
                         </span>
+                    </div>
+                    <div class="mt-3 flex space-x-3">
+                        <a href="<?php echo BASE_URL; ?>/agenda-comercial/nueva?contact_id=<?php echo $opp['id']; ?>&type=seguimiento" 
+                           class="text-xs text-emerald-600 hover:text-emerald-800">
+                            📅 Agendar seguimiento
+                        </a>
+                        <a href="<?php echo BASE_URL; ?>/expedientes/<?php echo $opp['id']; ?>" 
+                           class="text-xs text-gray-600 hover:text-gray-800">
+                            📄 Ver EDA
+                        </a>
                     </div>
                 </div>
                 <?php endforeach; ?>
@@ -522,12 +546,25 @@
         
         <!-- Notification Type Filters -->
         <div class="flex flex-wrap gap-2 mb-6">
-            <?php foreach ($notificationTypes as $type => $info): 
+            <?php 
+            $colorClasses = [
+                'yellow' => 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200',
+                'blue' => 'bg-blue-100 text-blue-800 hover:bg-blue-200',
+                'purple' => 'bg-purple-100 text-purple-800 hover:bg-purple-200',
+                'green' => 'bg-green-100 text-green-800 hover:bg-green-200',
+                'pink' => 'bg-pink-100 text-pink-800 hover:bg-pink-200',
+                'gray' => 'bg-gray-100 text-gray-800 hover:bg-gray-200',
+                'indigo' => 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200',
+                'emerald' => 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200',
+                'orange' => 'bg-orange-100 text-orange-800 hover:bg-orange-200'
+            ];
+            foreach ($notificationTypes as $type => $info): 
                 $count = count($notificationsByType[$type] ?? []);
                 if ($count === 0) continue;
+                $colorClass = $colorClasses[$info['color']] ?? $colorClasses['gray'];
             ?>
-            <button class="px-3 py-1 text-sm rounded-full bg-<?php echo $info['color']; ?>-100 text-<?php echo $info['color']; ?>-800 hover:bg-<?php echo $info['color']; ?>-200 transition">
-                <?php echo $info['icon']; ?> <?php echo $info['label']; ?> (<?php echo $count; ?>)
+            <button class="px-3 py-1 text-sm rounded-full <?php echo $colorClass; ?> transition">
+                <?php echo htmlspecialchars($info['icon']); ?> <?php echo htmlspecialchars($info['label']); ?> (<?php echo (int)$count; ?>)
             </button>
             <?php endforeach; ?>
         </div>
