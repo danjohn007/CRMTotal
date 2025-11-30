@@ -2,6 +2,8 @@
 /**
  * Agenda Controller
  * Manages activities and calendar
+ * NOTE: This section is now part of the unified "Agenda y Acciones Comerciales"
+ * Routes are maintained for backward compatibility
  */
 class AgendaController extends Controller {
     
@@ -17,25 +19,9 @@ class AgendaController extends Controller {
     public function index(): void {
         $this->requireAuth();
         
-        $userId = $_SESSION['user_id'];
-        
-        $todayActivities = $this->activityModel->getToday($userId);
-        $pendingActivities = $this->activityModel->getPending($userId);
-        $overdueActivities = $this->activityModel->getOverdue($userId);
-        $stats = $this->activityModel->getStats($userId);
-        $typeStats = $this->activityModel->getActivityTypeStats($userId);
-        
-        $this->view('agenda/index', [
-            'pageTitle' => 'Agenda',
-            'currentPage' => 'agenda',
-            'todayActivities' => $todayActivities,
-            'pendingActivities' => $pendingActivities,
-            'overdueActivities' => $overdueActivities,
-            'stats' => $stats,
-            'typeStats' => $typeStats,
-            'activityTypes' => $this->getActivityTypes(),
-            'priorities' => $this->getPriorities()
-        ]);
+        // Redirect to new unified section
+        // Keep this for backward compatibility
+        $this->redirect('agenda-comercial');
     }
     
     public function create(): void {

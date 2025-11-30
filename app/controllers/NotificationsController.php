@@ -1,6 +1,8 @@
 <?php
 /**
  * Notifications Controller
+ * NOTE: This section is now part of the unified "Agenda y Acciones Comerciales"
+ * Routes are maintained for backward compatibility
  */
 class NotificationsController extends Controller {
     
@@ -14,27 +16,8 @@ class NotificationsController extends Controller {
     public function index(): void {
         $this->requireAuth();
         
-        $userId = $_SESSION['user_id'];
-        $notifications = $this->notificationModel->getAll($userId, 100);
-        $unreadCount = $this->notificationModel->countUnread($userId);
-        
-        // Group by date
-        $groupedNotifications = [];
-        foreach ($notifications as $notification) {
-            $date = date('Y-m-d', strtotime($notification['created_at']));
-            if (!isset($groupedNotifications[$date])) {
-                $groupedNotifications[$date] = [];
-            }
-            $groupedNotifications[$date][] = $notification;
-        }
-        
-        $this->view('notifications/index', [
-            'pageTitle' => 'Notificaciones',
-            'currentPage' => 'notificaciones',
-            'groupedNotifications' => $groupedNotifications,
-            'unreadCount' => $unreadCount,
-            'notificationTypes' => $this->getNotificationTypes()
-        ]);
+        // Redirect to new unified section's notifications tab
+        $this->redirect('agenda-comercial');
     }
     
     public function markRead(): void {

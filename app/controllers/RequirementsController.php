@@ -2,6 +2,8 @@
 /**
  * Requirements Controller
  * Manages commercial requirements
+ * NOTE: This section is now part of the unified "Agenda y Acciones Comerciales"
+ * Routes are maintained for backward compatibility
  */
 class RequirementsController extends Controller {
     
@@ -17,19 +19,8 @@ class RequirementsController extends Controller {
     public function index(): void {
         $this->requireAuth();
         
-        $status = $this->getInput('status', '');
-        $requirements = $this->requirementModel->getAll($status ?: null);
-        $stats = $this->requirementModel->getStats();
-        $categoryStats = $this->requirementModel->getByCategory();
-        
-        $this->view('requirements/index', [
-            'pageTitle' => 'Requerimientos Comerciales',
-            'currentPage' => 'requerimientos',
-            'requirements' => $requirements,
-            'stats' => $stats,
-            'categoryStats' => $categoryStats,
-            'status' => $status
-        ]);
+        // Redirect to new unified section
+        $this->redirect('agenda-comercial');
     }
     
     public function create(): void {
