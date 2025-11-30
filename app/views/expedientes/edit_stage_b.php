@@ -1,4 +1,4 @@
-<!-- Expediente Digital Único - Stage B Edit (35%) -->
+<!-- Expediente Digital Afiliado (EDA) - Stage B Edit (35%) -->
 <div class="space-y-6" x-data="{ sameAsOwner: false }">
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between">
@@ -7,7 +7,7 @@
                 ← Volver al Expediente
             </a>
             <h2 class="text-2xl font-bold text-gray-900 mt-2">
-                📁 Expediente Digital Único - Etapa 2
+                📁 Expediente Digital Afiliado - Etapa 2
             </h2>
             <p class="mt-1 text-sm text-gray-500">
                 <?php echo htmlspecialchars($contact['business_name'] ?? $contact['commercial_name'] ?? 'Sin nombre'); ?>
@@ -64,7 +64,7 @@
         
         <div class="mb-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-2">📞 Datos de Contacto y Productos</h3>
-            <p class="text-sm text-gray-500">Estos datos conforman el 35% del expediente digital único.</p>
+            <p class="text-sm text-gray-500">Estos datos conforman el 35% del expediente digital afiliado.</p>
         </div>
         
         <!-- Sales Contact Section -->

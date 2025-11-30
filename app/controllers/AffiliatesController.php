@@ -352,7 +352,7 @@ class AffiliatesController extends Controller {
         }
         
         $this->view('affiliates/digital_file', [
-            'pageTitle' => 'Expediente Digital - ' . $contact['business_name'],
+            'pageTitle' => 'EDA - ' . $contact['business_name'],
             'currentPage' => 'afiliados',
             'contact' => $contact,
             'affiliations' => $affiliations,
@@ -407,6 +407,7 @@ class AffiliatesController extends Controller {
             'phone' => $this->sanitize($this->getInput('phone', '')),
             'industry' => $this->sanitize($this->getInput('industry', '')),
             'niza_classification' => $this->sanitize($this->getInput('niza_classification', '')),
+            'niza_custom_category' => $this->sanitize($this->getInput('niza_custom_category', '')),
             'discount_percentage' => (float) $this->getInput('discount_percentage', 0),
             'commercial_address' => $this->sanitize($this->getInput('commercial_address', '')),
             'fiscal_address' => $this->sanitize($this->getInput('fiscal_address', '')),

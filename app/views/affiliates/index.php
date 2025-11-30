@@ -4,7 +4,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
             <h2 class="text-2xl font-bold text-gray-900">Afiliados</h2>
-            <p class="mt-1 text-sm text-gray-500">Gestión del Expediente Digital Único</p>
+            <p class="mt-1 text-sm text-gray-500">Gestión del Expediente Digital Afiliado (EDA)</p>
         </div>
         <div class="mt-4 sm:mt-0 flex space-x-3">
             <a href="<?php echo BASE_URL; ?>/afiliados/vencimientos" 
@@ -157,7 +157,7 @@
                             <a href="<?php echo BASE_URL; ?>/afiliados/<?php echo $affiliate['id']; ?>" 
                                class="text-blue-600 hover:text-blue-900 mr-3">Ver</a>
                             <a href="<?php echo BASE_URL; ?>/afiliados/<?php echo $affiliate['id']; ?>/expediente" 
-                               class="text-indigo-600 hover:text-indigo-900 mr-3">Expediente</a>
+                               class="text-indigo-600 hover:text-indigo-900 mr-3">EDA</a>
                             <a href="<?php echo BASE_URL; ?>/afiliados/<?php echo $affiliate['id']; ?>/editar" 
                                class="text-gray-600 hover:text-gray-900">Editar</a>
                         </td>

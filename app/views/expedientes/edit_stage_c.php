@@ -1,4 +1,4 @@
-<!-- Expediente Digital Único - Stage C Edit (40%) -->
+<!-- Expediente Digital Afiliado (EDA) - Stage C Edit (40%) -->
 <div class="space-y-6">
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between">
@@ -7,7 +7,7 @@
                 ← Volver al Expediente
             </a>
             <h2 class="text-2xl font-bold text-gray-900 mt-2">
-                📁 Expediente Digital Único - Etapa 3
+                📁 Expediente Digital Afiliado - Etapa 3
             </h2>
             <p class="mt-1 text-sm text-gray-500">
                 <?php echo htmlspecialchars($contact['business_name'] ?? $contact['commercial_name'] ?? 'Sin nombre'); ?>
