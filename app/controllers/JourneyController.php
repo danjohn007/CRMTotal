@@ -312,7 +312,8 @@ class JourneyController extends Controller {
                 'ip_address' => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1'
             ]);
         } catch (Exception $e) {
-            // Silently fail audit logging - don't block the main operation
+            // Log error but don't block the main operation
+            error_log('Failed to log upselling invitation audit: ' . $e->getMessage());
         }
     }
     

@@ -452,7 +452,7 @@ function openWhatsApp() {
     const paymentLink = document.getElementById('payment_link_url').value;
     
     if (!phone || phone.length !== 10) {
-        alert('Por favor ingrese un número de WhatsApp válido de 10 dígitos');
+        showNotification('Por favor ingrese un número de WhatsApp válido de 10 dígitos', 'error');
         return;
     }
     
@@ -472,7 +472,7 @@ function openEmail() {
     const paymentLink = document.getElementById('payment_link_url').value;
     
     if (!email) {
-        alert('Por favor ingrese un correo electrónico válido');
+        showNotification('Por favor ingrese un correo electrónico válido', 'error');
         return;
     }
     
@@ -483,6 +483,19 @@ function openEmail() {
     
     const mailtoLink = 'mailto:' + email + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(fullBody);
     window.location.href = mailtoLink;
+}
+
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg text-white ${type === 'error' ? 'bg-red-600' : 'bg-blue-600'}`;
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <span class="mr-2">${type === 'error' ? '⚠️' : 'ℹ️'}</span>
+            <span>${message}</span>
+        </div>
+    `;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 5000);
 }
 
 // Initialize on page load
