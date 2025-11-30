@@ -84,12 +84,27 @@ $router->add('evento/pago/{code}', ['controller' => 'events', 'action' => 'payme
 // Printable Event Ticket (public access)
 $router->add('evento/boleto/{code}', ['controller' => 'events', 'action' => 'printableTicket']);
 
-// Agenda / Calendar
+// Agenda / Calendar (Legacy - redirects to new section)
 $router->add('agenda', ['controller' => 'agenda', 'action' => 'index']);
 $router->add('agenda/nueva', ['controller' => 'agenda', 'action' => 'create']);
 $router->add('agenda/{id}', ['controller' => 'agenda', 'action' => 'show']);
 $router->add('agenda/{id}/editar', ['controller' => 'agenda', 'action' => 'edit']);
 $router->add('agenda/api/eventos', ['controller' => 'agenda', 'action' => 'apiEvents']);
+
+// Commercial Agenda (Agenda y Acciones Comerciales) - NEW UNIFIED SECTION
+$router->add('agenda-comercial', ['controller' => 'commercial-agenda', 'action' => 'index']);
+$router->add('agenda-comercial/hoy', ['controller' => 'commercial-agenda', 'action' => 'today']);
+$router->add('agenda-comercial/semana', ['controller' => 'commercial-agenda', 'action' => 'week']);
+$router->add('agenda-comercial/mes', ['controller' => 'commercial-agenda', 'action' => 'month']);
+$router->add('agenda-comercial/nueva', ['controller' => 'commercial-agenda', 'action' => 'create']);
+$router->add('agenda-comercial/{id}/editar', ['controller' => 'commercial-agenda', 'action' => 'edit']);
+$router->add('agenda-comercial/api/eventos', ['controller' => 'commercial-agenda', 'action' => 'apiEvents']);
+$router->add('agenda-comercial/enviar-whatsapp', ['controller' => 'commercial-agenda', 'action' => 'sendWhatsapp']);
+$router->add('agenda-comercial/enviar-email', ['controller' => 'commercial-agenda', 'action' => 'sendEmail']);
+$router->add('agenda-comercial/notificaciones', ['controller' => 'commercial-agenda', 'action' => 'notifications']);
+$router->add('agenda-comercial/notificacion/{id}/leida', ['controller' => 'commercial-agenda', 'action' => 'markNotificationRead']);
+$router->add('agenda-comercial/notificaciones/marcar-todas', ['controller' => 'commercial-agenda', 'action' => 'markAllNotificationsRead']);
+$router->add('agenda-comercial/metricas', ['controller' => 'commercial-agenda', 'action' => 'metrics']);
 
 // Intelligent Search (Buscador)
 $router->add('buscador', ['controller' => 'search', 'action' => 'index']);
