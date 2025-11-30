@@ -3,7 +3,7 @@
  * Journey Controller
  * Customer Journey Visualization with 6 Defined Stages
  * 
- * Stage 1: Expediente Digital Único - Basic registration (RFC, owner/rep legal, razón social, nombre comercial, dirección, WhatsApp)
+ * Stage 1: Expediente Digital Afiliado (EDA) - Basic registration (RFC, owner/rep legal, razón social, nombre comercial, dirección, WhatsApp)
  * Stage 2: Products/Services - What the merchant sells and buys
  * Stage 3: Payment - Invoice attachment, expiration date, benefits enablement, seller assignment, free event attendance tracking
  * Stage 4: Cross-selling - Salon rental, marketing services, paid events
@@ -22,9 +22,9 @@ class JourneyController extends Controller {
      */
     private const JOURNEY_STAGES = [
         1 => [
-            'name' => 'Registro Expediente',
+            'name' => 'EDA',
             'icon' => '📋',
-            'description' => 'Expediente Digital Único: RFC, propietario, razón social, nombre comercial, dirección, WhatsApp',
+            'description' => 'Expediente Digital Afiliado: RFC, propietario, razón social, nombre comercial, dirección, WhatsApp',
             'color' => 'blue'
         ],
         2 => [
@@ -216,7 +216,8 @@ class JourneyController extends Controller {
     }
     
     /**
-     * Send upselling invitation
+     * Send upselling invitation with WhatsApp and email support
+     * Documents the message sent, date and time
      */
     public function sendUpsellingInvitation(): void {
         $this->requireAuth();
@@ -237,12 +238,27 @@ class JourneyController extends Controller {
         $paymentLinkUrl = $this->sanitize($this->getInput('payment_link_url', ''));
         $notes = $this->sanitize($this->getInput('notes', ''));
         
+        // Get WhatsApp message and email content
+        $whatsappMessage = $this->sanitize($this->getInput('whatsapp_message', ''));
+        $emailSubject = $this->sanitize($this->getInput('email_subject', ''));
+        $emailMessage = $this->sanitize($this->getInput('email_message', ''));
+        $contactWhatsapp = $this->sanitize($this->getInput('contact_whatsapp', ''));
+        $contactEmail = $this->sanitize($this->getInput('contact_email', ''));
+        
+        // Validate invitation type specific requirements
+        $validInvitationTypes = ['payment_link', 'email', 'whatsapp', 'phone', 'in_person'];
+        if (!in_array($invitationType, $validInvitationTypes)) {
+            $invitationType = 'payment_link';
+        }
+        
         try {
             $sql = "INSERT INTO upselling_invitations 
                     (contact_id, current_membership_id, target_membership_id, invitation_date, 
-                     invitation_type, payment_link_url, sent_by_user_id, notes)
+                     invitation_type, payment_link_url, whatsapp_message, email_subject, email_message,
+                     contact_whatsapp, contact_email, sent_by_user_id, notes)
                     VALUES (:contact_id, :current_membership_id, :target_membership_id, NOW(),
-                            :invitation_type, :payment_link_url, :sent_by_user_id, :notes)";
+                            :invitation_type, :payment_link_url, :whatsapp_message, :email_subject, :email_message,
+                            :contact_whatsapp, :contact_email, :sent_by_user_id, :notes)";
             
             $this->db->execute($sql, [
                 'contact_id' => $contactId,
@@ -250,6 +266,11 @@ class JourneyController extends Controller {
                 'target_membership_id' => $targetMembershipId,
                 'invitation_type' => $invitationType,
                 'payment_link_url' => $paymentLinkUrl,
+                'whatsapp_message' => $whatsappMessage,
+                'email_subject' => $emailSubject,
+                'email_message' => $emailMessage,
+                'contact_whatsapp' => $contactWhatsapp,
+                'contact_email' => $contactEmail,
                 'sent_by_user_id' => $_SESSION['user_id'],
                 'notes' => $notes
             ]);
@@ -257,12 +278,42 @@ class JourneyController extends Controller {
             // Update journey stage if applicable
             $this->updateContactJourneyStage($contactId, 5);
             
-            $_SESSION['flash_success'] = 'Invitación de upselling enviada correctamente.';
+            // Log the action for audit
+            $invitationId = $this->db->lastInsertId();
+            $this->logUpsellingInvitation($invitationId, $invitationType, $contactId);
+            
+            $_SESSION['flash_success'] = 'Invitación de upselling enviada y documentada correctamente.';
         } catch (Exception $e) {
             $_SESSION['flash_error'] = 'Error al enviar la invitación: ' . $e->getMessage();
         }
         
         $this->redirect('journey/upselling');
+    }
+    
+    /**
+     * Log upselling invitation to audit log
+     */
+    private function logUpsellingInvitation(int $invitationId, string $invitationType, int $contactId): void {
+        try {
+            $sql = "INSERT INTO audit_log (user_id, action, table_name, record_id, new_values, ip_address, created_at)
+                    VALUES (:user_id, :action, :table_name, :record_id, :new_values, :ip_address, NOW())";
+            
+            $this->db->execute($sql, [
+                'user_id' => $_SESSION['user_id'],
+                'action' => 'upselling_invitation_sent',
+                'table_name' => 'upselling_invitations',
+                'record_id' => $invitationId,
+                'new_values' => json_encode([
+                    'invitation_type' => $invitationType,
+                    'contact_id' => $contactId,
+                    'sent_at' => date('Y-m-d H:i:s'),
+                    'sent_by' => $_SESSION['user_name'] ?? 'Unknown'
+                ]),
+                'ip_address' => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1'
+            ]);
+        } catch (Exception $e) {
+            // Silently fail audit logging - don't block the main operation
+        }
     }
     
     private function getUpsellingOpportunities(): array {

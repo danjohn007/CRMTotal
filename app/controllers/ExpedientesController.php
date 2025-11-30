@@ -1,7 +1,7 @@
 <?php
 /**
  * Expedientes Controller
- * Manages the "Expediente Digital Único" multi-stage registration
+ * Manages the "Expediente Digital Afiliado (EDA)" multi-stage registration
  * for the Afiliador level
  */
 class ExpedientesController extends Controller {
@@ -63,7 +63,7 @@ class ExpedientesController extends Controller {
         }
         
         $this->view('expedientes/index', [
-            'pageTitle' => 'Expedientes Digitales Únicos',
+            'pageTitle' => 'Expediente Digital Afiliado (EDA)',
             'currentPage' => 'expedientes',
             'affiliates' => $affiliates,
             'totalAffiliates' => $totalAffiliates,
@@ -145,7 +145,7 @@ class ExpedientesController extends Controller {
         $stageC = $this->calculateStageCCompletion($contact, $currentAffiliation);
         
         $this->view('expedientes/show', [
-            'pageTitle' => 'Expediente Digital - ' . ($contact['business_name'] ?? ''),
+            'pageTitle' => 'EDA - ' . ($contact['business_name'] ?? ''),
             'currentPage' => 'expedientes',
             'contact' => $contact,
             'affiliations' => $affiliations,
@@ -216,7 +216,7 @@ class ExpedientesController extends Controller {
         $stageA = $this->calculateStageACompletion($contact);
         
         $this->view('expedientes/edit_stage_a', [
-            'pageTitle' => 'Expediente Digital - Etapa 1',
+            'pageTitle' => 'EDA - Etapa 1',
             'currentPage' => 'expedientes',
             'contact' => $contact,
             'stageA' => $stageA,
@@ -325,7 +325,7 @@ class ExpedientesController extends Controller {
         $stageB = $this->calculateStageBCompletion($contact);
         
         $this->view('expedientes/edit_stage_b', [
-            'pageTitle' => 'Expediente Digital - Etapa 2',
+            'pageTitle' => 'EDA - Etapa 2',
             'currentPage' => 'expedientes',
             'contact' => $contact,
             'branches' => $branches,
@@ -389,7 +389,7 @@ class ExpedientesController extends Controller {
                 $this->contactModel->update($id, ['notes' => $contactNotes]);
                 $this->contactModel->updateCompletion($id);
                 
-                $_SESSION['flash_success'] = 'Expediente Digital Único completado exitosamente.';
+                $_SESSION['flash_success'] = 'Expediente Digital Afiliado completado exitosamente.';
                 $this->redirect('expedientes/' . $id);
             }
         }
@@ -402,7 +402,7 @@ class ExpedientesController extends Controller {
         $stageC = $this->calculateStageCCompletion($contact, $currentAffiliation);
         
         $this->view('expedientes/edit_stage_c', [
-            'pageTitle' => 'Expediente Digital - Etapa 3',
+            'pageTitle' => 'EDA - Etapa 3',
             'currentPage' => 'expedientes',
             'contact' => $contact,
             'currentAffiliation' => $currentAffiliation,

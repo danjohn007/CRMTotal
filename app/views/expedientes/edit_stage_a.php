@@ -1,5 +1,29 @@
-<!-- Expediente Digital Único - Stage A Edit (25%) -->
-<div class="space-y-6">
+<!-- Expediente Digital Afiliado (EDA) - Stage A Edit (25%) -->
+<?php 
+// Determine person type based on current RFC
+$currentRfc = $contact['rfc'] ?? '';
+$rfcLen = strlen($currentRfc);
+$personType = '';
+if ($rfcLen === 13) {
+    $personType = 'fisica';
+} elseif ($rfcLen === 12) {
+    $personType = 'moral';
+}
+?>
+<div class="space-y-6" x-data="{ 
+    rfc: '<?php echo htmlspecialchars($currentRfc); ?>',
+    personType: '<?php echo $personType; ?>',
+    updatePersonType() {
+        const len = this.rfc.replace(/[^A-Za-z0-9]/g, '').length;
+        if (len === 13) {
+            this.personType = 'fisica';
+        } else if (len === 12) {
+            this.personType = 'moral';
+        } else {
+            this.personType = '';
+        }
+    }
+}">
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between">
         <div>
@@ -7,7 +31,7 @@
                 ← Volver al Expediente
             </a>
             <h2 class="text-2xl font-bold text-gray-900 mt-2">
-                📁 Expediente Digital Único - Etapa 1
+                📁 Expediente Digital Afiliado - Etapa 1
             </h2>
             <p class="mt-1 text-sm text-gray-500">
                 <?php echo htmlspecialchars($contact['business_name'] ?? $contact['commercial_name'] ?? 'Sin nombre'); ?>
@@ -25,6 +49,30 @@
         <?php echo htmlspecialchars($error); ?>
     </div>
     <?php endif; ?>
+    
+    <!-- Person Type Indicator -->
+    <div class="bg-white rounded-xl shadow-sm p-4" x-show="personType !== ''" x-cloak>
+        <div class="flex items-center">
+            <template x-if="personType === 'fisica'">
+                <div class="flex items-center">
+                    <span class="text-3xl mr-3">👤</span>
+                    <div>
+                        <p class="font-semibold text-blue-800">Persona Física</p>
+                        <p class="text-sm text-gray-500">RFC de 13 caracteres - Dueño de empresa</p>
+                    </div>
+                </div>
+            </template>
+            <template x-if="personType === 'moral'">
+                <div class="flex items-center">
+                    <span class="text-3xl mr-3">🏢</span>
+                    <div>
+                        <p class="font-semibold text-purple-800">Persona Moral</p>
+                        <p class="text-sm text-gray-500">RFC de 12 caracteres - Representante Legal</p>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
     
     <!-- Progress Indicator -->
     <div class="bg-white rounded-xl shadow-sm p-6">
@@ -64,7 +112,7 @@
         
         <div class="mb-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-2">🏢 Información Básica de la Empresa</h3>
-            <p class="text-sm text-gray-500">Estos datos conforman el 25% del expediente digital único.</p>
+            <p class="text-sm text-gray-500">Estos datos conforman el 25% del expediente digital afiliado.</p>
         </div>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -79,37 +127,51 @@
                     <?php endif; ?>
                 </label>
                 <input type="text" id="rfc" name="rfc" 
+                       x-model="rfc"
+                       @input="updatePersonType()"
                        value="<?php echo htmlspecialchars($contact['rfc'] ?? ''); ?>"
                        maxlength="13"
-                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border"
-                       placeholder="Ej: ABC123456XYZ">
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border uppercase"
+                       placeholder="12 o 13 caracteres">
+                <p class="text-xs text-gray-500 mt-1">
+                    <span x-show="personType === 'fisica'" class="text-blue-600">Persona Física (13 caracteres)</span>
+                    <span x-show="personType === 'moral'" class="text-purple-600">Persona Moral (12 caracteres)</span>
+                    <span x-show="personType === ''">Ingrese RFC para detectar tipo de persona</span>
+                </p>
             </div>
             
-            <!-- Owner Name -->
-            <div>
+            <!-- Owner Name - Only for Persona Física -->
+            <div x-show="personType !== 'moral'" x-cloak>
                 <label for="owner_name" class="block text-sm font-medium text-gray-700">
-                    Propietario / Owner
-                    <?php if (!$stageA['fields']['owner_name']): ?>
+                    Propietario / Dueño
+                    <?php if (!$stageA['fields']['owner_name'] && $personType !== 'moral'): ?>
                     <span class="text-yellow-600 text-xs ml-1">* Pendiente</span>
-                    <?php else: ?>
+                    <?php elseif ($personType !== 'moral'): ?>
                     <span class="text-green-600 text-xs ml-1">✓</span>
                     <?php endif; ?>
                 </label>
                 <input type="text" id="owner_name" name="owner_name" 
                        value="<?php echo htmlspecialchars($contact['owner_name'] ?? ''); ?>"
                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border"
-                       placeholder="Nombre del propietario">
+                       placeholder="Nombre completo del dueño">
+                <p class="text-xs text-gray-500 mt-1">Requerido para Persona Física</p>
             </div>
             
-            <!-- Legal Representative -->
-            <div>
+            <!-- Legal Representative - Only for Persona Moral -->
+            <div x-show="personType === 'moral'" x-cloak>
                 <label for="legal_representative" class="block text-sm font-medium text-gray-700">
                     Representante Legal
+                    <?php if (!$stageA['fields']['owner_name'] && $personType === 'moral'): ?>
+                    <span class="text-yellow-600 text-xs ml-1">* Pendiente</span>
+                    <?php elseif ($personType === 'moral'): ?>
+                    <span class="text-green-600 text-xs ml-1">✓</span>
+                    <?php endif; ?>
                 </label>
                 <input type="text" id="legal_representative" name="legal_representative" 
                        value="<?php echo htmlspecialchars($contact['legal_representative'] ?? ''); ?>"
                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border"
                        placeholder="Nombre del representante legal">
+                <p class="text-xs text-gray-500 mt-1">Requerido para Persona Moral (sin dueño)</p>
             </div>
             
             <!-- Business Name (Razón Social) -->

@@ -1,14 +1,14 @@
 <?php
 /**
  * Contact Model
- * Manages the Digital Unique File (Expediente Digital Único)
+ * Manages the Expediente Digital Afiliado (EDA)
  */
 class Contact extends Model {
     protected string $table = 'contacts';
     protected array $fillable = [
-        'rfc', 'whatsapp', 'contact_type', 'business_name', 'commercial_name',
+        'rfc', 'person_type', 'whatsapp', 'contact_type', 'business_name', 'commercial_name',
         'owner_name', 'legal_representative', 'corporate_email', 'phone',
-        'position', 'industry', 'niza_classification', 'products_sells', 'products_buys',
+        'position', 'industry', 'niza_classification', 'niza_custom_category', 'products_sells', 'products_buys',
         'discount_percentage', 'commercial_address', 'fiscal_address', 'city',
         'state', 'postal_code', 'google_maps_url', 'website', 'facebook',
         'instagram', 'linkedin', 'twitter', 'whatsapp_sales', 'whatsapp_purchases',

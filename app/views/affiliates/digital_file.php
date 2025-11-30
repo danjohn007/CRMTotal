@@ -1,4 +1,4 @@
-<!-- Expediente Digital Único - Company Dashboard View -->
+<!-- Expediente Digital Afiliado (EDA) - Company Dashboard View -->
 <div class="space-y-6">
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between">
@@ -7,7 +7,7 @@
                 ← Volver al Detalle
             </a>
             <h2 class="text-2xl font-bold text-gray-900 mt-2">
-                📁 Expediente Digital Único
+                📁 Expediente Digital Afiliado (EDA)
             </h2>
             <p class="mt-1 text-sm text-gray-500">
                 <?php echo htmlspecialchars($contact['business_name'] ?? $contact['commercial_name'] ?? 'Sin nombre'); ?>
@@ -20,6 +20,40 @@
             </a>
         </div>
     </div>
+    
+    <!-- Person Type Indicator -->
+    <?php 
+    $rfcLen = strlen($contact['rfc'] ?? '');
+    $personType = '';
+    $personTypeLabel = '';
+    $personTypeDesc = '';
+    if ($rfcLen === 13) {
+        $personType = 'fisica';
+        $personTypeLabel = 'Persona Física';
+        $personTypeDesc = 'Dueño de empresa';
+    } elseif ($rfcLen === 12) {
+        $personType = 'moral';
+        $personTypeLabel = 'Persona Moral';
+        $personTypeDesc = 'Representante Legal';
+    }
+    ?>
+    <?php if ($personType): ?>
+    <div class="bg-white rounded-lg shadow-sm p-4 flex items-center justify-between">
+        <div class="flex items-center">
+            <span class="text-3xl mr-3"><?php echo $personType === 'fisica' ? '👤' : '🏢'; ?></span>
+            <div>
+                <p class="font-semibold <?php echo $personType === 'fisica' ? 'text-blue-800' : 'text-purple-800'; ?>"><?php echo $personTypeLabel; ?></p>
+                <p class="text-sm text-gray-500"><?php echo $personTypeDesc; ?></p>
+            </div>
+        </div>
+        <?php if (!empty($contact['niza_classification'])): ?>
+        <div class="text-right">
+            <p class="text-sm text-gray-500">Clasificación NIZA</p>
+            <p class="font-medium text-gray-900"><?php echo htmlspecialchars($contact['niza_classification']); ?> - <?php echo htmlspecialchars($contact['industry'] ?? ''); ?></p>
+        </div>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
     
     <!-- Company Summary Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

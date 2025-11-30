@@ -1,9 +1,9 @@
-<!-- Expedientes Digitales Únicos - Index -->
+<!-- Expediente Digital Afiliado (EDA) - Index -->
 <div class="space-y-6">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <h2 class="text-2xl font-bold text-gray-900">📁 Expedientes Digitales Únicos</h2>
+            <h2 class="text-2xl font-bold text-gray-900">📁 Expediente Digital Afiliado (EDA)</h2>
             <p class="mt-1 text-sm text-gray-500">Gestión del perfil completo de afiliados</p>
         </div>
         <div class="mt-4 sm:mt-0 flex space-x-3">
@@ -17,12 +17,34 @@
         </div>
     </div>
     
+    <!-- Search Section -->
+    <div class="bg-white rounded-lg shadow-sm p-4">
+        <form method="GET" class="flex flex-wrap gap-4">
+            <div class="flex-1 min-w-[200px]">
+                <input type="text" name="search" placeholder="Buscar por RFC, nombre comercial, WhatsApp o razón social..."
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                       value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>">
+            </div>
+            <select name="membership" class="px-4 py-2 border border-gray-300 rounded-lg">
+                <option value="">Todas las membresías</option>
+                <option value="BASICA" <?php echo ($_GET['membership'] ?? '') === 'BASICA' ? 'selected' : ''; ?>>Básica</option>
+                <option value="PYME" <?php echo ($_GET['membership'] ?? '') === 'PYME' ? 'selected' : ''; ?>>PYME</option>
+                <option value="VISIONARIO" <?php echo ($_GET['membership'] ?? '') === 'VISIONARIO' ? 'selected' : ''; ?>>Visionario</option>
+                <option value="PREMIER" <?php echo ($_GET['membership'] ?? '') === 'PREMIER' ? 'selected' : ''; ?>>Premier</option>
+                <option value="PATROCINADOR" <?php echo ($_GET['membership'] ?? '') === 'PATROCINADOR' ? 'selected' : ''; ?>>Patrocinador</option>
+            </select>
+            <button type="submit" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+                Buscar
+            </button>
+        </form>
+    </div>
+    
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-gray-500">Total Expedientes</p>
+                    <p class="text-sm font-medium text-gray-500">Total EDA</p>
                     <p class="text-3xl font-bold text-green-600"><?php echo $totalAffiliates; ?></p>
                 </div>
                 <div class="p-3 bg-green-100 rounded-full">
@@ -76,16 +98,18 @@
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Empresa</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">RFC</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo Persona</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">WhatsApp</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Membresía</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avance Expediente</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Días Restantes</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avance EDA</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     <?php if (empty($affiliates)): ?>
                     <tr>
-                        <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                        <td colspan="8" class="px-6 py-12 text-center text-gray-500">
                             No hay expedientes registrados
                         </td>
                     </tr>
@@ -93,6 +117,32 @@
                     <?php foreach ($affiliates as $affiliate): 
                         $completion = $affiliate['profile_completion'] ?? 0;
                         $progressColor = $completion < 25 ? 'bg-red-500' : ($completion < 60 ? 'bg-yellow-500' : ($completion < 100 ? 'bg-blue-500' : 'bg-green-500'));
+                        
+                        // Calculate days remaining
+                        $daysRemaining = null;
+                        if (!empty($affiliate['expiration_date'])) {
+                            $daysRemaining = floor((strtotime($affiliate['expiration_date']) - time()) / 86400);
+                        }
+                        
+                        // Determine person type based on RFC length
+                        $rfcLen = strlen($affiliate['rfc'] ?? '');
+                        $personType = '';
+                        $personTypeLabel = '-';
+                        if ($rfcLen === 13) {
+                            $personType = 'fisica';
+                            $personTypeLabel = 'Persona Física';
+                        } elseif ($rfcLen === 12) {
+                            $personType = 'moral';
+                            $personTypeLabel = 'Persona Moral';
+                        }
+                        
+                        // Determine missing fields
+                        $missingFields = [];
+                        if (empty($affiliate['rfc'])) $missingFields[] = 'RFC';
+                        if (empty($affiliate['owner_name']) && empty($affiliate['legal_representative'])) $missingFields[] = 'Propietario/Rep. Legal';
+                        if (empty($affiliate['business_name'])) $missingFields[] = 'Razón Social';
+                        if (empty($affiliate['whatsapp'])) $missingFields[] = 'WhatsApp';
+                        if (empty($affiliate['products_sells']) || $affiliate['products_sells'] === '[]') $missingFields[] = 'Productos';
                     ?>
                     <tr class="hover:bg-gray-50">
                         <td class="px-6 py-4 whitespace-nowrap">
@@ -114,6 +164,19 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             <?php echo htmlspecialchars($affiliate['rfc'] ?? '-'); ?>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <?php if ($personType === 'fisica'): ?>
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                                👤 Física
+                            </span>
+                            <?php elseif ($personType === 'moral'): ?>
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
+                                🏢 Moral
+                            </span>
+                            <?php else: ?>
+                            <span class="text-gray-400 text-sm">-</span>
+                            <?php endif; ?>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
                             <?php 
@@ -138,6 +201,31 @@
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
+                            <?php if ($daysRemaining !== null): ?>
+                            <div class="flex items-center">
+                                <?php if ($daysRemaining <= 0): ?>
+                                <span class="px-2 py-1 text-xs font-bold rounded-full bg-red-100 text-red-800">
+                                    ⚠️ Vencido
+                                </span>
+                                <?php elseif ($daysRemaining <= 30): ?>
+                                <span class="px-2 py-1 text-xs font-bold rounded-full bg-yellow-100 text-yellow-800">
+                                    <?php echo $daysRemaining; ?> días
+                                </span>
+                                <?php elseif ($daysRemaining <= 60): ?>
+                                <span class="px-2 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-800">
+                                    <?php echo $daysRemaining; ?> días
+                                </span>
+                                <?php else: ?>
+                                <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                    <?php echo $daysRemaining; ?> días
+                                </span>
+                                <?php endif; ?>
+                            </div>
+                            <?php else: ?>
+                            <span class="text-gray-400 text-sm">-</span>
+                            <?php endif; ?>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
                                 <div class="w-24 bg-gray-200 rounded-full h-3 mr-3">
                                     <div class="<?php echo $progressColor; ?> h-3 rounded-full transition-all duration-300" style="width: <?php echo $completion; ?>%"></div>
@@ -146,22 +234,18 @@
                                     <?php echo $completion; ?>%
                                 </span>
                             </div>
-                            <?php if ($completion < 100): ?>
-                            <p class="text-xs text-gray-500 mt-1">
-                                <?php 
-                                if ($completion < 25) echo "Falta: Etapa 1, 2 y 3";
-                                elseif ($completion < 60) echo "Falta: Etapa 2 y 3";
-                                else echo "Falta: Etapa 3";
-                                ?>
+                            <?php if ($completion < 100 && !empty($missingFields)): ?>
+                            <p class="text-xs text-red-500 mt-1" title="Campos faltantes: <?php echo htmlspecialchars(implode(', ', $missingFields)); ?>">
+                                Falta: <?php echo htmlspecialchars(implode(', ', array_slice($missingFields, 0, 2))); ?><?php echo count($missingFields) > 2 ? '...' : ''; ?>
                             </p>
                             <?php endif; ?>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <a href="<?php echo BASE_URL; ?>/expedientes/<?php echo $affiliate['id']; ?>" 
-                               class="text-indigo-600 hover:text-indigo-900 mr-3">Ver Expediente</a>
+                               class="text-indigo-600 hover:text-indigo-900 mr-3">Ver EDA</a>
                             <?php if ($completion < 100): ?>
                             <a href="<?php echo BASE_URL; ?>/expedientes/<?php echo $affiliate['id']; ?>/etapa-a" 
-                               class="text-green-600 hover:text-green-900">Continuar</a>
+                               class="text-green-600 hover:text-green-900">Completar</a>
                             <?php endif; ?>
                         </td>
                     </tr>

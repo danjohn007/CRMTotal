@@ -1,4 +1,4 @@
-<!-- Expediente Digital Único - Show View with Modal -->
+<!-- Expediente Digital Afiliado (EDA) - Show View with Modal -->
 <div class="space-y-6" x-data="{ showModal: false }">
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between">
@@ -7,7 +7,7 @@
                 ← Volver a Expedientes
             </a>
             <h2 class="text-2xl font-bold text-gray-900 mt-2">
-                📁 Expediente Digital Único
+                📁 Expediente Digital Afiliado (EDA)
             </h2>
             <p class="mt-1 text-sm text-gray-500">
                 <?php echo htmlspecialchars($contact['business_name'] ?? $contact['commercial_name'] ?? 'Sin nombre'); ?>
@@ -25,10 +25,82 @@
         </div>
     </div>
     
+    <!-- Days Remaining Alert Banner -->
+    <?php if ($daysRemaining <= 30 && $daysRemaining > 0): ?>
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    <strong>¡Atención!</strong> La afiliación vence en <strong><?php echo $daysRemaining; ?> días</strong>. 
+                    <a href="<?php echo BASE_URL; ?>/afiliados/<?php echo $contact['id']; ?>" class="underline font-medium">Ver detalles de renovación →</a>
+                </p>
+            </div>
+        </div>
+    </div>
+    <?php elseif ($daysRemaining <= 0): ?>
+    <div class="bg-red-50 border-l-4 border-red-400 p-4 rounded-lg">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-red-700">
+                    <strong>¡Membresía Vencida!</strong> La afiliación ha expirado. 
+                    <a href="<?php echo BASE_URL; ?>/afiliados/<?php echo $contact['id']; ?>" class="underline font-medium">Gestionar renovación →</a>
+                </p>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+    
+    <!-- Person Type & NIZA Classification -->
+    <?php 
+    $rfcLen = strlen($contact['rfc'] ?? '');
+    $personType = '';
+    $personTypeLabel = '';
+    $personTypeDesc = '';
+    if ($rfcLen === 13) {
+        $personType = 'fisica';
+        $personTypeLabel = 'Persona Física';
+        $personTypeDesc = 'Dueño de empresa';
+    } elseif ($rfcLen === 12) {
+        $personType = 'moral';
+        $personTypeLabel = 'Persona Moral';
+        $personTypeDesc = 'Representante Legal';
+    }
+    ?>
+    <?php if ($personType): ?>
+    <div class="flex flex-wrap gap-4">
+        <div class="bg-white rounded-lg shadow-sm p-4 flex items-center">
+            <span class="text-2xl mr-3"><?php echo $personType === 'fisica' ? '👤' : '🏢'; ?></span>
+            <div>
+                <p class="text-sm font-medium text-gray-900"><?php echo $personTypeLabel; ?></p>
+                <p class="text-xs text-gray-500"><?php echo $personTypeDesc; ?></p>
+            </div>
+        </div>
+        <?php if (!empty($contact['niza_classification'])): ?>
+        <div class="bg-white rounded-lg shadow-sm p-4 flex items-center">
+            <span class="text-2xl mr-3">🏷️</span>
+            <div>
+                <p class="text-sm font-medium text-gray-900">Clasificación NIZA: <?php echo htmlspecialchars($contact['niza_classification']); ?></p>
+                <p class="text-xs text-gray-500"><?php echo htmlspecialchars($contact['industry'] ?? 'Sin industria'); ?></p>
+            </div>
+        </div>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
+    
     <!-- Progress Overview -->
     <div class="bg-white rounded-xl shadow-sm p-6">
         <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-900">Avance del Expediente Digital Único</h3>
+            <h3 class="text-lg font-semibold text-gray-900">Avance del Expediente Digital Afiliado</h3>
             <span class="text-2xl font-bold <?php echo ($contact['profile_completion'] ?? 0) === 100 ? 'text-green-600' : 'text-yellow-600'; ?>">
                 <?php echo $contact['profile_completion'] ?? 0; ?>%
             </span>
@@ -111,7 +183,7 @@
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
                 </svg>
-                Continuar con el Expediente Digital
+                Continuar con el EDA
             </a>
         </div>
         <?php endif; ?>

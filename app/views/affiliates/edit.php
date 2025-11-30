@@ -99,11 +99,65 @@
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
                 
-                <div>
+                <div x-data="{ showCustomNiza: <?php echo ($contact['niza_classification'] ?? '') === '99' ? 'true' : 'false'; ?> }">
                     <label for="niza_classification" class="block text-sm font-medium text-gray-700">Clasificación NIZA</label>
-                    <input type="text" id="niza_classification" name="niza_classification" 
-                           value="<?php echo htmlspecialchars($contact['niza_classification'] ?? ''); ?>"
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    <select id="niza_classification" name="niza_classification" 
+                            @change="showCustomNiza = ($event.target.value === '99')"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                        <option value="">Seleccionar clasificación...</option>
+                        <option value="1" <?php echo ($contact['niza_classification'] ?? '') === '1' ? 'selected' : ''; ?>>1 - Productos químicos</option>
+                        <option value="2" <?php echo ($contact['niza_classification'] ?? '') === '2' ? 'selected' : ''; ?>>2 - Pinturas, barnices, lacas</option>
+                        <option value="3" <?php echo ($contact['niza_classification'] ?? '') === '3' ? 'selected' : ''; ?>>3 - Productos de limpieza y cosméticos</option>
+                        <option value="4" <?php echo ($contact['niza_classification'] ?? '') === '4' ? 'selected' : ''; ?>>4 - Aceites y combustibles industriales</option>
+                        <option value="5" <?php echo ($contact['niza_classification'] ?? '') === '5' ? 'selected' : ''; ?>>5 - Productos farmacéuticos</option>
+                        <option value="6" <?php echo ($contact['niza_classification'] ?? '') === '6' ? 'selected' : ''; ?>>6 - Metales comunes</option>
+                        <option value="7" <?php echo ($contact['niza_classification'] ?? '') === '7' ? 'selected' : ''; ?>>7 - Máquinas y máquinas herramientas</option>
+                        <option value="8" <?php echo ($contact['niza_classification'] ?? '') === '8' ? 'selected' : ''; ?>>8 - Herramientas e instrumentos manuales</option>
+                        <option value="9" <?php echo ($contact['niza_classification'] ?? '') === '9' ? 'selected' : ''; ?>>9 - Aparatos científicos y electrónicos</option>
+                        <option value="10" <?php echo ($contact['niza_classification'] ?? '') === '10' ? 'selected' : ''; ?>>10 - Aparatos médicos</option>
+                        <option value="11" <?php echo ($contact['niza_classification'] ?? '') === '11' ? 'selected' : ''; ?>>11 - Aparatos de iluminación y calefacción</option>
+                        <option value="12" <?php echo ($contact['niza_classification'] ?? '') === '12' ? 'selected' : ''; ?>>12 - Vehículos</option>
+                        <option value="13" <?php echo ($contact['niza_classification'] ?? '') === '13' ? 'selected' : ''; ?>>13 - Armas de fuego</option>
+                        <option value="14" <?php echo ($contact['niza_classification'] ?? '') === '14' ? 'selected' : ''; ?>>14 - Metales preciosos y joyería</option>
+                        <option value="15" <?php echo ($contact['niza_classification'] ?? '') === '15' ? 'selected' : ''; ?>>15 - Instrumentos musicales</option>
+                        <option value="16" <?php echo ($contact['niza_classification'] ?? '') === '16' ? 'selected' : ''; ?>>16 - Papel y artículos de papelería</option>
+                        <option value="17" <?php echo ($contact['niza_classification'] ?? '') === '17' ? 'selected' : ''; ?>>17 - Caucho y plásticos</option>
+                        <option value="18" <?php echo ($contact['niza_classification'] ?? '') === '18' ? 'selected' : ''; ?>>18 - Artículos de cuero</option>
+                        <option value="19" <?php echo ($contact['niza_classification'] ?? '') === '19' ? 'selected' : ''; ?>>19 - Materiales de construcción no metálicos</option>
+                        <option value="20" <?php echo ($contact['niza_classification'] ?? '') === '20' ? 'selected' : ''; ?>>20 - Muebles</option>
+                        <option value="21" <?php echo ($contact['niza_classification'] ?? '') === '21' ? 'selected' : ''; ?>>21 - Utensilios domésticos</option>
+                        <option value="22" <?php echo ($contact['niza_classification'] ?? '') === '22' ? 'selected' : ''; ?>>22 - Cuerdas y fibras textiles</option>
+                        <option value="23" <?php echo ($contact['niza_classification'] ?? '') === '23' ? 'selected' : ''; ?>>23 - Hilos para uso textil</option>
+                        <option value="24" <?php echo ($contact['niza_classification'] ?? '') === '24' ? 'selected' : ''; ?>>24 - Productos textiles</option>
+                        <option value="25" <?php echo ($contact['niza_classification'] ?? '') === '25' ? 'selected' : ''; ?>>25 - Prendas de vestir</option>
+                        <option value="26" <?php echo ($contact['niza_classification'] ?? '') === '26' ? 'selected' : ''; ?>>26 - Mercería y accesorios</option>
+                        <option value="27" <?php echo ($contact['niza_classification'] ?? '') === '27' ? 'selected' : ''; ?>>27 - Alfombras y tapices</option>
+                        <option value="28" <?php echo ($contact['niza_classification'] ?? '') === '28' ? 'selected' : ''; ?>>28 - Juegos y juguetes</option>
+                        <option value="29" <?php echo ($contact['niza_classification'] ?? '') === '29' ? 'selected' : ''; ?>>29 - Carne, pescado, productos lácteos</option>
+                        <option value="30" <?php echo ($contact['niza_classification'] ?? '') === '30' ? 'selected' : ''; ?>>30 - Café, té, productos de panadería</option>
+                        <option value="31" <?php echo ($contact['niza_classification'] ?? '') === '31' ? 'selected' : ''; ?>>31 - Productos agrícolas y semillas</option>
+                        <option value="32" <?php echo ($contact['niza_classification'] ?? '') === '32' ? 'selected' : ''; ?>>32 - Bebidas no alcohólicas</option>
+                        <option value="33" <?php echo ($contact['niza_classification'] ?? '') === '33' ? 'selected' : ''; ?>>33 - Bebidas alcohólicas</option>
+                        <option value="34" <?php echo ($contact['niza_classification'] ?? '') === '34' ? 'selected' : ''; ?>>34 - Tabaco y artículos para fumadores</option>
+                        <option value="35" <?php echo ($contact['niza_classification'] ?? '') === '35' ? 'selected' : ''; ?>>35 - Publicidad y negocios</option>
+                        <option value="36" <?php echo ($contact['niza_classification'] ?? '') === '36' ? 'selected' : ''; ?>>36 - Seguros y finanzas</option>
+                        <option value="37" <?php echo ($contact['niza_classification'] ?? '') === '37' ? 'selected' : ''; ?>>37 - Construcción y reparaciones</option>
+                        <option value="38" <?php echo ($contact['niza_classification'] ?? '') === '38' ? 'selected' : ''; ?>>38 - Telecomunicaciones</option>
+                        <option value="39" <?php echo ($contact['niza_classification'] ?? '') === '39' ? 'selected' : ''; ?>>39 - Transporte y almacenamiento</option>
+                        <option value="40" <?php echo ($contact['niza_classification'] ?? '') === '40' ? 'selected' : ''; ?>>40 - Tratamiento de materiales</option>
+                        <option value="41" <?php echo ($contact['niza_classification'] ?? '') === '41' ? 'selected' : ''; ?>>41 - Educación y entretenimiento</option>
+                        <option value="42" <?php echo ($contact['niza_classification'] ?? '') === '42' ? 'selected' : ''; ?>>42 - Servicios científicos y tecnológicos</option>
+                        <option value="43" <?php echo ($contact['niza_classification'] ?? '') === '43' ? 'selected' : ''; ?>>43 - Servicios de restauración y hospedaje</option>
+                        <option value="44" <?php echo ($contact['niza_classification'] ?? '') === '44' ? 'selected' : ''; ?>>44 - Servicios médicos y de belleza</option>
+                        <option value="45" <?php echo ($contact['niza_classification'] ?? '') === '45' ? 'selected' : ''; ?>>45 - Servicios jurídicos y de seguridad</option>
+                        <option value="99" <?php echo ($contact['niza_classification'] ?? '') === '99' ? 'selected' : ''; ?>>99 - OTRA CATEGORÍA</option>
+                    </select>
+                    <div x-show="showCustomNiza" x-cloak class="mt-2">
+                        <input type="text" name="niza_custom_category" id="niza_custom_category"
+                               value="<?php echo htmlspecialchars($contact['niza_custom_category'] ?? ''); ?>"
+                               placeholder="Especifique la categoría personalizada..."
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    </div>
                 </div>
                 
                 <div>
