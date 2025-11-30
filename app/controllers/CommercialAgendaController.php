@@ -809,21 +809,21 @@ class CommercialAgendaController extends Controller {
         $sql = "SELECT COUNT(*) as count FROM activities 
                 WHERE user_id = :user_id AND status = 'completada' 
                 AND MONTH(completed_date) = MONTH(CURDATE()) AND YEAR(completed_date) = YEAR(CURDATE())";
-        $result = $this->db->fetchOne($sql, ['user_id' => $userId]);
+        $result = $this->db->fetch($sql, ['user_id' => $userId]);
         $metrics['activities_completed'] = $result['count'] ?? 0;
         
         // Contacts created this month
         $sql = "SELECT COUNT(*) as count FROM contacts 
                 WHERE assigned_affiliate_id = :user_id 
                 AND MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())";
-        $result = $this->db->fetchOne($sql, ['user_id' => $userId]);
+        $result = $this->db->fetch($sql, ['user_id' => $userId]);
         $metrics['contacts_created'] = $result['count'] ?? 0;
         
         // Affiliations closed this month
         $sql = "SELECT COUNT(*) as count, COALESCE(SUM(amount), 0) as total_amount FROM affiliations 
                 WHERE affiliate_user_id = :user_id 
                 AND MONTH(affiliation_date) = MONTH(CURDATE()) AND YEAR(affiliation_date) = YEAR(CURDATE())";
-        $result = $this->db->fetchOne($sql, ['user_id' => $userId]);
+        $result = $this->db->fetch($sql, ['user_id' => $userId]);
         $metrics['affiliations_closed'] = $result['count'] ?? 0;
         $metrics['revenue_generated'] = $result['total_amount'] ?? 0;
         
@@ -834,7 +834,7 @@ class CommercialAgendaController extends Controller {
                 FROM activities 
                 WHERE user_id = :user_id 
                 AND MONTH(scheduled_date) = MONTH(CURDATE())";
-        $result = $this->db->fetchOne($sql, ['user_id' => $userId]);
+        $result = $this->db->fetch($sql, ['user_id' => $userId]);
         $total = $result['total'] ?? 1;
         $completed = $result['completed'] ?? 0;
         $metrics['completion_rate'] = $total > 0 ? round(($completed / $total) * 100) : 0;
