@@ -19,10 +19,12 @@
     
     <?php 
     $benefits = json_decode($membership['benefits'] ?? '{}', true);
+    $characteristics = json_decode($membership['characteristics'] ?? '[]', true);
+    if (!is_array($characteristics)) $characteristics = [];
     ?>
     
     <!-- Form -->
-    <form method="POST" class="bg-white rounded-lg shadow-sm p-6">
+    <form method="POST" class="bg-white rounded-lg shadow-sm p-6" x-data="membershipForm()">
         <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -71,10 +73,15 @@
             </div>
         </div>
         
-        <!-- Benefits -->
-        <div class="mt-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Beneficios</h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Benefits Section - Dynamic -->
+        <div class="mt-8">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Beneficios</h3>
+                <p class="text-sm text-gray-500">Los beneficios se heredan de membresías inferiores automáticamente</p>
+            </div>
+            
+            <!-- Predefined Benefits -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div>
                     <label for="benefit_descuento_eventos" class="block text-sm font-medium text-gray-700">Descuento en Eventos (%)</label>
                     <input type="number" id="benefit_descuento_eventos" name="benefit_descuento_eventos" min="0" max="100"
@@ -118,7 +125,77 @@
                            class="h-4 w-4 text-blue-600 border-gray-300 rounded">
                     <label for="benefit_publicidad" class="ml-2 text-sm text-gray-700">Publicidad</label>
                 </div>
+                <div class="flex items-center">
+                    <input type="checkbox" id="benefit_siem" name="benefit_siem" value="true"
+                           <?php echo !empty($benefits['siem']) ? 'checked' : ''; ?>
+                           class="h-4 w-4 text-blue-600 border-gray-300 rounded">
+                    <label for="benefit_siem" class="ml-2 text-sm text-gray-700">SIEM</label>
+                </div>
             </div>
+            
+            <!-- Custom Benefits - Dynamic -->
+            <div class="border-t pt-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h4 class="text-sm font-medium text-gray-700">Beneficios Adicionales</h4>
+                    <button type="button" @click="addCustomBenefit()" 
+                            class="inline-flex items-center px-3 py-1 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        Agregar Beneficio
+                    </button>
+                </div>
+                
+                <div class="space-y-2">
+                    <template x-for="(benefit, index) in customBenefits" :key="index">
+                        <div class="flex items-center space-x-2">
+                            <input type="text" :name="'custom_benefit_key[' + index + ']'" x-model="benefit.key"
+                                   placeholder="Nombre del beneficio"
+                                   class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border text-sm">
+                            <input type="text" :name="'custom_benefit_value[' + index + ']'" x-model="benefit.value"
+                                   placeholder="Valor (ej: true, 5, ilimitadas)"
+                                   class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border text-sm">
+                            <button type="button" @click="removeCustomBenefit(index)" 
+                                    class="p-2 text-red-600 hover:bg-red-100 rounded">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Characteristics Section - Dynamic -->
+        <div class="mt-8 border-t pt-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Características</h3>
+                <button type="button" @click="addCharacteristic()" 
+                        class="inline-flex items-center px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
+                    Agregar Característica
+                </button>
+            </div>
+            
+            <div class="space-y-2">
+                <template x-for="(char, index) in characteristics" :key="index">
+                    <div class="flex items-center space-x-2">
+                        <input type="text" :name="'characteristic[' + index + ']'" x-model="characteristics[index]"
+                               placeholder="Descripción de la característica"
+                               class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border text-sm">
+                        <button type="button" @click="removeCharacteristic(index)" 
+                                class="p-2 text-red-600 hover:bg-red-100 rounded">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+                    </div>
+                </template>
+            </div>
+            <p class="mt-2 text-xs text-gray-500">Las características describen qué incluye esta membresía (ej: "Acceso a sala VIP", "2 invitados por evento")</p>
         </div>
         
         <div class="mt-6 flex justify-end space-x-3">
@@ -132,3 +209,48 @@
         </div>
     </form>
 </div>
+
+<script>
+function membershipForm() {
+    return {
+        customBenefits: <?php 
+            // Extract custom benefits (those not in predefined list)
+            $predefined = ['descuento_eventos', 'buscador', 'networking', 'capacitaciones', 'asesoria', 'marketing', 'publicidad', 'siem'];
+            $custom = [];
+            foreach ($benefits as $key => $value) {
+                if (!in_array($key, $predefined)) {
+                    // Sanitize the key and value
+                    $safeKey = htmlspecialchars($key, ENT_QUOTES, 'UTF-8');
+                    $safeValue = is_bool($value) ? ($value ? 'true' : 'false') : htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+                    $custom[] = ['key' => $safeKey, 'value' => $safeValue];
+                }
+            }
+            // Use JSON_HEX_TAG and JSON_HEX_APOS for safe embedding in script tags
+            echo json_encode($custom, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+        ?>,
+        characteristics: <?php 
+            // Sanitize characteristics
+            $safeCharacteristics = array_map(function($char) {
+                return htmlspecialchars((string)$char, ENT_QUOTES, 'UTF-8');
+            }, array_values($characteristics));
+            echo json_encode($safeCharacteristics, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); 
+        ?>,
+        
+        addCustomBenefit() {
+            this.customBenefits.push({ key: '', value: '' });
+        },
+        
+        removeCustomBenefit(index) {
+            this.customBenefits.splice(index, 1);
+        },
+        
+        addCharacteristic() {
+            this.characteristics.push('');
+        },
+        
+        removeCharacteristic(index) {
+            this.characteristics.splice(index, 1);
+        }
+    }
+}
+</script>

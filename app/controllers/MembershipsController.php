@@ -119,6 +119,7 @@ class MembershipsController extends Controller {
                     'price' => (float) $this->getInput('price', 0),
                     'duration_days' => (int) $this->getInput('duration_days', 360),
                     'benefits' => json_encode($this->parseBenefits()),
+                    'characteristics' => json_encode($this->parseCharacteristics()),
                     'is_active' => (int) $this->getInput('is_active', 1)
                 ];
                 
@@ -144,9 +145,10 @@ class MembershipsController extends Controller {
     private function parseBenefits(): array {
         $benefits = [];
         
+        // Predefined benefit keys
         $benefitKeys = [
             'descuento_eventos', 'buscador', 'networking', 
-            'capacitaciones', 'asesoria', 'marketing', 'publicidad'
+            'capacitaciones', 'asesoria', 'marketing', 'publicidad', 'siem'
         ];
         
         foreach ($benefitKeys as $key) {
@@ -162,6 +164,49 @@ class MembershipsController extends Controller {
             }
         }
         
+        // Parse custom benefits
+        $customKeys = $this->getInput('custom_benefit_key', []);
+        $customValues = $this->getInput('custom_benefit_value', []);
+        
+        if (is_array($customKeys) && is_array($customValues)) {
+            foreach ($customKeys as $index => $key) {
+                $key = $this->sanitize(trim($key));
+                $value = isset($customValues[$index]) ? trim($customValues[$index]) : '';
+                
+                if (!empty($key) && $value !== '') {
+                    // Convert value types
+                    if ($value === 'true') {
+                        $benefits[$key] = true;
+                    } elseif ($value === 'false') {
+                        $benefits[$key] = false;
+                    } elseif (is_numeric($value)) {
+                        $benefits[$key] = (int) $value;
+                    } else {
+                        $benefits[$key] = $this->sanitize($value);
+                    }
+                }
+            }
+        }
+        
         return $benefits;
+    }
+    
+    /**
+     * Parse characteristics from form
+     */
+    private function parseCharacteristics(): array {
+        $characteristics = [];
+        $charInputs = $this->getInput('characteristic', []);
+        
+        if (is_array($charInputs)) {
+            foreach ($charInputs as $char) {
+                $char = $this->sanitize(trim($char));
+                if (!empty($char)) {
+                    $characteristics[] = $char;
+                }
+            }
+        }
+        
+        return $characteristics;
     }
 }
