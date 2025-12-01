@@ -13,6 +13,11 @@ abstract class Controller {
     }
     
     protected function view(string $template, array $data = []): void {
+        // Add notification count for authenticated users (used in layout header)
+        if ($this->isAuthenticated() && !isset($data['notificationCount'])) {
+            $data['notificationCount'] = $this->getUnreadNotificationCount();
+        }
+        
         extract($data);
         $viewFile = APP_PATH . '/views/' . $template . '.php';
         
@@ -93,5 +98,22 @@ abstract class Controller {
     protected function validateCsrf(): bool {
         $token = $this->getInput('csrf_token');
         return $token && hash_equals($_SESSION['csrf_token'] ?? '', $token);
+    }
+    
+    /**
+     * Get unread notification count for current user
+     * Used in the layout header
+     */
+    protected function getUnreadNotificationCount(): int {
+        if (!$this->isAuthenticated()) {
+            return 0;
+        }
+        
+        try {
+            $notificationModel = new Notification();
+            return $notificationModel->countUnread($_SESSION['user_id']);
+        } catch (Exception $e) {
+            return 0;
+        }
     }
 }

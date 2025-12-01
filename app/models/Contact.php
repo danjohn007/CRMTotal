@@ -102,28 +102,37 @@ class Contact extends Model {
     }
     
     public function search(string $term, string $userType = 'publico'): array {
-        // Phrase matching: split search term into words and search for each
-        // This provides better results than exact matching
-        $words = preg_split('/\s+/', trim($term));
-        $words = array_filter($words, function($w) { return strlen($w) >= 2; });
+        $term = trim($term);
         
-        if (empty($words)) {
+        // If term is empty or too short, return empty
+        if (strlen($term) < 2) {
             return [];
         }
+        
+        // Phrase matching: split search term into words and search for each
+        // This provides better results than exact matching
+        $words = preg_split('/\s+/', $term);
+        // Filter words but keep at least 1 character words if they're meaningful (like initials)
+        $words = array_filter($words, function($w) { return strlen($w) >= 1; });
         
         // Build search conditions for each word (phrase matching)
         $params = [];
         $conditions = [];
         
-        foreach ($words as $i => $word) {
-            $wordPattern = '%' . $word . '%';
-            $paramKey = 'word' . $i;
-            $params[$paramKey] = $wordPattern;
-            
-            $conditions[] = "(c.business_name LIKE :{$paramKey} 
-                     OR c.commercial_name LIKE :{$paramKey}
-                     OR c.industry LIKE :{$paramKey}
-                     OR JSON_SEARCH(c.products_sells, 'one', :{$paramKey}) IS NOT NULL)";
+        // Only use word matching if we have words of reasonable length
+        $meaningfulWords = array_filter($words, function($w) { return strlen($w) >= 2; });
+        
+        if (!empty($meaningfulWords)) {
+            foreach ($meaningfulWords as $i => $word) {
+                $wordPattern = '%' . $word . '%';
+                $paramKey = 'word' . $i;
+                $params[$paramKey] = $wordPattern;
+                
+                $conditions[] = "(c.business_name LIKE :{$paramKey} 
+                         OR c.commercial_name LIKE :{$paramKey}
+                         OR c.industry LIKE :{$paramKey}
+                         OR JSON_SEARCH(c.products_sells, 'one', :{$paramKey}) IS NOT NULL)";
+            }
         }
         
         // Also allow exact RFC, phone, WhatsApp, email search
@@ -137,12 +146,19 @@ class Contact extends Model {
                        c.rfc, c.whatsapp, c.corporate_email
                 FROM {$this->table} c 
                 WHERE c.contact_type = 'afiliado'
-                AND (
-                    (" . implode(" AND ", $conditions) . ")
-                    OR c.rfc LIKE :exact_term
+                AND (";
+        
+        // Build the search condition
+        if (!empty($conditions)) {
+            $sql .= "(" . implode(" AND ", $conditions) . ") OR ";
+        }
+        
+        $sql .= "c.rfc LIKE :exact_term
                     OR c.phone LIKE :exact_term
                     OR c.whatsapp LIKE :exact_term
                     OR c.corporate_email LIKE :exact_term
+                    OR c.business_name LIKE :exact_term
+                    OR c.commercial_name LIKE :exact_term
                 )";
         
         $sql .= " ORDER BY c.business_name LIMIT 50";

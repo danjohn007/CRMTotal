@@ -219,12 +219,22 @@ function membershipForm() {
             $custom = [];
             foreach ($benefits as $key => $value) {
                 if (!in_array($key, $predefined)) {
-                    $custom[] = ['key' => $key, 'value' => is_bool($value) ? ($value ? 'true' : 'false') : (string)$value];
+                    // Sanitize the key and value
+                    $safeKey = htmlspecialchars($key, ENT_QUOTES, 'UTF-8');
+                    $safeValue = is_bool($value) ? ($value ? 'true' : 'false') : htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+                    $custom[] = ['key' => $safeKey, 'value' => $safeValue];
                 }
             }
-            echo json_encode($custom);
+            // Use JSON_HEX_TAG and JSON_HEX_APOS for safe embedding in script tags
+            echo json_encode($custom, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
         ?>,
-        characteristics: <?php echo json_encode(array_values($characteristics)); ?>,
+        characteristics: <?php 
+            // Sanitize characteristics
+            $safeCharacteristics = array_map(function($char) {
+                return htmlspecialchars((string)$char, ENT_QUOTES, 'UTF-8');
+            }, array_values($characteristics));
+            echo json_encode($safeCharacteristics, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); 
+        ?>,
         
         addCustomBenefit() {
             this.customBenefits.push({ key: '', value: '' });
