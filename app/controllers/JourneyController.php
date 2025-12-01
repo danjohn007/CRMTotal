@@ -291,6 +291,87 @@ class JourneyController extends Controller {
     }
     
     /**
+     * Send service/cross-selling invitation
+     * Documents the services offered, date and time
+     */
+    public function sendServiceInvitation(): void {
+        $this->requireAuth();
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('journey/crossselling');
+        }
+        
+        if (!$this->validateCsrf()) {
+            $_SESSION['flash_error'] = 'Token de seguridad inválido.';
+            $this->redirect('journey/crossselling');
+        }
+        
+        $contactId = (int) $this->getInput('contact_id');
+        $affiliationId = (int) $this->getInput('affiliation_id');
+        $serviceIds = $this->getInput('service_ids', []);
+        $invitationType = $this->sanitize($this->getInput('invitation_type', 'whatsapp'));
+        $notes = $this->sanitize($this->getInput('notes', ''));
+        
+        // Get contact method details
+        $whatsappMessage = $this->sanitize($this->getInput('whatsapp_message', ''));
+        $emailSubject = $this->sanitize($this->getInput('email_subject', ''));
+        $emailMessage = $this->sanitize($this->getInput('email_message', ''));
+        $contactWhatsapp = $this->sanitize($this->getInput('contact_whatsapp', ''));
+        $contactEmail = $this->sanitize($this->getInput('contact_email', ''));
+        
+        // Validate at least one service selected
+        if (empty($serviceIds) || !is_array($serviceIds)) {
+            $_SESSION['flash_error'] = 'Debe seleccionar al menos un servicio.';
+            $this->redirect('journey/crossselling');
+        }
+        
+        try {
+            // Insert service invitation
+            $sql = "INSERT INTO service_invitations 
+                    (contact_id, affiliation_id, invitation_date, invitation_type, 
+                     whatsapp_message, email_subject, email_message, contact_whatsapp, 
+                     contact_email, sent_by_user_id, notes)
+                    VALUES (:contact_id, :affiliation_id, NOW(), :invitation_type,
+                            :whatsapp_message, :email_subject, :email_message, :contact_whatsapp,
+                            :contact_email, :sent_by_user_id, :notes)";
+            
+            $this->db->execute($sql, [
+                'contact_id' => $contactId,
+                'affiliation_id' => $affiliationId,
+                'invitation_type' => $invitationType,
+                'whatsapp_message' => $whatsappMessage,
+                'email_subject' => $emailSubject,
+                'email_message' => $emailMessage,
+                'contact_whatsapp' => $contactWhatsapp,
+                'contact_email' => $contactEmail,
+                'sent_by_user_id' => $_SESSION['user_id'],
+                'notes' => $notes
+            ]);
+            
+            $invitationId = $this->db->lastInsertId();
+            
+            // Insert service invitation details (many-to-many)
+            foreach ($serviceIds as $serviceId) {
+                $sql = "INSERT INTO service_invitation_details (invitation_id, service_id)
+                        VALUES (:invitation_id, :service_id)";
+                $this->db->execute($sql, [
+                    'invitation_id' => $invitationId,
+                    'service_id' => (int) $serviceId
+                ]);
+            }
+            
+            // Update journey stage if applicable
+            $this->updateContactJourneyStage($contactId, 4);
+            
+            $_SESSION['flash_success'] = 'Invitación de servicios enviada y documentada correctamente.';
+        } catch (Exception $e) {
+            $_SESSION['flash_error'] = 'Error al enviar la invitación: ' . $e->getMessage();
+        }
+        
+        $this->redirect('journey/crossselling');
+    }
+    
+    /**
      * Log upselling invitation to audit log
      */
     private function logUpsellingInvitation(int $invitationId, string $invitationType, int $contactId): void {

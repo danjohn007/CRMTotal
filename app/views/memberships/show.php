@@ -36,6 +36,31 @@
                     Duración: <?php echo $membership['duration_days']; ?> días
                 </p>
                 
+                <!-- Share Payment Link -->
+                <?php if (!empty($membership['paypal_product_id'])): ?>
+                <div class="mb-6 p-4 bg-blue-50 rounded-lg">
+                    <p class="text-sm font-medium text-gray-700 mb-2 text-center">Enlace de Pago Público</p>
+                    <div class="flex items-center space-x-2 mb-2">
+                        <input type="text" 
+                               id="payment-link-<?php echo $membership['id']; ?>" 
+                               value="<?php echo BASE_URL; ?>/membresias/<?php echo $membership['id']; ?>/pagar" 
+                               readonly
+                               class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded bg-white">
+                        <button onclick="copyPaymentLink(<?php echo $membership['id']; ?>)" 
+                                class="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <a href="<?php echo BASE_URL; ?>/membresias/<?php echo $membership['id']; ?>/pagar" 
+                       target="_blank"
+                       class="block text-center text-xs text-blue-600 hover:text-blue-800">
+                        Ver página de pago →
+                    </a>
+                </div>
+                <?php endif; ?>
+                
                 <div class="border-t pt-4">
                     <h4 class="font-medium text-gray-900 mb-3">Beneficios</h4>
                     <?php 
@@ -137,3 +162,91 @@
         </div>
     </div>
 </div>
+
+<?php if (!empty($membership['paypal_product_id']) && !empty($paypalClientId)): ?>
+<!-- PayPal SDK -->
+<script src="https://www.paypal.com/sdk/js?client-id=<?php echo htmlspecialchars($paypalClientId); ?>&currency=MXN"></script>
+<script>
+paypal.Buttons({
+    createOrder: function(data, actions) {
+        // Show loading
+        const container = document.getElementById('paypal-button-container');
+        container.innerHTML = '<div class="text-center text-gray-500">Procesando...</div>';
+        
+        // Create order via our backend
+        return fetch('<?php echo BASE_URL; ?>/membresias/crear-pago', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                'membership_id': '<?php echo $membership['id']; ?>',
+                'contact_id': '<?php echo $_SESSION['user_id'] ?? 0; ?>'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            // Restore buttons
+            paypal.Buttons().render('#paypal-button-container');
+            return data.orderId;
+        })
+        .catch(err => {
+            alert('Error al crear la orden: ' + err.message);
+            // Restore buttons
+            paypal.Buttons().render('#paypal-button-container');
+        });
+    },
+    onApprove: function(data, actions) {
+        // Capture the payment
+        return fetch('<?php echo BASE_URL; ?>/membresias/capturar-pago', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                'orderId': data.orderID
+            })
+        })
+        .then(response => response.json())
+        .then(details => {
+            if (details.error) {
+                throw new Error(details.error);
+            }
+            // Show success message
+            alert('¡Pago completado exitosamente! ID: ' + details.captureId);
+            window.location.reload();
+        })
+        .catch(err => {
+            alert('Error al procesar el pago: ' + err.message);
+        });
+    },
+    onError: function(err) {
+        console.error('PayPal error:', err);
+        alert('Ocurrió un error con PayPal. Por favor intenta nuevamente.');
+    }
+}).render('#paypal-button-container');
+<?php endif; ?>
+
+<script>
+function copyPaymentLink(membershipId) {
+    const input = document.getElementById('payment-link-' + membershipId);
+    input.select();
+    input.setSelectionRange(0, 99999);
+    document.execCommand('copy');
+    
+    const button = event.target.closest('button');
+    const originalHTML = button.innerHTML;
+    button.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+    button.classList.add('bg-green-600');
+    button.classList.remove('bg-blue-600');
+    
+    setTimeout(() => {
+        button.innerHTML = originalHTML;
+        button.classList.remove('bg-green-600');
+        button.classList.add('bg-blue-600');
+    }, 2000);
+}
+</script>

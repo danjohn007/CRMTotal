@@ -367,11 +367,32 @@ Cámara de Comercio de Querétaro</textarea>
                     
                     <!-- Payment Link -->
                     <div id="paymentLinkFields">
+                        <label for="payment_link_membership" class="block text-sm font-medium text-gray-700 mb-1">
+                            Seleccionar Membresía
+                        </label>
+                        <select name="payment_link_membership" id="payment_link_membership" 
+                                onchange="updatePaymentLink()"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 mb-2">
+                            <option value="">Seleccione una membresía...</option>
+                            <?php foreach ($membershipTypes as $membership): ?>
+                            <option value="<?php echo $membership['id']; ?>" 
+                                    data-url="<?php echo BASE_URL; ?>/membresias/<?php echo $membership['id']; ?>/pagar">
+                                <?php echo htmlspecialchars($membership['name']); ?> - $<?php echo number_format($membership['price'], 0); ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                        
                         <label for="payment_link_url" class="block text-sm font-medium text-gray-700 mb-1">
                             URL de Liga de Pago
                         </label>
-                        <input type="url" name="payment_link_url" id="payment_link_url" placeholder="https://..."
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                        <div class="flex space-x-2">
+                            <input type="url" name="payment_link_url" id="payment_link_url" placeholder="Seleccione una membresía o ingrese URL manualmente" readonly
+                                   class="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500">
+                            <button type="button" onclick="copyPaymentLink()" 
+                                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 whitespace-nowrap">
+                                📋 Copiar
+                            </button>
+                        </div>
                     </div>
                     
                     <div>
@@ -483,6 +504,39 @@ function openEmail() {
     
     const mailtoLink = 'mailto:' + email + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(fullBody);
     window.location.href = mailtoLink;
+}
+
+function updatePaymentLink() {
+    const select = document.getElementById('payment_link_membership');
+    const urlInput = document.getElementById('payment_link_url');
+    const selectedOption = select.options[select.selectedIndex];
+    
+    if (selectedOption && selectedOption.value) {
+        const url = selectedOption.getAttribute('data-url');
+        urlInput.value = url;
+    } else {
+        urlInput.value = '';
+    }
+}
+
+function copyPaymentLink() {
+    const urlInput = document.getElementById('payment_link_url');
+    
+    if (!urlInput.value) {
+        showNotification('Primero seleccione una membresía', 'error');
+        return;
+    }
+    
+    urlInput.select();
+    urlInput.setSelectionRange(0, 99999); // For mobile devices
+    
+    navigator.clipboard.writeText(urlInput.value).then(() => {
+        showNotification('Enlace copiado al portapapeles', 'success');
+    }).catch(err => {
+        // Fallback for older browsers
+        document.execCommand('copy');
+        showNotification('Enlace copiado al portapapeles', 'success');
+    });
 }
 
 function showNotification(message, type = 'info') {

@@ -28,9 +28,35 @@ class Database {
     }
     
     public function query(string $sql, array $params = []): PDOStatement {
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
-        return $stmt;
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            
+            // Debug: Check if all placeholders match parameters
+            preg_match_all('/:([a-z0-9_]+)/i', $sql, $matches);
+            $placeholders = $matches[1] ?? [];
+            $paramKeys = array_keys($params);
+            
+            // Bind parameters explicitly
+            foreach ($params as $key => $value) {
+                $stmt->bindValue(':' . $key, $value);
+            }
+            
+            $stmt->execute();
+            return $stmt;
+        } catch (PDOException $e) {
+            // Log the error with more details
+            error_log("SQL Error: " . $e->getMessage());
+            error_log("SQL Query: " . $sql);
+            error_log("Parameters: " . print_r($params, true));
+            
+            // Show detailed error in development
+            $errorMsg = "Database query failed: " . $e->getMessage();
+            if (defined('APP_ENV') && APP_ENV === 'development') {
+                $errorMsg .= "\nQuery: " . $sql;
+                $errorMsg .= "\nParams: " . print_r($params, true);
+            }
+            throw new Exception($errorMsg, 500);
+        }
     }
     
     public function fetch(string $sql, array $params = []): ?array {
@@ -71,6 +97,11 @@ class Database {
     
     public function delete(string $table, string $where, array $params = []): int {
         $sql = "DELETE FROM {$table} WHERE {$where}";
+        $stmt = $this->query($sql, $params);
+        return $stmt->rowCount();
+    }
+    
+    public function execute(string $sql, array $params = []): int {
         $stmt = $this->query($sql, $params);
         return $stmt->rowCount();
     }

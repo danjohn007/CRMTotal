@@ -120,8 +120,55 @@
                         <?php endif; ?>
                     </div>
                 </div>
+                
+                <!-- Payment Link -->
+                <?php if (!empty($membership['paypal_product_id'])): ?>
+                <div class="mt-4 pt-4 border-t bg-blue-50 -mx-6 px-6 py-3">
+                    <p class="text-xs font-medium text-gray-700 mb-2">Enlace de Suscripción</p>
+                    <div class="flex items-center space-x-2">
+                        <input type="text" 
+                               id="link-<?php echo $membership['id']; ?>" 
+                               value="<?php echo BASE_URL; ?>/membresias/<?php echo $membership['id']; ?>/pagar" 
+                               readonly
+                               class="flex-1 px-2 py-1 text-xs border border-gray-300 rounded bg-white truncate">
+                        <button onclick="copyLink(<?php echo $membership['id']; ?>)" 
+                                class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-xs flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                            Copiar
+                        </button>
+                    </div>
+                    <a href="<?php echo BASE_URL; ?>/membresias/<?php echo $membership['id']; ?>/pagar" 
+                       target="_blank"
+                       class="block mt-2 text-xs text-blue-600 hover:text-blue-800">
+                        Ver página de suscripción →
+                    </a>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
         <?php endforeach; ?>
     </div>
 </div>
+
+<script>
+function copyLink(membershipId) {
+    const input = document.getElementById('link-' + membershipId);
+    input.select();
+    input.setSelectionRange(0, 99999);
+    document.execCommand('copy');
+    
+    const button = event.target.closest('button');
+    const originalHTML = button.innerHTML;
+    button.innerHTML = '<svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>¡Copiado!';
+    button.classList.add('bg-green-600');
+    button.classList.remove('bg-blue-600');
+    
+    setTimeout(() => {
+        button.innerHTML = originalHTML;
+        button.classList.remove('bg-green-600');
+        button.classList.add('bg-blue-600');
+    }, 2000);
+}
+</script>

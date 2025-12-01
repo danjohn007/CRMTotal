@@ -337,17 +337,26 @@ class AffiliatesController extends Controller {
         
         $collaborators = [];
         if (!empty($emailDomain) || !empty($contact['rfc'])) {
+            $domainParam = '%@' . $emailDomain;
+            $rfcParam = $contact['rfc'] ?? '';
+            
             $collaborators = $this->db->fetchAll(
                 "SELECT * FROM contacts
                  WHERE contact_type = 'colaborador_empresa'
                  AND id != :id
                  AND (
-                     (corporate_email LIKE :domain AND :domain != '')
-                     OR (rfc = :rfc AND :rfc != '')
+                     (corporate_email LIKE :domain AND :domain_check != '')
+                     OR (rfc = :rfc AND :rfc_check != '')
                  )
                  ORDER BY created_at DESC
                  LIMIT 20",
-                ['id' => $id, 'domain' => '%@' . $emailDomain, 'rfc' => $contact['rfc'] ?? '']
+                [
+                    'id' => $id, 
+                    'domain' => $domainParam, 
+                    'domain_check' => $domainParam,
+                    'rfc' => $rfcParam,
+                    'rfc_check' => $rfcParam
+                ]
             );
         }
         

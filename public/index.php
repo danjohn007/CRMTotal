@@ -117,6 +117,7 @@ $router->add('journey/upselling', ['controller' => 'journey', 'action' => 'upsel
 $router->add('journey/crossselling', ['controller' => 'journey', 'action' => 'crossselling']);
 $router->add('journey/council', ['controller' => 'journey', 'action' => 'council']);
 $router->add('journey/sendUpsellingInvitation', ['controller' => 'journey', 'action' => 'sendUpsellingInvitation']);
+$router->add('journey/sendServiceInvitation', ['controller' => 'journey', 'action' => 'sendServiceInvitation']);
 $router->add('journey/{id}', ['controller' => 'journey', 'action' => 'show']);
 
 // Notifications
@@ -153,8 +154,11 @@ $router->add('usuarios/{id}/editar', ['controller' => 'users', 'action' => 'edit
 // Memberships
 $router->add('membresias', ['controller' => 'memberships', 'action' => 'index']);
 $router->add('membresias/nuevo', ['controller' => 'memberships', 'action' => 'create']);
+$router->add('membresias/{id}/pagar', ['controller' => 'memberships', 'action' => 'pay']);
 $router->add('membresias/{id}', ['controller' => 'memberships', 'action' => 'show']);
 $router->add('membresias/{id}/editar', ['controller' => 'memberships', 'action' => 'edit']);
+$router->add('membresias/crear-suscripcion', ['controller' => 'memberships', 'action' => 'createSubscription']);
+$router->add('membresias/obtener-suscripcion', ['controller' => 'memberships', 'action' => 'getSubscription']);
 
 // Financial Module
 $router->add('financiero', ['controller' => 'financial', 'action' => 'index']);
@@ -206,7 +210,13 @@ $url = $_GET['url'] ?? '';
 try {
     $router->dispatch($url);
 } catch (Exception $e) {
-    $code = $e->getCode() ?: 500;
+    $code = $e->getCode();
+    
+    // Ensure code is a valid HTTP status code
+    if (!is_int($code) || $code < 100 || $code > 599) {
+        $code = 500;
+    }
+    
     http_response_code($code);
     
     if ($code === 404) {

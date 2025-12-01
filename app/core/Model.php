@@ -83,4 +83,8 @@ abstract class Model {
     protected function rawOne(string $sql, array $params = []): ?array {
         return $this->db->fetch($sql, $params);
     }
+    
+    public function execute(string $sql, array $params = []): int {
+        return $this->db->execute($sql, $params);
+    }
 }

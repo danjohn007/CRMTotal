@@ -16,6 +16,7 @@ $baseUrl = preg_replace('/\/public$/', '', $baseUrl);
 define('BASE_URL', $baseUrl);
 define('APP_NAME', 'CRM Total CCQ');
 define('APP_VERSION', '1.0.0');
+define('APP_ENV', 'development'); // Change to 'production' when live
 
 // Paths
 define('ROOT_PATH', dirname(__DIR__));

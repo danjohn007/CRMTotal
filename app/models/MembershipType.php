@@ -6,7 +6,7 @@
 class MembershipType extends Model {
     protected string $table = 'membership_types';
     protected array $fillable = [
-        'name', 'code', 'price', 'duration_days', 'benefits', 'characteristics', 'is_active'
+        'name', 'code', 'price', 'duration_days', 'benefits', 'characteristics', 'is_active', 'paypal_product_id'
     ];
     
     // Membership hierarchy (lowest to highest tier)
