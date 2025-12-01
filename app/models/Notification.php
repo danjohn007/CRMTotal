@@ -6,7 +6,7 @@ class Notification extends Model {
     protected string $table = 'notifications';
     protected array $fillable = [
         'user_id', 'type', 'title', 'message', 'link',
-        'related_id', 'related_type', 'is_read'
+        'related_id', 'related_type', 'is_read', 'source_section'
     ];
     
     public function getUnread(int $userId): array {
@@ -90,5 +90,78 @@ class Notification extends Model {
             'related_id' => $contactId,
             'related_type' => 'contact'
         ]);
+    }
+    
+    /**
+     * Create a new prospect notification
+     */
+    public function createProspectAlert(int $userId, int $contactId, string $prospectName, string $channel): int {
+        $channelLabels = [
+            'chatbot' => 'Chatbot',
+            'evento_gratuito' => 'Evento Gratuito',
+            'evento_pagado' => 'Evento Pagado',
+            'alta_directa' => 'Alta Directa',
+            'buscador' => 'Buscador',
+            'jefatura_comercial' => 'Jefatura Comercial'
+        ];
+        $channelLabel = $channelLabels[$channel] ?? $channel;
+        
+        return $this->create([
+            'user_id' => $userId,
+            'type' => 'prospecto',
+            'title' => 'Nuevo prospecto asignado',
+            'message' => "{$prospectName} - Fuente: {$channelLabel}",
+            'link' => '/prospectos/' . $contactId,
+            'related_id' => $contactId,
+            'related_type' => 'contact'
+        ]);
+    }
+    
+    /**
+     * Create an event notification
+     */
+    public function createEventAlert(int $userId, int $eventId, string $eventTitle): int {
+        return $this->create([
+            'user_id' => $userId,
+            'type' => 'evento',
+            'title' => 'Nuevo evento creado',
+            'message' => $eventTitle,
+            'link' => '/eventos/' . $eventId,
+            'related_id' => $eventId,
+            'related_type' => 'event'
+        ]);
+    }
+    
+    /**
+     * Create an urgent action notification
+     */
+    public function createUrgentActionAlert(int $userId, int $activityId, string $title, string $message): int {
+        return $this->create([
+            'user_id' => $userId,
+            'type' => 'actividad',
+            'title' => '⚡ ' . $title,
+            'message' => $message,
+            'link' => '/agenda-comercial/editar/' . $activityId,
+            'related_id' => $activityId,
+            'related_type' => 'activity'
+        ]);
+    }
+    
+    /**
+     * Get notifications grouped by type
+     */
+    public function getGroupedByType(int $userId): array {
+        $notifications = $this->getUnread($userId);
+        $grouped = [];
+        
+        foreach ($notifications as $notif) {
+            $type = $notif['type'] ?? 'sistema';
+            if (!isset($grouped[$type])) {
+                $grouped[$type] = [];
+            }
+            $grouped[$type][] = $notif;
+        }
+        
+        return $grouped;
     }
 }

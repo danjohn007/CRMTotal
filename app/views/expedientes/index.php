@@ -17,25 +17,37 @@
         </div>
     </div>
     
-    <!-- Search Section -->
+    <!-- Search Section with Advanced Filters -->
     <div class="bg-white rounded-lg shadow-sm p-4">
         <form method="GET" class="flex flex-wrap gap-4">
             <div class="flex-1 min-w-[200px]">
                 <input type="text" name="search" placeholder="Buscar por RFC, nombre comercial, WhatsApp o razón social..."
                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                       value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>">
+                       value="<?php echo htmlspecialchars($searchTerm ?? ''); ?>">
             </div>
-            <select name="membership" class="px-4 py-2 border border-gray-300 rounded-lg">
-                <option value="">Todas las membresías</option>
-                <option value="BASICA" <?php echo ($_GET['membership'] ?? '') === 'BASICA' ? 'selected' : ''; ?>>Básica</option>
-                <option value="PYME" <?php echo ($_GET['membership'] ?? '') === 'PYME' ? 'selected' : ''; ?>>PYME</option>
-                <option value="VISIONARIO" <?php echo ($_GET['membership'] ?? '') === 'VISIONARIO' ? 'selected' : ''; ?>>Visionario</option>
-                <option value="PREMIER" <?php echo ($_GET['membership'] ?? '') === 'PREMIER' ? 'selected' : ''; ?>>Premier</option>
-                <option value="PATROCINADOR" <?php echo ($_GET['membership'] ?? '') === 'PATROCINADOR' ? 'selected' : ''; ?>>Patrocinador</option>
+            <select name="status" class="px-4 py-2 border border-gray-300 rounded-lg">
+                <option value="">Todos los estados</option>
+                <option value="complete" <?php echo ($filterStatus ?? '') === 'complete' ? 'selected' : ''; ?>>✅ Completados</option>
+                <option value="incomplete" <?php echo ($filterStatus ?? '') === 'incomplete' ? 'selected' : ''; ?>>⏳ Por completar</option>
             </select>
+            <?php if (!empty($affiliators)): ?>
+            <select name="affiliator" class="px-4 py-2 border border-gray-300 rounded-lg">
+                <option value="">Todos los vendedores</option>
+                <?php foreach ($affiliators as $aff): ?>
+                <option value="<?php echo $aff['id']; ?>" <?php echo ($filterAffiliator ?? 0) == $aff['id'] ? 'selected' : ''; ?>>
+                    <?php echo htmlspecialchars($aff['name']); ?>
+                </option>
+                <?php endforeach; ?>
+            </select>
+            <?php endif; ?>
             <button type="submit" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
-                Buscar
+                🔍 Buscar
             </button>
+            <?php if (!empty($searchTerm) || !empty($filterStatus) || !empty($filterAffiliator)): ?>
+            <a href="<?php echo BASE_URL; ?>/expedientes" class="px-4 py-2 text-gray-600 hover:text-gray-900">
+                Limpiar filtros
+            </a>
+            <?php endif; ?>
         </form>
     </div>
     
@@ -68,14 +80,14 @@
                     </svg>
                 </div>
             </div>
-            <p class="mt-2 text-xs text-gray-500">Expedientes incompletos</p>
+            <a href="?status=incomplete" class="mt-2 text-xs text-yellow-600 hover:underline">Ver expedientes incompletos →</a>
         </div>
         
         <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-gray-500">Completados</p>
-                    <p class="text-3xl font-bold text-blue-600"><?php echo $totalAffiliates - $incompleteExpedientes; ?></p>
+                    <p class="text-3xl font-bold text-blue-600"><?php echo $completeExpedientes ?? ($totalAffiliates - $incompleteExpedientes); ?></p>
                 </div>
                 <div class="p-3 bg-blue-100 rounded-full">
                     <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -83,7 +95,7 @@
                     </svg>
                 </div>
             </div>
-            <p class="mt-2 text-xs text-gray-500">Expedientes al 100%</p>
+            <a href="?status=complete" class="mt-2 text-xs text-blue-600 hover:underline">Ver expedientes completos →</a>
         </div>
     </div>
     
@@ -98,10 +110,11 @@
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Empresa</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">RFC</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo Persona</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">WhatsApp</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Membresía</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Días Restantes</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pago</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vendedor</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avance EDA</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
                     </tr>
@@ -109,8 +122,12 @@
                 <tbody class="bg-white divide-y divide-gray-200">
                     <?php if (empty($affiliates)): ?>
                     <tr>
-                        <td colspan="8" class="px-6 py-12 text-center text-gray-500">
+                        <td colspan="9" class="px-6 py-12 text-center text-gray-500">
+                            <?php if (!empty($searchTerm) || !empty($filterStatus)): ?>
+                            No se encontraron expedientes con los filtros aplicados
+                            <?php else: ?>
                             No hay expedientes registrados
+                            <?php endif; ?>
                         </td>
                     </tr>
                     <?php else: ?>
@@ -118,22 +135,10 @@
                         $completion = $affiliate['profile_completion'] ?? 0;
                         $progressColor = $completion < 25 ? 'bg-red-500' : ($completion < 60 ? 'bg-yellow-500' : ($completion < 100 ? 'bg-blue-500' : 'bg-green-500'));
                         
-                        // Calculate days remaining
-                        $daysRemaining = null;
-                        if (!empty($affiliate['expiration_date'])) {
+                        // Days remaining from query or calculate
+                        $daysRemaining = $affiliate['days_remaining'] ?? null;
+                        if ($daysRemaining === null && !empty($affiliate['expiration_date'])) {
                             $daysRemaining = floor((strtotime($affiliate['expiration_date']) - time()) / 86400);
-                        }
-                        
-                        // Determine person type based on RFC length
-                        $rfcLen = strlen($affiliate['rfc'] ?? '');
-                        $personType = '';
-                        $personTypeLabel = '-';
-                        if ($rfcLen === 13) {
-                            $personType = 'fisica';
-                            $personTypeLabel = 'Persona Física';
-                        } elseif ($rfcLen === 12) {
-                            $personType = 'moral';
-                            $personTypeLabel = 'Persona Moral';
                         }
                         
                         // Determine missing fields
@@ -164,19 +169,6 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             <?php echo htmlspecialchars($affiliate['rfc'] ?? '-'); ?>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <?php if ($personType === 'fisica'): ?>
-                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                                👤 Física
-                            </span>
-                            <?php elseif ($personType === 'moral'): ?>
-                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
-                                🏢 Moral
-                            </span>
-                            <?php else: ?>
-                            <span class="text-gray-400 text-sm">-</span>
-                            <?php endif; ?>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
                             <?php 
@@ -226,8 +218,25 @@
                             <?php endif; ?>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
+                            <?php 
+                            $paymentStatus = $affiliate['payment_status'] ?? 'pending';
+                            $paymentLabels = [
+                                'paid' => ['label' => '✅ Pagado', 'class' => 'bg-green-100 text-green-800'],
+                                'pending' => ['label' => '⏳ Pendiente', 'class' => 'bg-yellow-100 text-yellow-800'],
+                                'partial' => ['label' => '⚠️ Parcial', 'class' => 'bg-orange-100 text-orange-800']
+                            ];
+                            $payment = $paymentLabels[$paymentStatus] ?? $paymentLabels['pending'];
+                            ?>
+                            <span class="px-2 py-1 text-xs font-medium rounded-full <?php echo $payment['class']; ?>">
+                                <?php echo $payment['label']; ?>
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            <?php echo htmlspecialchars($affiliate['affiliator_name'] ?? '-'); ?>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
-                                <div class="w-24 bg-gray-200 rounded-full h-3 mr-3">
+                                <div class="w-20 bg-gray-200 rounded-full h-3 mr-2">
                                     <div class="<?php echo $progressColor; ?> h-3 rounded-full transition-all duration-300" style="width: <?php echo $completion; ?>%"></div>
                                 </div>
                                 <span class="text-sm font-medium <?php echo $completion < 100 ? 'text-yellow-600' : 'text-green-600'; ?>">

@@ -265,17 +265,116 @@
                     
                     <!-- Right side -->
                     <div class="flex items-center space-x-4">
-                        <!-- Notifications -->
-                        <a href="<?php echo BASE_URL; ?>/notificaciones" class="relative p-2 text-gray-600 hover:text-gray-900">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-                            </svg>
-                            <?php if (isset($notificationCount) && $notificationCount > 0): ?>
-                            <span class="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                                <?php echo $notificationCount; ?>
-                            </span>
-                            <?php endif; ?>
-                        </a>
+                        <!-- Enhanced Notifications Dropdown -->
+                        <div class="relative" x-data="{ notifOpen: false }">
+                            <button @click="notifOpen = !notifOpen" class="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                                </svg>
+                                <?php if (isset($notificationCount) && $notificationCount > 0): ?>
+                                <span class="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                                    <?php echo min($notificationCount, 99); ?>
+                                </span>
+                                <?php endif; ?>
+                            </button>
+                            
+                            <!-- Notification Dropdown Panel -->
+                            <div x-show="notifOpen" @click.away="notifOpen = false" x-cloak
+                                 class="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-xl z-50 overflow-hidden border border-gray-100">
+                                <div class="p-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
+                                    <div class="flex items-center justify-between">
+                                        <h3 class="font-semibold">🔔 Notificaciones</h3>
+                                        <?php if (isset($notificationCount) && $notificationCount > 0): ?>
+                                        <span class="text-sm bg-white/20 px-2 py-1 rounded-full"><?php echo $notificationCount; ?> nuevas</span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                
+                                <div class="max-h-96 overflow-y-auto">
+                                    <?php 
+                                    // Load notifications for the current user
+                                    $notifModel = new Notification();
+                                    $userId = $_SESSION['user_id'] ?? 0;
+                                    $headerNotifications = $notifModel->getUnread($userId);
+                                    
+                                    // Group notifications by type for organized display
+                                    $notifCategories = [
+                                        'prospecto' => ['icon' => '🎯', 'label' => 'Nuevos Prospectos', 'items' => []],
+                                        'vencimiento' => ['icon' => '⏰', 'label' => 'Empresas por Vencer', 'items' => []],
+                                        'no_match' => ['icon' => '🔍', 'label' => 'Búsquedas Sin Resultado', 'items' => []],
+                                        'evento' => ['icon' => '🎉', 'label' => 'Nuevos Eventos', 'items' => []],
+                                        'actividad' => ['icon' => '⚡', 'label' => 'Acciones Urgentes', 'items' => []],
+                                        'oportunidad' => ['icon' => '💡', 'label' => 'Oportunidades', 'items' => []],
+                                        'sistema' => ['icon' => '⚙️', 'label' => 'Sistema', 'items' => []],
+                                    ];
+                                    
+                                    foreach ($headerNotifications as $notif) {
+                                        $type = $notif['type'] ?? 'sistema';
+                                        if (isset($notifCategories[$type])) {
+                                            $notifCategories[$type]['items'][] = $notif;
+                                        } else {
+                                            $notifCategories['sistema']['items'][] = $notif;
+                                        }
+                                    }
+                                    
+                                    $hasAnyNotifications = !empty($headerNotifications);
+                                    ?>
+                                    
+                                    <?php if (!$hasAnyNotifications): ?>
+                                    <div class="p-8 text-center text-gray-500">
+                                        <svg class="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+                                        </svg>
+                                        <p>No tienes notificaciones nuevas</p>
+                                    </div>
+                                    <?php else: ?>
+                                    
+                                    <?php foreach ($notifCategories as $type => $category): ?>
+                                    <?php if (!empty($category['items'])): ?>
+                                    <div class="border-b border-gray-100 last:border-b-0">
+                                        <div class="px-4 py-2 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center">
+                                            <span class="mr-2"><?php echo $category['icon']; ?></span>
+                                            <?php echo $category['label']; ?>
+                                            <span class="ml-auto bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full text-xs">
+                                                <?php echo count($category['items']); ?>
+                                            </span>
+                                        </div>
+                                        <?php foreach (array_slice($category['items'], 0, 3) as $notif): ?>
+                                        <a href="<?php echo BASE_URL . ($notif['link'] ?? '/agenda-comercial'); ?>" 
+                                           class="block px-4 py-3 hover:bg-gray-50 transition border-l-4 
+                                                  <?php echo $type === 'vencimiento' ? 'border-l-yellow-500' : 
+                                                            ($type === 'actividad' ? 'border-l-red-500' : 
+                                                            ($type === 'prospecto' ? 'border-l-green-500' : 
+                                                            ($type === 'no_match' ? 'border-l-purple-500' : 'border-l-blue-500'))); ?>">
+                                            <p class="text-sm font-medium text-gray-900 truncate"><?php echo htmlspecialchars($notif['title']); ?></p>
+                                            <p class="text-xs text-gray-500 truncate"><?php echo htmlspecialchars($notif['message'] ?? ''); ?></p>
+                                            <p class="text-xs text-gray-400 mt-1"><?php echo date('d M, H:i', strtotime($notif['created_at'])); ?></p>
+                                        </a>
+                                        <?php endforeach; ?>
+                                        <?php if (count($category['items']) > 3): ?>
+                                        <div class="px-4 py-2 text-center">
+                                            <span class="text-xs text-gray-400">+<?php echo count($category['items']) - 3; ?> más</span>
+                                        </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <?php endif; ?>
+                                    <?php endforeach; ?>
+                                    
+                                    <?php endif; ?>
+                                </div>
+                                
+                                <div class="p-3 bg-gray-50 border-t flex justify-between items-center">
+                                    <a href="<?php echo BASE_URL; ?>/agenda-comercial?tab=notifications" class="text-sm text-blue-600 hover:text-blue-800">
+                                        Ver todas las notificaciones
+                                    </a>
+                                    <?php if ($hasAnyNotifications): ?>
+                                    <a href="<?php echo BASE_URL; ?>/agenda-comercial/marcar-todas-leidas" class="text-xs text-gray-500 hover:text-gray-700">
+                                        Marcar como leídas
+                                    </a>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
                         
                         <!-- User Menu -->
                         <div class="relative" x-data="{ open: false }">

@@ -33,32 +33,71 @@ class ExpedientesController extends Controller {
             $userRole = '';
         }
         
-        // Get affiliates based on user role
+        // Get search and filter parameters
+        $searchTerm = $this->sanitize($this->getInput('search', ''));
+        $filterStatus = $this->sanitize($this->getInput('status', ''));
+        $filterAffiliator = (int) $this->getInput('affiliator', 0);
+        
+        // Build query based on role and filters
+        $params = [];
+        $whereConditions = ["c.contact_type = 'afiliado'"];
+        
+        // Role-based filtering
+        if (!in_array($userRole, ['superadmin', 'direccion', 'jefe_comercial'])) {
+            $whereConditions[] = "c.assigned_affiliate_id = :user_id";
+            $params['user_id'] = $userId;
+        } elseif ($filterAffiliator > 0) {
+            $whereConditions[] = "c.assigned_affiliate_id = :affiliator_id";
+            $params['affiliator_id'] = $filterAffiliator;
+        }
+        
+        // Search filter (phrase matching)
+        if (!empty($searchTerm)) {
+            $searchPattern = '%' . $searchTerm . '%';
+            $whereConditions[] = "(c.business_name LIKE :search1 OR c.commercial_name LIKE :search2 OR c.rfc LIKE :search3 OR c.whatsapp LIKE :search4)";
+            $params['search1'] = $searchPattern;
+            $params['search2'] = $searchPattern;
+            $params['search3'] = $searchPattern;
+            $params['search4'] = $searchPattern;
+        }
+        
+        // Status filter (complete/incomplete)
+        if ($filterStatus === 'complete') {
+            $whereConditions[] = "c.profile_completion = 100";
+        } elseif ($filterStatus === 'incomplete') {
+            $whereConditions[] = "c.profile_completion < 100";
+        }
+        
+        $sql = "SELECT c.*, u.name as affiliator_name,
+                       a.affiliation_date, a.expiration_date, a.status as affiliation_status,
+                       a.payment_status, a.amount as affiliation_amount,
+                       m.name as membership_name, m.code as membership_code, m.benefits as membership_benefits,
+                       DATEDIFF(a.expiration_date, CURDATE()) as days_remaining
+                FROM contacts c 
+                LEFT JOIN users u ON c.assigned_affiliate_id = u.id 
+                LEFT JOIN affiliations a ON c.id = a.contact_id AND a.status = 'active'
+                LEFT JOIN membership_types m ON a.membership_type_id = m.id
+                WHERE " . implode(" AND ", $whereConditions) . "
+                ORDER BY c.business_name";
+        
+        $affiliates = $this->db->fetchAll($sql, $params);
+        
+        // Get affiliators list for filter dropdown (managers only)
+        $affiliators = [];
         if (in_array($userRole, ['superadmin', 'direccion', 'jefe_comercial'])) {
-            $affiliates = $this->contactModel->getAffiliates();
-        } else {
-            // For afiliador, only show their assigned affiliates
-            $affiliates = $this->db->fetchAll(
-                "SELECT c.*, u.name as affiliator_name,
-                        a.affiliation_date, a.expiration_date, a.status as affiliation_status,
-                        m.name as membership_name, m.code as membership_code
-                 FROM contacts c 
-                 LEFT JOIN users u ON c.assigned_affiliate_id = u.id 
-                 LEFT JOIN affiliations a ON c.id = a.contact_id AND a.status = 'active'
-                 LEFT JOIN membership_types m ON a.membership_type_id = m.id
-                 WHERE c.contact_type = 'afiliado' 
-                 AND c.assigned_affiliate_id = :user_id
-                 ORDER BY c.business_name",
-                ['user_id' => $userId]
-            );
+            $userModel = new User();
+            $affiliators = $userModel->getAffiliators();
         }
         
         // Calculate stats for the view
         $totalAffiliates = count($affiliates);
         $incompleteExpedientes = 0;
+        $completeExpedientes = 0;
         foreach ($affiliates as $affiliate) {
             if (($affiliate['profile_completion'] ?? 0) < 100) {
                 $incompleteExpedientes++;
+            } else {
+                $completeExpedientes++;
             }
         }
         
@@ -66,8 +105,14 @@ class ExpedientesController extends Controller {
             'pageTitle' => 'Expediente Digital Afiliado (EDA)',
             'currentPage' => 'expedientes',
             'affiliates' => $affiliates,
+            'affiliators' => $affiliators,
             'totalAffiliates' => $totalAffiliates,
-            'incompleteExpedientes' => $incompleteExpedientes
+            'incompleteExpedientes' => $incompleteExpedientes,
+            'completeExpedientes' => $completeExpedientes,
+            'searchTerm' => $searchTerm,
+            'filterStatus' => $filterStatus,
+            'filterAffiliator' => $filterAffiliator,
+            'userRole' => $userRole
         ]);
     }
     

@@ -35,6 +35,7 @@ class Service extends Model {
             'marketing_platform' => 'Marketing - Plataforma',
             'gestoria' => 'Gestoría',
             'tramites' => 'Trámites',
+            'siem' => 'SIEM',
             'otros' => 'Otros Servicios'
         ];
     }
