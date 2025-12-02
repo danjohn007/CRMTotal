@@ -569,8 +569,10 @@
         const rfc = rfcInput.value.toUpperCase().trim();
         rfcInput.value = rfc; // Auto-uppercase
         
-        // RFC format validation regex
-        const rfcMoralPattern = /^[A-ZÑ&]{3}[0-9]{6}[A-Z0-9]{3}$/;
+        // RFC format validation regex (corrected patterns)
+        // Persona Moral: 3-4 letters + 6 digits + 3 alphanumeric
+        // Persona Física: 4 letters + 6 digits + 3 alphanumeric
+        const rfcMoralPattern = /^[A-ZÑ&]{3,4}[0-9]{6}[A-Z0-9]{3}$/;
         const rfcFisicaPattern = /^[A-ZÑ&]{4}[0-9]{6}[A-Z0-9]{3}$/;
         
         if (rfc.length === 12 && rfcMoralPattern.test(rfc)) {
@@ -581,9 +583,10 @@
             rfcInput.classList.add('border-green-500');
             nameHelp.textContent = 'Razón social de la empresa';
             
-            // For moral persons, owner name is separate
+            // For moral persons, owner name is separate and editable
             if (ownerNameInput) {
                 ownerNameInput.removeAttribute('readonly');
+                ownerNameInput.classList.remove('bg-gray-100');
                 ownerNameInput.placeholder = 'Ingrese nombre del representante legal';
             }
             
@@ -595,10 +598,13 @@
             rfcInput.classList.add('border-green-500');
             nameHelp.textContent = 'Para Persona Física, nombre y razón social son el mismo';
             
-            // For física, copy name to owner_name automatically when name is filled
-            if (ownerNameInput && nameInput && nameInput.value) {
-                ownerNameInput.value = nameInput.value;
-                ownerNameInput.setAttribute('readonly', 'readonly');
+            // For física, sync name automatically but allow manual override if needed
+            if (ownerNameInput) {
+                ownerNameInput.classList.add('bg-gray-100');
+                // Copy value if name field has content
+                if (nameInput && nameInput.value) {
+                    ownerNameInput.value = nameInput.value;
+                }
             }
             
         } else {
@@ -610,6 +616,11 @@
                 rfcInput.classList.add('border-red-500');
             }
             nameHelp.textContent = 'Ingrese un RFC válido de 12 o 13 caracteres';
+            // Remove readonly to allow editing
+            if (ownerNameInput) {
+                ownerNameInput.removeAttribute('readonly');
+                ownerNameInput.classList.remove('bg-gray-100');
+            }
         }
         
         // Auto-lookup if RFC is complete and valid
@@ -633,8 +644,8 @@
         if (nameInput) {
             nameInput.addEventListener('input', function() {
                 const rfc = rfcInput ? rfcInput.value : '';
-                // Only sync if Persona Física (13 chars)
-                if (rfc.length === 13 && ownerNameInput && !ownerNameInput.hasAttribute('readonly')) {
+                // Only sync if Persona Física (13 chars) and field has bg-gray-100 class (auto-sync indicator)
+                if (rfc.length === 13 && ownerNameInput && ownerNameInput.classList.contains('bg-gray-100')) {
                     const rfcFisicaPattern = /^[A-ZÑ&]{4}[0-9]{6}[A-Z0-9]{3}$/;
                     if (rfcFisicaPattern.test(rfc.toUpperCase())) {
                         ownerNameInput.value = nameInput.value;
