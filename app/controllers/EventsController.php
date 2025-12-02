@@ -702,6 +702,9 @@ class EventsController extends Controller {
             'is_online' => (int) $this->getInput('is_online', 0),
             'online_url' => $this->sanitize($this->getInput('online_url', '')),
             'max_capacity' => (int) $this->getInput('max_capacity', 0),
+            'room_name' => $this->sanitize($this->getInput('room_name', '')),
+            'room_capacity' => (int) $this->getInput('room_capacity', 0),
+            'allowed_attendees' => (int) $this->getInput('allowed_attendees', 0),
             'is_paid' => (int) $this->getInput('is_paid', 0),
             'price' => (float) $this->getInput('price', 0),
             'promo_price' => (float) $this->getInput('promo_price', 0),
@@ -709,6 +712,7 @@ class EventsController extends Controller {
             'member_price' => (float) $this->getInput('member_price', 0),
             'promo_member_price' => (float) $this->getInput('promo_member_price', 0),
             'free_for_affiliates' => (int) $this->getInput('free_for_affiliates', 1),
+            'has_courtesy_tickets' => (int) $this->getInput('has_courtesy_tickets', 1),
             'status' => $this->sanitize($this->getInput('status', 'draft'))
         ];
     }
@@ -738,7 +742,10 @@ class EventsController extends Controller {
             'exafiliado' => 'Exafiliados',
             'publico' => 'Público en General',
             'funcionario' => 'Funcionarios',
-            'consejero' => 'Consejeros'
+            'consejero_propietario' => 'Consejeros Propietarios',
+            'consejero_invitado' => 'Consejeros Invitados',
+            'patrocinador' => 'Patrocinadores',
+            'mesa_directiva' => 'Mesa Directiva'
         ];
     }
     

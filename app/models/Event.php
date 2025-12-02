@@ -7,8 +7,9 @@ class Event extends Model {
     protected array $fillable = [
         'title', 'description', 'event_type', 'category', 'start_date',
         'end_date', 'location', 'address', 'google_maps_url', 'is_online',
-        'online_url', 'max_capacity', 'is_paid', 'price', 'promo_price',
-        'promo_end_date', 'member_price', 'promo_member_price', 'free_for_affiliates', 
+        'online_url', 'max_capacity', 'room_name', 'room_capacity', 'allowed_attendees',
+        'is_paid', 'price', 'promo_price', 'promo_end_date', 'member_price', 
+        'promo_member_price', 'free_for_affiliates', 'has_courtesy_tickets',
         'registration_url', 'image', 'status', 'target_audiences', 'created_by'
     ];
     
@@ -260,5 +261,153 @@ class Event extends Model {
             $data['notes'] = 'PayPal Order ID: ' . $safeReference;
         }
         return $this->db->update('event_registrations', $data, 'id = :id', ['id' => $registrationId]);
+    }
+    
+    /**
+     * Get comprehensive event metrics for reporting
+     * Returns total tickets, attendance, no-show percentage, and breakdown by payment type
+     * 
+     * @param int|null $eventId Specific event ID, or null for all events
+     * @param string|null $eventType Filter by event type (interno, publico, terceros)
+     * @param string|null $category Filter by category
+     * @return array Metrics array with totals and breakdowns
+     */
+    public function getEventMetrics(?int $eventId = null, ?string $eventType = null, ?string $category = null): array {
+        $where = ['1=1'];
+        $params = [];
+        
+        if ($eventId) {
+            $where[] = 'e.id = :event_id';
+            $params['event_id'] = $eventId;
+        }
+        
+        if ($eventType) {
+            $where[] = 'e.event_type = :event_type';
+            $params['event_type'] = $eventType;
+        }
+        
+        if ($category) {
+            $where[] = 'e.category = :category';
+            $params['category'] = $category;
+        }
+        
+        $whereClause = implode(' AND ', $where);
+        
+        $sql = "SELECT 
+                    COUNT(DISTINCT e.id) as total_events,
+                    SUM(CASE WHEN e.is_paid = 1 THEN 1 ELSE 0 END) as paid_events,
+                    SUM(CASE WHEN e.is_paid = 0 THEN 1 ELSE 0 END) as free_events,
+                    
+                    -- Total tickets/registrations
+                    COUNT(er.id) as total_tickets,
+                    
+                    -- Attendance metrics
+                    SUM(CASE WHEN er.attended = 1 THEN 1 ELSE 0 END) as total_attendance,
+                    SUM(CASE WHEN er.attended = 0 AND e.end_date < NOW() THEN 1 ELSE 0 END) as total_no_show,
+                    
+                    -- For paid events: courtesy vs paid breakdown
+                    SUM(CASE WHEN e.is_paid = 1 AND er.payment_status = 'free' AND er.is_owner_representative = 1 THEN 1 ELSE 0 END) as courtesy_tickets,
+                    SUM(CASE WHEN e.is_paid = 1 AND er.payment_status = 'paid' THEN 1 ELSE 0 END) as paid_tickets,
+                    
+                    -- Attendance breakdown for paid events
+                    SUM(CASE WHEN e.is_paid = 1 AND er.payment_status = 'free' AND er.is_owner_representative = 1 AND er.attended = 1 THEN 1 ELSE 0 END) as courtesy_attended,
+                    SUM(CASE WHEN e.is_paid = 1 AND er.payment_status = 'paid' AND er.attended = 1 THEN 1 ELSE 0 END) as paid_attended,
+                    
+                    -- No-show breakdown for paid events
+                    SUM(CASE WHEN e.is_paid = 1 AND er.payment_status = 'free' AND er.is_owner_representative = 1 AND er.attended = 0 AND e.end_date < NOW() THEN 1 ELSE 0 END) as courtesy_no_show,
+                    SUM(CASE WHEN e.is_paid = 1 AND er.payment_status = 'paid' AND er.attended = 0 AND e.end_date < NOW() THEN 1 ELSE 0 END) as paid_no_show
+                    
+                FROM {$this->table} e
+                LEFT JOIN event_registrations er ON e.id = er.event_id
+                WHERE {$whereClause}";
+        
+        $result = $this->rawOne($sql, $params);
+        
+        // Calculate percentages
+        $totalTickets = (int) ($result['total_tickets'] ?? 0);
+        $totalAttendance = (int) ($result['total_attendance'] ?? 0);
+        $totalNoShow = (int) ($result['total_no_show'] ?? 0);
+        
+        $result['attendance_rate'] = $totalTickets > 0 ? round(($totalAttendance / $totalTickets) * 100, 2) : 0;
+        $result['no_show_rate'] = $totalTickets > 0 ? round(($totalNoShow / $totalTickets) * 100, 2) : 0;
+        
+        return $result;
+    }
+    
+    /**
+     * Get top 50 attending businesses (razón social)
+     * 
+     * @param int|null $eventId Specific event ID, or null for all events
+     * @param int $limit Number of results to return (default 50)
+     * @return array Array of businesses with attendance count
+     */
+    public function getTopAttendingBusinesses(?int $eventId = null, int $limit = 50): array {
+        $where = 'er.attended = 1';
+        $params = [];
+        
+        if ($eventId) {
+            $where .= ' AND e.id = :event_id';
+            $params['event_id'] = $eventId;
+        }
+        
+        $sql = "SELECT 
+                    COALESCE(c.business_name, er.guest_name, 'Sin razón social') as business_name,
+                    c.rfc,
+                    COUNT(er.id) as attendance_count,
+                    COUNT(DISTINCT e.id) as events_attended,
+                    SUM(CASE WHEN e.is_paid = 1 THEN 1 ELSE 0 END) as paid_events_attended,
+                    SUM(CASE WHEN e.is_paid = 0 THEN 1 ELSE 0 END) as free_events_attended
+                FROM event_registrations er
+                INNER JOIN {$this->table} e ON er.event_id = e.id
+                LEFT JOIN contacts c ON (er.contact_id = c.id OR er.guest_email = c.corporate_email OR er.guest_rfc = c.rfc)
+                WHERE {$where}
+                GROUP BY COALESCE(c.business_name, er.guest_name, 'Sin razón social'), c.rfc
+                ORDER BY attendance_count DESC, events_attended DESC
+                LIMIT {$limit}";
+        
+        return $this->raw($sql, $params);
+    }
+    
+    /**
+     * Get event metrics by category
+     * 
+     * @return array Array of metrics grouped by event category
+     */
+    public function getMetricsByCategory(): array {
+        $sql = "SELECT 
+                    e.category,
+                    COUNT(DISTINCT e.id) as total_events,
+                    COUNT(er.id) as total_tickets,
+                    SUM(CASE WHEN er.attended = 1 THEN 1 ELSE 0 END) as total_attendance,
+                    SUM(CASE WHEN er.attended = 0 AND e.end_date < NOW() THEN 1 ELSE 0 END) as total_no_show,
+                    ROUND(SUM(CASE WHEN er.attended = 1 THEN 1 ELSE 0 END) / COUNT(er.id) * 100, 2) as attendance_rate
+                FROM {$this->table} e
+                LEFT JOIN event_registrations er ON e.id = er.event_id
+                WHERE e.category IS NOT NULL AND e.category != ''
+                GROUP BY e.category
+                ORDER BY total_events DESC";
+        
+        return $this->raw($sql);
+    }
+    
+    /**
+     * Get event metrics by type
+     * 
+     * @return array Array of metrics grouped by event type
+     */
+    public function getMetricsByType(): array {
+        $sql = "SELECT 
+                    e.event_type,
+                    COUNT(DISTINCT e.id) as total_events,
+                    COUNT(er.id) as total_tickets,
+                    SUM(CASE WHEN er.attended = 1 THEN 1 ELSE 0 END) as total_attendance,
+                    SUM(CASE WHEN er.attended = 0 AND e.end_date < NOW() THEN 1 ELSE 0 END) as total_no_show,
+                    ROUND(SUM(CASE WHEN er.attended = 1 THEN 1 ELSE 0 END) / COUNT(er.id) * 100, 2) as attendance_rate
+                FROM {$this->table} e
+                LEFT JOIN event_registrations er ON e.id = er.event_id
+                GROUP BY e.event_type
+                ORDER BY total_events DESC";
+        
+        return $this->raw($sql);
     }
 }

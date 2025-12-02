@@ -243,11 +243,11 @@
                 <!-- Company Lookup (hidden in guest mode) -->
                 <div id="company-lookup-section" class="mb-6 p-4 bg-gray-50 rounded-lg">
                     <p class="text-sm text-gray-600 mb-3">
-                        ¿Ya eres empresa afiliada o registrada? Ingresa tu Email, WhatsApp, RFC o Teléfono para autocompletar tus datos.
+                        ¿Ya eres empresa afiliada o registrada? Ingresa tu RFC, WhatsApp, Email o Razón Social para autocompletar tus datos.
                     </p>
                     <div class="flex space-x-2">
                         <input type="text" id="lookup-identifier" 
-                               placeholder="Email, WhatsApp, RFC o Teléfono"
+                               placeholder="RFC, WhatsApp, Email o Razón Social"
                                class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                         <button type="button" onclick="lookupCompany()" 
                                 class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
@@ -257,49 +257,65 @@
                     <p id="lookup-result" class="text-sm mt-2 hidden"></p>
                 </div>
                 
-                <!-- Main Registration Fields -->
+                <!-- Main Registration Fields - Orden: RFC, Razón Social, Nombre Empresario/Representante, WhatsApp, Email -->
                 <div id="main-fields-section" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- RFC field (FIRST - hidden in guest mode, required when not guest) -->
+                    <div id="rfc-field" class="md:col-span-2">
+                        <label for="rfc" class="block text-sm font-medium text-gray-700">
+                            RFC <span id="rfc-required-indicator">*</span>
+                            <span id="rfc-type-indicator" class="text-sm text-gray-500 ml-2"></span>
+                        </label>
+                        <input type="text" id="rfc" name="rfc" required
+                               maxlength="13" 
+                               pattern="^[A-ZÑ&]{3,4}[0-9]{6}[A-Z0-9]{3}$"
+                               placeholder="12 caracteres (Moral) o 13 caracteres (Física)"
+                               oninput="validateRFC()"
+                               class="mt-1 block w-full uppercase rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                        <p class="text-xs text-gray-500 mt-1">Persona Moral: 12 caracteres | Persona Física: 13 caracteres</p>
+                    </div>
+                    
+                    <!-- Business Name / Razón Social (SECOND) -->
                     <div class="md:col-span-2">
                         <label for="name" class="block text-sm font-medium text-gray-700">
-                            <span id="name-label">Nombre Completo / Empresa</span> *
+                            <span id="name-label">Razón Social</span> *
                         </label>
                         <input type="text" id="name" name="name" required
+                               placeholder="Nombre de la empresa o razón social"
                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                        <p class="text-xs text-gray-500 mt-1" id="name-help">
+                            Para Persona Física, este campo se repetirá automáticamente
+                        </p>
                     </div>
                     
-                    <!-- Owner/Representative Name field (preloaded from search, hidden in guest mode) -->
+                    <!-- Owner/Representative Name field (THIRD - preloaded from search or manual, hidden in guest mode) -->
                     <div id="owner-name-field" class="md:col-span-2">
-                        <label for="owner_name" class="block text-sm font-medium text-gray-700">Dueño o Representante Legal</label>
-                        <input type="text" id="owner_name" name="owner_name"
-                               placeholder="Nombre del dueño o representante legal"
+                        <label for="owner_name" class="block text-sm font-medium text-gray-700">
+                            Nombre del Empresario / Representante Legal *
+                        </label>
+                        <input type="text" id="owner_name" name="owner_name" required
+                               placeholder="Nombre completo del dueño o representante legal"
                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                     </div>
                     
+                    <!-- WhatsApp (FOURTH) -->
                     <div>
-                        <label for="email" class="block text-sm font-medium text-gray-700">Correo Electrónico *</label>
-                        <input type="email" id="email" name="email" required
-                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
-                    </div>
-                    
-                    <div>
-                        <label for="phone" class="block text-sm font-medium text-gray-700">WhatsApp / Teléfono *</label>
+                        <label for="phone" class="block text-sm font-medium text-gray-700">WhatsApp *</label>
                         <input type="tel" id="phone" name="phone" required
                                maxlength="10" pattern="[0-9]{10}"
                                placeholder="10 dígitos"
                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                     </div>
                     
-                    <!-- RFC field (hidden in guest mode, required when not guest) -->
-                    <div id="rfc-field">
-                        <label for="rfc" class="block text-sm font-medium text-gray-700">RFC <span id="rfc-required-indicator">*</span></label>
-                        <input type="text" id="rfc" name="rfc" required
-                               maxlength="13" pattern="[A-Za-z0-9]{12,13}"
-                               placeholder="12-13 caracteres"
+                    <!-- Corporate Email (FIFTH) -->
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700">Correo Corporativo *</label>
+                        <input type="email" id="email" name="email" required
+                               placeholder="correo@empresa.com"
                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                     </div>
                     
                     <!-- Tickets field (hidden in guest mode - guests can only register 1 ticket) -->
-                    <div id="tickets-field">
+                    <div id="tickets-field" class="md:col-span-2">
                         <label for="tickets" class="block text-sm font-medium text-gray-700">Número de Boletos</label>
                         <select id="tickets" name="tickets" onchange="updateTicketFields()"
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
@@ -450,7 +466,7 @@
         <div class="text-center mt-6 text-sm text-gray-500">
             <p>Organizado por Cámara de Comercio de Querétaro</p>
             <p class="mt-1">
-                <a href="<?php echo BASE_URL; ?>" class="text-blue-600 hover:text-blue-800">Ir al sitio principal</a>
+                <a href="https://www.camaradecomercioqro.mx/" class="text-blue-600 hover:text-blue-800" target="_blank" rel="noopener noreferrer">Ir al sitio principal</a>
             </p>
         </div>
     </div>
@@ -531,6 +547,102 @@
         updateTicketFields();
         updateCostSummary();
     }
+    
+    /**
+     * Validate RFC format and detect person type
+     * RFC format:
+     * - Persona Moral: 12 characters (3-4 letters + 6 digits + 3 alphanumeric)
+     * - Persona Física: 13 characters (4 letters + 6 digits + 3 alphanumeric)
+     */
+    function validateRFC() {
+        const rfcInput = document.getElementById('rfc');
+        const nameInput = document.getElementById('name');
+        const ownerNameInput = document.getElementById('owner_name');
+        const rfcTypeIndicator = document.getElementById('rfc-type-indicator');
+        const nameHelp = document.getElementById('name-help');
+        
+        if (!rfcInput || !rfcInput.value) {
+            rfcTypeIndicator.textContent = '';
+            return;
+        }
+        
+        const rfc = rfcInput.value.toUpperCase().trim();
+        rfcInput.value = rfc; // Auto-uppercase
+        
+        // RFC format validation regex
+        const rfcMoralPattern = /^[A-ZÑ&]{3}[0-9]{6}[A-Z0-9]{3}$/;
+        const rfcFisicaPattern = /^[A-ZÑ&]{4}[0-9]{6}[A-Z0-9]{3}$/;
+        
+        if (rfc.length === 12 && rfcMoralPattern.test(rfc)) {
+            // Persona Moral (12 characters)
+            rfcTypeIndicator.textContent = '(Persona Moral)';
+            rfcTypeIndicator.className = 'text-sm text-blue-600 ml-2 font-medium';
+            rfcInput.classList.remove('border-red-500');
+            rfcInput.classList.add('border-green-500');
+            nameHelp.textContent = 'Razón social de la empresa';
+            
+            // For moral persons, owner name is separate
+            if (ownerNameInput) {
+                ownerNameInput.removeAttribute('readonly');
+                ownerNameInput.placeholder = 'Ingrese nombre del representante legal';
+            }
+            
+        } else if (rfc.length === 13 && rfcFisicaPattern.test(rfc)) {
+            // Persona Física (13 characters)
+            rfcTypeIndicator.textContent = '(Persona Física)';
+            rfcTypeIndicator.className = 'text-sm text-green-600 ml-2 font-medium';
+            rfcInput.classList.remove('border-red-500');
+            rfcInput.classList.add('border-green-500');
+            nameHelp.textContent = 'Para Persona Física, nombre y razón social son el mismo';
+            
+            // For física, copy name to owner_name automatically when name is filled
+            if (ownerNameInput && nameInput && nameInput.value) {
+                ownerNameInput.value = nameInput.value;
+                ownerNameInput.setAttribute('readonly', 'readonly');
+            }
+            
+        } else {
+            // Invalid or incomplete RFC
+            rfcTypeIndicator.textContent = '(Formato inválido)';
+            rfcTypeIndicator.className = 'text-sm text-red-600 ml-2 font-medium';
+            rfcInput.classList.remove('border-green-500');
+            if (rfc.length >= 12) {
+                rfcInput.classList.add('border-red-500');
+            }
+            nameHelp.textContent = 'Ingrese un RFC válido de 12 o 13 caracteres';
+        }
+        
+        // Auto-lookup if RFC is complete and valid
+        if ((rfc.length === 12 && rfcMoralPattern.test(rfc)) || 
+            (rfc.length === 13 && rfcFisicaPattern.test(rfc))) {
+            // Try to lookup company by RFC
+            const lookupInput = document.getElementById('lookup-identifier');
+            if (lookupInput) {
+                lookupInput.value = rfc;
+                lookupCompany();
+            }
+        }
+    }
+    
+    // Sync name with owner_name for Persona Física
+    document.addEventListener('DOMContentLoaded', function() {
+        const nameInput = document.getElementById('name');
+        const ownerNameInput = document.getElementById('owner_name');
+        const rfcInput = document.getElementById('rfc');
+        
+        if (nameInput) {
+            nameInput.addEventListener('input', function() {
+                const rfc = rfcInput ? rfcInput.value : '';
+                // Only sync if Persona Física (13 chars)
+                if (rfc.length === 13 && ownerNameInput && !ownerNameInput.hasAttribute('readonly')) {
+                    const rfcFisicaPattern = /^[A-ZÑ&]{4}[0-9]{6}[A-Z0-9]{3}$/;
+                    if (rfcFisicaPattern.test(rfc.toUpperCase())) {
+                        ownerNameInput.value = nameInput.value;
+                    }
+                }
+            });
+        }
+    });
     
     function toggleOwnerRepresentative() {
         const isOwner = document.getElementById('is_owner_representative').checked;
