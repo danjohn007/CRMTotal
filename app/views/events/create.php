@@ -80,6 +80,36 @@
             </div>
         </div>
         
+        <!-- Room Information -->
+        <div class="mb-8">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Información del Salón</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <label for="room_name" class="block text-sm font-medium text-gray-700">Nombre del Salón</label>
+                    <input type="text" id="room_name" name="room_name"
+                           placeholder="Ej: Salón Principal, Auditorio A"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    <p class="mt-1 text-xs text-gray-500">Nombre del salón donde se realizará el evento</p>
+                </div>
+                
+                <div>
+                    <label for="room_capacity" class="block text-sm font-medium text-gray-700">Capacidad del Salón</label>
+                    <input type="number" id="room_capacity" name="room_capacity" min="0"
+                           placeholder="Ej: 200"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    <p class="mt-1 text-xs text-gray-500">Capacidad total del salón</p>
+                </div>
+                
+                <div>
+                    <label for="allowed_attendees" class="block text-sm font-medium text-gray-700">Asistentes Permitidos</label>
+                    <input type="number" id="allowed_attendees" name="allowed_attendees" min="0"
+                           placeholder="Ej: 150"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    <p class="mt-1 text-xs text-gray-500">Número de registros/boletos permitidos (puede diferir de la capacidad)</p>
+                </div>
+            </div>
+        </div>
+        
         <!-- Image Upload -->
         <div class="mb-8">
             <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Imagen del Evento</h3>
@@ -254,28 +284,46 @@
         <!-- Target Audiences -->
         <div class="mb-8">
             <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Público Objetivo</h3>
+            
+            <!-- "TODOS" checkbox to select all -->
+            <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <label class="flex items-center">
+                    <input type="checkbox" id="select_all_audiences" onclick="toggleAllAudiences(this)"
+                           class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <span class="ml-2 text-sm font-semibold text-blue-900">TODOS - Seleccionar todas las opciones</span>
+                </label>
+            </div>
+            
             <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <?php foreach ($audiences as $value => $label): ?>
                 <label class="flex items-center">
                     <input type="checkbox" name="target_audiences[]" value="<?php echo $value; ?>"
-                           class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                           class="audience-checkbox rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                           onchange="updateSelectAllCheckbox()">
                     <span class="ml-2 text-sm text-gray-700"><?php echo htmlspecialchars($label); ?></span>
                 </label>
                 <?php endforeach; ?>
             </div>
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-200">
-                <label class="flex items-center">
-                    <input type="checkbox" name="target_audiences[]" value="patrocinador_mesa"
-                           class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                    <span class="ml-2 text-sm text-gray-700">Patrocinadores/Mesa Directiva</span>
-                </label>
-                <label class="flex items-center">
-                    <input type="checkbox" name="target_audiences[]" value="colaborador_empresa"
-                           class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                    <span class="ml-2 text-sm text-gray-700">Colaboradores de Empresas</span>
-                </label>
-            </div>
         </div>
+        
+        <script>
+        function toggleAllAudiences(checkbox) {
+            const audienceCheckboxes = document.querySelectorAll('.audience-checkbox');
+            audienceCheckboxes.forEach(cb => {
+                cb.checked = checkbox.checked;
+            });
+        }
+        
+        function updateSelectAllCheckbox() {
+            const audienceCheckboxes = document.querySelectorAll('.audience-checkbox');
+            const selectAllCheckbox = document.getElementById('select_all_audiences');
+            const allChecked = Array.from(audienceCheckboxes).every(cb => cb.checked);
+            const someChecked = Array.from(audienceCheckboxes).some(cb => cb.checked);
+            
+            selectAllCheckbox.checked = allChecked;
+            selectAllCheckbox.indeterminate = someChecked && !allChecked;
+        }
+        </script>
         
         <!-- Submit -->
         <div class="flex justify-end space-x-3">

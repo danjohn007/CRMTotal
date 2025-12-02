@@ -28,16 +28,21 @@ class Contact extends Model {
     }
     
     public function identify(string $identifier): ?array {
-        // Try RFC first, then WhatsApp, then phone, then email
+        // Try RFC first, then WhatsApp, then email, then business name (razón social)
         $contact = $this->findByRfc($identifier);
         if (!$contact) {
             $contact = $this->findByWhatsapp($identifier);
         }
         if (!$contact) {
-            $contact = $this->findBy('phone', $identifier);
+            $contact = $this->findBy('corporate_email', $identifier);
         }
         if (!$contact) {
-            $contact = $this->findBy('corporate_email', $identifier);
+            // Search by business name (razón social) - case insensitive
+            $sql = "SELECT * FROM {$this->table} 
+                    WHERE LOWER(business_name) = LOWER(:identifier) 
+                    OR LOWER(commercial_name) = LOWER(:identifier)
+                    LIMIT 1";
+            $contact = $this->rawOne($sql, ['identifier' => $identifier]);
         }
         return $contact;
     }
