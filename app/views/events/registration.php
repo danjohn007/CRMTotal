@@ -526,6 +526,8 @@
             // RFC is not required for guests
             rfcInput.removeAttribute('required');
             rfcInput.value = '';
+            // Owner name not required for guests
+            document.getElementById('owner_name').removeAttribute('required');
             // Guest type is required
             guestTypeSelect.setAttribute('required', 'required');
         } else {
@@ -539,6 +541,8 @@
             // RFC is required for non-guests
             rfcInput.setAttribute('required', 'required');
             rfcRequiredIndicator.classList.remove('hidden');
+            // Owner name required for non-guests
+            document.getElementById('owner_name').setAttribute('required', 'required');
             // Guest type is not required
             guestTypeSelect.removeAttribute('required');
             guestTypeSelect.value = '';
@@ -882,12 +886,51 @@
     
     // Form validation
     document.getElementById('registration-form')?.addEventListener('submit', function(e) {
+        console.log('Form submit event triggered');
+        
+        const isGuest = document.getElementById('is_guest').checked;
+        
+        // Validate guest type if guest mode is active
+        if (isGuest) {
+            const guestType = document.getElementById('guest_type').value;
+            if (!guestType) {
+                e.preventDefault();
+                alert('Por favor, selecciona un tipo de invitado.');
+                document.getElementById('guest_type').focus();
+                return false;
+            }
+        }
+        
+        // Validate phone
         const phone = document.getElementById('phone').value;
         if (phone && !/^\d{10}$/.test(phone)) {
             e.preventDefault();
             document.getElementById('phone').focus();
             alert('El teléfono debe tener exactamente 10 dígitos.');
             return false;
+        }
+        
+        // Validate attendee details if not owner/representative and not guest
+        if (!isGuest) {
+            const isOwner = document.getElementById('is_owner_representative').checked;
+            if (!isOwner) {
+                const attendeeName = document.getElementById('attendee_name').value.trim();
+                const attendeePhone = document.getElementById('attendee_phone').value.trim();
+                const attendeeEmail = document.getElementById('attendee_email').value.trim();
+                
+                if (!attendeeName || !attendeePhone || !attendeeEmail) {
+                    e.preventDefault();
+                    alert('Por favor, completa la información del asistente (nombre, teléfono y correo).');
+                    return false;
+                }
+                
+                if (attendeePhone && !/^\d{10}$/.test(attendeePhone)) {
+                    e.preventDefault();
+                    alert('El teléfono del asistente debe tener exactamente 10 dígitos.');
+                    document.getElementById('attendee_phone').focus();
+                    return false;
+                }
+            }
         }
         
         // Validate additional attendees
@@ -901,6 +944,24 @@
                 return false;
             }
         }
+        
+        // Validate spam check
+        const spamCheck = document.getElementById('spam_check').value;
+        if (!spamCheck || spamCheck.trim() === '') {
+            e.preventDefault();
+            alert('Por favor, responde la verificación anti-spam.');
+            document.getElementById('spam_check').focus();
+            return false;
+        }
+        
+        console.log('Form validation passed, submitting...');
+        
+        // Show loading state
+        const submitButton = document.getElementById('submit-button');
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<svg class="animate-spin h-5 w-5 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Procesando...';
+        
+        // Form will submit normally if we reach here
     });
     
     // Initialize on page load

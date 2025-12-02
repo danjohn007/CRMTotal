@@ -105,13 +105,13 @@ class ApiController extends Controller {
         }
         
         $contactModel = new Contact();
-        $searchLog = new SearchLog();
+        // $searchLog = new SearchLog();
         
         $searcherType = $this->isAuthenticated() ? 'afiliado' : 'publico';
         $results = $contactModel->search($term, $searcherType);
         
-        // Log the search
-        $searchLog->log($term, count($results), $searcherType);
+        // Log the search (commented out - method not implemented)
+        // $searchLog->log($term, count($results), $searcherType);
         
         $this->json([
             'success' => true,
@@ -343,14 +343,8 @@ class ApiController extends Controller {
             // Build the HTML email with QR code embedded
             $body = $this->buildAccessTicketEmailTemplate($event, $registrationData, $registrationCode, $qrFilename, $configModel);
             
-            // Send HTML email
-            $headers = "From: " . ($configModel->get('smtp_from_name', 'CRM CCQ')) . " <noreply@camaradecomercioqro.mx>\r\n";
-            $headers .= "Reply-To: " . ($configModel->get('contact_email', 'info@camaradecomercioqro.mx')) . "\r\n";
-            $headers .= "MIME-Version: 1.0\r\n";
-            $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
-            
-            // Send email to primary and optionally to attendee
-            $this->sendToRegistrantEmails($registrationData, $subject, $body, $headers);
+            // Send email to primary and optionally to attendee using SMTP
+            $this->sendToRegistrantEmails($registrationData, $subject, $body);
             
             // Update QR sent flag
             $this->db->update('event_registrations', [
@@ -423,13 +417,20 @@ class ApiController extends Controller {
      * @param string $headers Email headers
      * @return void
      */
-    private function sendToRegistrantEmails(array $registrationData, string $subject, string $body, string $headers): void {
+    private function sendToRegistrantEmails(array $registrationData, string $subject, string $body): void {
+        $configModel = new Config();
+        
         // Send to primary email (guest_email - company/main registrant)
         $primaryEmail = $registrationData['guest_email'];
         if (filter_var($primaryEmail, FILTER_VALIDATE_EMAIL)) {
-            $primaryResult = @mail($primaryEmail, $subject, $body, $headers);
+            $primaryResult = $this->sendSmtpEmail($primaryEmail, $subject, $body);
             if (!$primaryResult) {
-                error_log("Failed to send ticket email to primary email: " . $primaryEmail);
+                error_log("Failed to send ticket email via SMTP to primary email: " . $primaryEmail);
+                // Fallback to mail()
+                $headers = "From: " . ($configModel->get('smtp_from_name', 'CRM CCQ')) . " <noreply@camaradecomercioqro.mx>\r\n";
+                $headers .= "MIME-Version: 1.0\r\n";
+                $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+                @mail($primaryEmail, $subject, $body, $headers);
             }
         } else {
             error_log("Invalid primary email address format: " . $primaryEmail);
@@ -439,9 +440,14 @@ class ApiController extends Controller {
         $attendeeEmail = $registrationData['attendee_email'] ?? '';
         if (!empty($attendeeEmail) && strtolower($attendeeEmail) !== strtolower($primaryEmail)) {
             if (filter_var($attendeeEmail, FILTER_VALIDATE_EMAIL)) {
-                $attendeeResult = @mail($attendeeEmail, $subject, $body, $headers);
+                $attendeeResult = $this->sendSmtpEmail($attendeeEmail, $subject, $body);
                 if (!$attendeeResult) {
-                    error_log("Failed to send ticket email to attendee email: " . $attendeeEmail);
+                    error_log("Failed to send ticket email via SMTP to attendee email: " . $attendeeEmail);
+                    // Fallback to mail()
+                    $headers = "From: " . ($configModel->get('smtp_from_name', 'CRM CCQ')) . " <noreply@camaradecomercioqro.mx>\r\n";
+                    $headers .= "MIME-Version: 1.0\r\n";
+                    $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+                    @mail($attendeeEmail, $subject, $body, $headers);
                 }
             } else {
                 error_log("Invalid attendee email address format: " . $attendeeEmail);
@@ -593,5 +599,114 @@ class ApiController extends Controller {
 </body>
 </html>
 HTML;
+    }
+    
+    /**
+     * Send email using configured SMTP (same as EventsController)
+     */
+    private function sendSmtpEmail(string $to, string $subject, string $body): bool {
+        try {
+            $configModel = new Config();
+            $config = $configModel->getAll();
+            $host = $config['smtp_host'] ?? '';
+            $port = (int)($config['smtp_port'] ?? 587);
+            $user = $config['smtp_user'] ?? '';
+            $password = $config['smtp_password'] ?? '';
+            $fromName = $config['smtp_from_name'] ?? 'CRM CCQ';
+            $secure = $config['smtp_secure'] ?? ($port == 465 ? 'ssl' : 'tls');
+            
+            if (empty($host) || empty($user) || empty($password)) {
+                return false;
+            }
+            
+            $protocol = ($secure === 'ssl') ? 'ssl://' : '';
+            $context = stream_context_create([
+                'ssl' => [
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                    'allow_self_signed' => true
+                ]
+            ]);
+            
+            $socket = @stream_socket_client(
+                "$protocol$host:$port",
+                $errno,
+                $errstr,
+                30,
+                STREAM_CLIENT_CONNECT,
+                $context
+            );
+            
+            if (!$socket) return false;
+            
+            // Read greeting
+            $greetingLines = 0;
+            while ($line = fgets($socket, 515)) {
+                $greetingLines++;
+                if (strlen($line) >= 4 && $line[3] === ' ') break;
+                if ($greetingLines > 20) {
+                    fclose($socket);
+                    return false;
+                }
+            }
+            
+            // EHLO
+            fputs($socket, "EHLO $host\r\n");
+            while ($line = fgets($socket, 515)) {
+                if (strlen($line) >= 4 && $line[3] === ' ') break;
+            }
+            
+            // STARTTLS
+            if ($port === 587 && $secure === 'tls') {
+                fputs($socket, "STARTTLS\r\n");
+                $response = fgets($socket, 515);
+                if (substr($response, 0, 3) === '220') {
+                    stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
+                    fputs($socket, "EHLO $host\r\n");
+                    while ($line = fgets($socket, 515)) {
+                        if (strlen($line) >= 4 && $line[3] === ' ') break;
+                    }
+                }
+            }
+            
+            // AUTH PLAIN
+            $authString = base64_encode("\0" . $user . "\0" . $password);
+            fputs($socket, "AUTH PLAIN $authString\r\n");
+            $response = fgets($socket, 515);
+            
+            if (substr($response, 0, 3) !== '235') {
+                fclose($socket);
+                return false;
+            }
+            
+            // Send mail
+            fputs($socket, "MAIL FROM:<$user>\r\n");
+            fgets($socket, 515);
+            
+            fputs($socket, "RCPT TO:<$to>\r\n");
+            fgets($socket, 515);
+            
+            fputs($socket, "DATA\r\n");
+            fgets($socket, 515);
+            
+            $message = "From: $fromName <$user>\r\n";
+            $message .= "To: $to\r\n";
+            $message .= "Subject: $subject\r\n";
+            $message .= "MIME-Version: 1.0\r\n";
+            $message .= "Content-Type: text/html; charset=UTF-8\r\n";
+            $message .= "Date: " . date('r') . "\r\n\r\n";
+            $message .= $body . "\r\n.\r\n";
+            
+            fputs($socket, $message);
+            $response = fgets($socket, 515);
+            
+            fputs($socket, "QUIT\r\n");
+            fclose($socket);
+            
+            return substr($response, 0, 3) === '250';
+            
+        } catch (Exception $e) {
+            return false;
+        }
     }
 }

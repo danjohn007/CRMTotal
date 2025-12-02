@@ -783,13 +783,18 @@ class EventsController extends Controller {
                 $body = $this->buildConfirmationEmailTemplate($event, $registrationData, $registrationCode);
             }
             
-            // Send HTML email
-            $headers = "From: " . ($this->configModel->get('smtp_from_name', 'CRM CCQ')) . " <noreply@camaradecomercioqro.mx>\r\n";
-            $headers .= "Reply-To: " . ($this->configModel->get('contact_email', 'info@camaradecomercioqro.mx')) . "\r\n";
-            $headers .= "MIME-Version: 1.0\r\n";
-            $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+            // Send HTML email using SMTP
+            $sent = $this->sendSmtpEmail($to, $subject, $body);
             
-            mail($to, $subject, $body, $headers);
+            // Fallback to mail() if SMTP fails
+            if (!$sent) {
+                $headers = "From: " . ($this->configModel->get('smtp_from_name', 'CRM CCQ')) . " <noreply@camaradecomercioqro.mx>\r\n";
+                $headers .= "Reply-To: " . ($this->configModel->get('contact_email', 'info@camaradecomercioqro.mx')) . "\r\n";
+                $headers .= "MIME-Version: 1.0\r\n";
+                $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+                
+                mail($to, $subject, $body, $headers);
+            }
             
             // Update confirmation sent flag
             $this->eventModel->updateConfirmationSent($registrationId);
@@ -1092,14 +1097,8 @@ HTML;
             // Build the HTML email with QR code embedded
             $body = $this->buildAccessTicketEmailTemplate($event, $registrationData, $qrRegistrationCode, $qrFilename);
             
-            // Send HTML email
-            $headers = "From: " . ($this->configModel->get('smtp_from_name', 'CRM CCQ')) . " <noreply@camaradecomercioqro.mx>\r\n";
-            $headers .= "Reply-To: " . ($this->configModel->get('contact_email', 'info@camaradecomercioqro.mx')) . "\r\n";
-            $headers .= "MIME-Version: 1.0\r\n";
-            $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
-            
             // Send email to primary and optionally to attendee
-            $this->sendToRegistrantEmails($registrationData, $subject, $body, $headers);
+            $this->sendToRegistrantEmails($registrationData, $subject, $body);
             
             // Update QR sent flag
             $this->eventModel->updateQRSent($registrationId);
@@ -1118,16 +1117,21 @@ HTML;
      * @param array $registrationData Registration data containing guest_email and attendee_email
      * @param string $subject Email subject
      * @param string $body Email body (HTML)
-     * @param string $headers Email headers
      * @return void
      */
-    private function sendToRegistrantEmails(array $registrationData, string $subject, string $body, string $headers): void {
+    private function sendToRegistrantEmails(array $registrationData, string $subject, string $body): void {
         // Send to primary email (guest_email - company/main registrant)
         $primaryEmail = $registrationData['guest_email'];
         if (filter_var($primaryEmail, FILTER_VALIDATE_EMAIL)) {
-            $primaryResult = @mail($primaryEmail, $subject, $body, $headers);
+            $primaryResult = $this->sendSmtpEmail($primaryEmail, $subject, $body);
             if (!$primaryResult) {
                 error_log("Failed to send ticket email to primary email: " . $primaryEmail);
+                // Fallback to mail()
+                $headers = "From: " . ($this->configModel->get('smtp_from_name', 'CRM CCQ')) . " <noreply@camaradecomercioqro.mx>\r\n";
+                $headers .= "Reply-To: " . ($this->configModel->get('contact_email', 'info@camaradecomercioqro.mx')) . "\r\n";
+                $headers .= "MIME-Version: 1.0\r\n";
+                $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+                @mail($primaryEmail, $subject, $body, $headers);
             }
         } else {
             error_log("Invalid primary email address format: " . $primaryEmail);
@@ -1137,9 +1141,15 @@ HTML;
         $attendeeEmail = $registrationData['attendee_email'] ?? '';
         if (!empty($attendeeEmail) && strtolower($attendeeEmail) !== strtolower($primaryEmail)) {
             if (filter_var($attendeeEmail, FILTER_VALIDATE_EMAIL)) {
-                $attendeeResult = @mail($attendeeEmail, $subject, $body, $headers);
+                $attendeeResult = $this->sendSmtpEmail($attendeeEmail, $subject, $body);
                 if (!$attendeeResult) {
                     error_log("Failed to send ticket email to attendee email: " . $attendeeEmail);
+                    // Fallback to mail()
+                    $headers = "From: " . ($this->configModel->get('smtp_from_name', 'CRM CCQ')) . " <noreply@camaradecomercioqro.mx>\r\n";
+                    $headers .= "Reply-To: " . ($this->configModel->get('contact_email', 'info@camaradecomercioqro.mx')) . "\r\n";
+                    $headers .= "MIME-Version: 1.0\r\n";
+                    $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+                    @mail($attendeeEmail, $subject, $body, $headers);
                 }
             } else {
                 error_log("Invalid attendee email address format: " . $attendeeEmail);
@@ -1401,5 +1411,128 @@ HTML;
             'success' => $success,
             'csrf_token' => $this->csrfToken()
         ]);
+    }
+    
+    /**
+     * Send email using configured SMTP
+     */
+    private function sendSmtpEmail(string $to, string $subject, string $body): bool {
+        try {
+            // Get SMTP configuration
+            $config = $this->configModel->getAll();
+            $host = $config['smtp_host'] ?? '';
+            $port = (int)($config['smtp_port'] ?? 587);
+            $user = $config['smtp_user'] ?? '';
+            $password = $config['smtp_password'] ?? '';
+            $fromName = $config['smtp_from_name'] ?? 'CRM CCQ';
+            $secure = $config['smtp_secure'] ?? ($port == 465 ? 'ssl' : 'tls');
+            
+            // Validate configuration
+            if (empty($host) || empty($user) || empty($password)) {
+                error_log("SMTP not configured, using fallback mail()");
+                return false;
+            }
+            
+            // Build connection string
+            $protocol = ($secure === 'ssl') ? 'ssl://' : '';
+            $connectionString = $protocol . $host;
+            
+            // Create SSL context
+            $context = stream_context_create([
+                'ssl' => [
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                    'allow_self_signed' => true
+                ]
+            ]);
+            
+            // Connect to SMTP server
+            $socket = @stream_socket_client(
+                "$connectionString:$port",
+                $errno,
+                $errstr,
+                30,
+                STREAM_CLIENT_CONNECT,
+                $context
+            );
+            
+            if (!$socket) {
+                error_log("SMTP connection failed: $errstr ($errno)");
+                return false;
+            }
+            
+            // Read server greeting (all 220 lines)
+            $greetingLines = 0;
+            while ($line = fgets($socket, 515)) {
+                $greetingLines++;
+                if (strlen($line) >= 4 && $line[3] === ' ') break;
+                if ($greetingLines > 20) {
+                    fclose($socket);
+                    return false;
+                }
+            }
+            
+            // Send EHLO
+            fputs($socket, "EHLO $host\r\n");
+            while ($line = fgets($socket, 515)) {
+                if (strlen($line) >= 4 && $line[3] === ' ') break;
+            }
+            
+            // Start TLS if needed
+            if ($port === 587 && $secure === 'tls') {
+                fputs($socket, "STARTTLS\r\n");
+                $response = fgets($socket, 515);
+                if (substr($response, 0, 3) === '220') {
+                    stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
+                    fputs($socket, "EHLO $host\r\n");
+                    while ($line = fgets($socket, 515)) {
+                        if (strlen($line) >= 4 && $line[3] === ' ') break;
+                    }
+                }
+            }
+            
+            // Authenticate with AUTH PLAIN
+            $authString = base64_encode("\0" . $user . "\0" . $password);
+            fputs($socket, "AUTH PLAIN $authString\r\n");
+            $response = fgets($socket, 515);
+            
+            if (substr($response, 0, 3) !== '235') {
+                fclose($socket);
+                error_log("SMTP authentication failed");
+                return false;
+            }
+            
+            // Send email
+            fputs($socket, "MAIL FROM:<$user>\r\n");
+            fgets($socket, 515);
+            
+            fputs($socket, "RCPT TO:<$to>\r\n");
+            fgets($socket, 515);
+            
+            fputs($socket, "DATA\r\n");
+            fgets($socket, 515);
+            
+            // Email content
+            $message = "From: $fromName <$user>\r\n";
+            $message .= "To: $to\r\n";
+            $message .= "Subject: $subject\r\n";
+            $message .= "MIME-Version: 1.0\r\n";
+            $message .= "Content-Type: text/html; charset=UTF-8\r\n";
+            $message .= "Date: " . date('r') . "\r\n\r\n";
+            $message .= $body . "\r\n";
+            $message .= ".\r\n";
+            
+            fputs($socket, $message);
+            $response = fgets($socket, 515);
+            
+            fputs($socket, "QUIT\r\n");
+            fclose($socket);
+            
+            return substr($response, 0, 3) === '250';
+            
+        } catch (Exception $e) {
+            error_log("SMTP send error: " . $e->getMessage());
+            return false;
+        }
     }
 }

@@ -105,6 +105,10 @@
                     },
                     onApprove: function(data, actions) {
                         return actions.order.capture().then(function(details) {
+                            // Show loading message
+                            var paypalContainer = document.getElementById('paypal-button-container');
+                            paypalContainer.innerHTML = '<div style="text-align:center; padding:20px;"><p style="font-size:18px; color:#10b981;">✓ Pago completado</p><p>Generando tu boleto...</p><div style="margin-top:10px;"><div style="border:3px solid #f3f3f3; border-top:3px solid #3498db; border-radius:50%; width:40px; height:40px; animation:spin 1s linear infinite; margin:0 auto;"></div></div></div><style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>';
+                            
                             // Send payment confirmation to server
                             fetch(<?php echo json_encode(BASE_URL . '/api/eventos/confirmar-pago'); ?>, {
                                 method: 'POST',
@@ -117,19 +121,17 @@
                                     payer_email: details.payer.email_address
                                 })
                             }).then(function(response) {
+                                if (!response.ok) {
+                                    throw new Error('Error en la respuesta del servidor');
+                                }
                                 return response.json();
                             }).then(function(result) {
-                                if (result.success) {
-                                    // Show success message with email before redirect
-                                    alert('¡Pago completado exitosamente! Se ha enviado tu boleto a: <?php echo htmlspecialchars($registration['guest_email'] ?? ''); ?>');
-                                    // Redirect to ticket page
-                                    window.location.href = <?php echo json_encode(BASE_URL . '/evento/boleto/' . $registration['registration_code']); ?>;
-                                } else {
-                                    alert('Pago procesado pero hubo un error al generar el boleto. Por favor contacta al organizador.');
-                                }
+                                console.log('Payment confirmation result:', result);
+                                // Redirect to ticket page immediately
+                                window.location.href = <?php echo json_encode(BASE_URL . '/evento/boleto/' . $registration['registration_code']); ?>;
                             }).catch(function(error) {
-                                console.error(error);
-                                alert('¡Pago completado! Se ha enviado tu boleto a: <?php echo htmlspecialchars($registration['guest_email'] ?? ''); ?>');
+                                console.error('Error confirmando pago:', error);
+                                // Even if confirmation fails, redirect to ticket (payment was already captured)
                                 window.location.href = <?php echo json_encode(BASE_URL . '/evento/boleto/' . $registration['registration_code']); ?>;
                             });
                         });

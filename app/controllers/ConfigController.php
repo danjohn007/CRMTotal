@@ -227,6 +227,15 @@ class ConfigController extends Controller {
     }
     
     public function testEmail(): void {
+        // Disable error output to prevent HTML in JSON response
+        @ini_set('display_errors', '0');
+        error_reporting(0);
+        
+        // Clean any output buffer
+        if (ob_get_level()) {
+            ob_clean();
+        }
+        
         $this->requireAuth();
         $this->requireRole(['superadmin']);
         
@@ -234,31 +243,35 @@ class ConfigController extends Controller {
             $this->json(['success' => false, 'message' => 'Método no permitido'], 405);
         }
         
-        $config = $this->configModel->getAll();
-        
-        // Validate SMTP configuration
-        if (empty($config['smtp_host']) || empty($config['smtp_user']) || empty($config['smtp_password'])) {
-            $this->json(['success' => false, 'message' => 'Configuración SMTP incompleta. Por favor configure el servidor, usuario y contraseña.']);
-        }
-        
-        $testEmail = $this->sanitize($this->getInput('test_email', $config['smtp_user']));
-        
-        if (empty($testEmail)) {
-            $this->json(['success' => false, 'message' => 'Por favor proporcione un correo de destino.']);
-        }
-        
-        // Send test email using SMTP
-        $result = $this->sendEmail(
-            $testEmail,
-            'Correo de Prueba - CRM CCQ',
-            $this->getTestEmailBody($config),
-            $config
-        );
-        
-        if ($result['success']) {
-            $this->json(['success' => true, 'message' => 'Correo de prueba enviado exitosamente a ' . $testEmail]);
-        } else {
-            $this->json(['success' => false, 'message' => 'Error al enviar: ' . $result['error']]);
+        try {
+            $config = $this->configModel->getAll();
+            
+            // Validate SMTP configuration
+            if (empty($config['smtp_host']) || empty($config['smtp_user']) || empty($config['smtp_password'])) {
+                $this->json(['success' => false, 'message' => 'Configuración SMTP incompleta. Por favor configure el servidor, usuario y contraseña.']);
+            }
+            
+            $testEmail = $this->sanitize($this->getInput('test_email', $config['smtp_user']));
+            
+            if (empty($testEmail)) {
+                $this->json(['success' => false, 'message' => 'Por favor proporcione un correo de destino.']);
+            }
+            
+            // Send test email using SMTP
+            $result = $this->sendEmail(
+                $testEmail,
+                'Correo de Prueba - CRM CCQ',
+                $this->getTestEmailBody($config),
+                $config
+            );
+            
+            if ($result['success']) {
+                $this->json(['success' => true, 'message' => 'Correo de prueba enviado exitosamente a ' . $testEmail]);
+            } else {
+                $this->json(['success' => false, 'message' => 'Error al enviar: ' . ($result['error'] ?? 'Error desconocido')]);
+            }
+        } catch (Exception $e) {
+            $this->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
         }
     }
     
@@ -269,121 +282,167 @@ class ConfigController extends Controller {
         $password = $config['smtp_password'] ?? '';
         $fromName = $config['smtp_from_name'] ?? 'CRM CCQ';
         
-        // Use PHP's mail function with SMTP headers for basic implementation
-        // For production, consider using PHPMailer or similar library
-        
-        $headers = [
-            'MIME-Version: 1.0',
-            'Content-type: text/html; charset=UTF-8',
-            'From: ' . $fromName . ' <' . $user . '>',
-            'Reply-To: ' . $user,
-            'X-Mailer: PHP/' . phpversion()
-        ];
-        
-        // Try to send with mail() function first
-        // For more robust SMTP, a library like PHPMailer would be needed
-        try {
-            // Set SMTP settings for mail function
-            ini_set('SMTP', $host);
-            ini_set('smtp_port', $port);
-            
-            // Suppress warnings but capture error
-            $errorLevel = error_reporting(0);
-            $sent = mail($to, $subject, $body, implode("\r\n", $headers));
-            $mailError = error_get_last();
-            error_reporting($errorLevel);
-            
-            if ($sent) {
-                return ['success' => true];
-            } else {
-                // Log the mail error for debugging
-                $errorMessage = $mailError ? $mailError['message'] : 'Error desconocido';
-                // Try with fsockopen SMTP for more control
-                return $this->sendSmtpEmail($to, $subject, $body, $host, $port, $user, $password, $fromName);
-            }
-        } catch (Exception $e) {
-            return ['success' => false, 'error' => $e->getMessage()];
+        // Determine secure type: ssl for port 465, tls for port 587, or use config value
+        $configSecure = $config['smtp_secure'] ?? '';
+        if (!empty($configSecure)) {
+            $secure = $configSecure;
+        } else {
+            // Auto-detect based on port
+            $secure = ($port == 465) ? 'ssl' : 'tls';
         }
+        
+        // Use direct SMTP connection
+        return $this->sendSmtpEmail($to, $subject, $body, $host, $port, $user, $password, $fromName, $secure);
     }
     
-    private function sendSmtpEmail(string $to, string $subject, string $body, string $host, int $port, string $user, string $password, string $fromName): array {
+    private function sendSmtpEmail(string $to, string $subject, string $body, string $host, int $port, string $user, string $password, string $fromName, string $secure = 'tls'): array {
         try {
-            // Simple SMTP connection with proper error handling
-            $socket = fsockopen($host, $port, $errno, $errstr, 30);
+            // Build connection string with SSL/TLS support
+            $protocol = ($secure === 'ssl') ? 'ssl://' : '';
+            $connectionString = $protocol . $host;
+            
+            // Create context for SSL
+            $context = stream_context_create([
+                'ssl' => [
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                    'allow_self_signed' => true
+                ]
+            ]);
+            
+            // Connect to SMTP server
+            $errno = 0;
+            $errstr = '';
+            $socket = @stream_socket_client(
+                "$connectionString:$port",
+                $errno,
+                $errstr,
+                30,
+                STREAM_CLIENT_CONNECT,
+                $context
+            );
             
             if (!$socket) {
-                return ['success' => false, 'error' => "No se pudo conectar al servidor SMTP: $errstr ($errno)"];
+                $errorMsg = $errstr ? "$errstr ($errno)" : "Error de conexión ($errno)";
+                return ['success' => false, 'error' => "No se pudo conectar al servidor SMTP: $errorMsg. Verifica host=$host, port=$port, secure=$secure"];
             }
             
-            // Get server greeting
-            $response = fgets($socket, 515);
-            if ($response === false || substr($response, 0, 3) !== '220') {
-                fclose($socket);
-                return ['success' => false, 'error' => 'Error en saludo del servidor: ' . ($response ?: 'Sin respuesta')];
+            // Get server greeting (read all 220 lines)
+            $greetingLines = 0;
+            while ($line = fgets($socket, 515)) {
+                $greetingLines++;
+                // Check if this is the last line of greeting (220 instead of 220-)
+                if (strlen($line) >= 4 && $line[3] === ' ') {
+                    break;
+                }
+                // Safety limit
+                if ($greetingLines > 20) {
+                    fclose($socket);
+                    return ['success' => false, 'error' => 'Error: Saludo del servidor demasiado largo'];
+                }
             }
             
             // Send EHLO
-            fputs($socket, "EHLO " . gethostname() . "\r\n");
+            fputs($socket, "EHLO " . $host . "\r\n");
             $response = $this->getSmtpResponse($socket);
             
-            // Start TLS if port is 587
-            if ($port === 587) {
+            // Start TLS if port is 587 and not using SSL
+            if ($port === 587 && $secure === 'tls') {
                 fputs($socket, "STARTTLS\r\n");
                 $response = fgets($socket, 515);
                 if (substr($response, 0, 3) === '220') {
                     stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
-                    fputs($socket, "EHLO " . gethostname() . "\r\n");
+                    fputs($socket, "EHLO " . $host . "\r\n");
                     $response = $this->getSmtpResponse($socket);
                 }
             }
             
-            // Authentication
-            fputs($socket, "AUTH LOGIN\r\n");
+            // Authentication - Try AUTH PLAIN first, then AUTH LOGIN
+            $authenticated = false;
+            
+            // Try AUTH PLAIN
+            $authString = base64_encode("\0" . $user . "\0" . $password);
+            fputs($socket, "AUTH PLAIN $authString\r\n");
             $response = fgets($socket, 515);
             
-            fputs($socket, base64_encode($user) . "\r\n");
-            $response = fgets($socket, 515);
+            if (substr($response, 0, 3) === '235') {
+                $authenticated = true;
+            } else {
+                // Try AUTH LOGIN as fallback
+                fputs($socket, "AUTH LOGIN\r\n");
+                $response = fgets($socket, 515);
+                
+                if (substr($response, 0, 3) === '334') {
+                    fputs($socket, base64_encode($user) . "\r\n");
+                    $response = fgets($socket, 515);
+                    
+                    if (substr($response, 0, 3) === '334') {
+                        fputs($socket, base64_encode($password) . "\r\n");
+                        $response = fgets($socket, 515);
+                        
+                        if (substr($response, 0, 3) === '235') {
+                            $authenticated = true;
+                        }
+                    }
+                }
+            }
             
-            fputs($socket, base64_encode($password) . "\r\n");
-            $response = fgets($socket, 515);
-            
-            if (substr($response, 0, 3) !== '235') {
+            if (!$authenticated) {
                 fclose($socket);
-                return ['success' => false, 'error' => 'Error de autenticación SMTP'];
+                return ['success' => false, 'error' => 'Error de autenticación SMTP. Verifica usuario y contraseña: ' . $response];
             }
             
             // Send email
             fputs($socket, "MAIL FROM:<$user>\r\n");
             $response = fgets($socket, 515);
             
+            if (substr($response, 0, 3) !== '250') {
+                fclose($socket);
+                return ['success' => false, 'error' => 'Error en MAIL FROM: ' . $response];
+            }
+            
             fputs($socket, "RCPT TO:<$to>\r\n");
             $response = fgets($socket, 515);
             
+            if (substr($response, 0, 3) !== '250') {
+                fclose($socket);
+                return ['success' => false, 'error' => 'Error en RCPT TO: ' . $response];
+            }
+            
             fputs($socket, "DATA\r\n");
             $response = fgets($socket, 515);
+            
+            if (substr($response, 0, 3) !== '354') {
+                fclose($socket);
+                return ['success' => false, 'error' => 'Error en DATA: ' . $response];
+            }
             
             // Email content
             $message = "From: $fromName <$user>\r\n";
             $message .= "To: $to\r\n";
             $message .= "Subject: $subject\r\n";
             $message .= "MIME-Version: 1.0\r\n";
-            $message .= "Content-Type: text/html; charset=UTF-8\r\n\r\n";
-            $message .= $body . "\r\n.\r\n";
+            $message .= "Content-Type: text/html; charset=UTF-8\r\n";
+            $message .= "Date: " . date('r') . "\r\n\r\n";
+            $message .= $body . "\r\n";
+            $message .= ".\r\n";
             
             fputs($socket, $message);
             $response = fgets($socket, 515);
             
-            fputs($socket, "QUIT\r\n");
-            fclose($socket);
-            
-            if (substr($response, 0, 3) === '250') {
-                return ['success' => true];
-            } else {
+            if (substr($response, 0, 3) !== '250') {
+                fclose($socket);
                 return ['success' => false, 'error' => 'Error al enviar mensaje: ' . $response];
             }
             
+            fputs($socket, "QUIT\r\n");
+            $response = fgets($socket, 515);
+            fclose($socket);
+            
+            return ['success' => true, 'message' => 'Correo enviado exitosamente'];
+            
         } catch (Exception $e) {
-            return ['success' => false, 'error' => $e->getMessage()];
+            return ['success' => false, 'error' => 'Excepción: ' . $e->getMessage()];
         }
     }
     

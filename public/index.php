@@ -154,11 +154,15 @@ $router->add('usuarios/{id}/editar', ['controller' => 'users', 'action' => 'edit
 // Memberships
 $router->add('membresias', ['controller' => 'memberships', 'action' => 'index']);
 $router->add('membresias/nuevo', ['controller' => 'memberships', 'action' => 'create']);
-$router->add('membresias/{id}/pagar', ['controller' => 'memberships', 'action' => 'pay']);
-$router->add('membresias/{id}', ['controller' => 'memberships', 'action' => 'show']);
-$router->add('membresias/{id}/editar', ['controller' => 'memberships', 'action' => 'edit']);
+// API endpoints (must be before dynamic routes)
 $router->add('membresias/crear-suscripcion', ['controller' => 'memberships', 'action' => 'createSubscription']);
 $router->add('membresias/obtener-suscripcion', ['controller' => 'memberships', 'action' => 'getSubscription']);
+$router->add('membresias/crear-pago', ['controller' => 'memberships', 'action' => 'createOrder']);
+$router->add('membresias/capturar-pago', ['controller' => 'memberships', 'action' => 'captureOrder']);
+// Dynamic routes (must be after static routes)
+$router->add('membresias/{id}/pagar', ['controller' => 'memberships', 'action' => 'pay']);
+$router->add('membresias/{id}/editar', ['controller' => 'memberships', 'action' => 'edit']);
+$router->add('membresias/{id}', ['controller' => 'memberships', 'action' => 'show']);
 
 // Financial Module
 $router->add('financiero', ['controller' => 'financial', 'action' => 'index']);

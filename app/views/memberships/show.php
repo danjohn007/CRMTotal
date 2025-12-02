@@ -163,90 +163,59 @@
     </div>
 </div>
 
-<?php if (!empty($membership['paypal_product_id']) && !empty($paypalClientId)): ?>
-<!-- PayPal SDK -->
-<script src="https://www.paypal.com/sdk/js?client-id=<?php echo htmlspecialchars($paypalClientId); ?>&currency=MXN"></script>
-<script>
-paypal.Buttons({
-    createOrder: function(data, actions) {
-        // Show loading
-        const container = document.getElementById('paypal-button-container');
-        container.innerHTML = '<div class="text-center text-gray-500">Procesando...</div>';
-        
-        // Create order via our backend
-        return fetch('<?php echo BASE_URL; ?>/membresias/crear-pago', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-                'membership_id': '<?php echo $membership['id']; ?>',
-                'contact_id': '<?php echo $_SESSION['user_id'] ?? 0; ?>'
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                throw new Error(data.error);
-            }
-            // Restore buttons
-            paypal.Buttons().render('#paypal-button-container');
-            return data.orderId;
-        })
-        .catch(err => {
-            alert('Error al crear la orden: ' + err.message);
-            // Restore buttons
-            paypal.Buttons().render('#paypal-button-container');
-        });
-    },
-    onApprove: function(data, actions) {
-        // Capture the payment
-        return fetch('<?php echo BASE_URL; ?>/membresias/capturar-pago', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-                'orderId': data.orderID
-            })
-        })
-        .then(response => response.json())
-        .then(details => {
-            if (details.error) {
-                throw new Error(details.error);
-            }
-            // Show success message
-            alert('¡Pago completado exitosamente! ID: ' + details.captureId);
-            window.location.reload();
-        })
-        .catch(err => {
-            alert('Error al procesar el pago: ' + err.message);
-        });
-    },
-    onError: function(err) {
-        console.error('PayPal error:', err);
-        alert('Ocurrió un error con PayPal. Por favor intenta nuevamente.');
-    }
-}).render('#paypal-button-container');
-<?php endif; ?>
-
 <script>
 function copyPaymentLink(membershipId) {
     const input = document.getElementById('payment-link-' + membershipId);
-    input.select();
-    input.setSelectionRange(0, 99999);
-    document.execCommand('copy');
+    if (!input) {
+        console.error('Input not found for membership:', membershipId);
+        return;
+    }
     
-    const button = event.target.closest('button');
-    const originalHTML = button.innerHTML;
-    button.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
-    button.classList.add('bg-green-600');
-    button.classList.remove('bg-blue-600');
-    
-    setTimeout(() => {
-        button.innerHTML = originalHTML;
-        button.classList.remove('bg-green-600');
-        button.classList.add('bg-blue-600');
-    }, 2000);
+    // Usar navigator.clipboard para copiar (más moderno)
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(input.value)
+            .then(() => {
+                // Obtener el botón que disparó el evento
+                const button = event.target.closest('button');
+                if (!button) return;
+                
+                const originalHTML = button.innerHTML;
+                button.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+                button.classList.add('bg-green-600');
+                button.classList.remove('bg-blue-600');
+                
+                setTimeout(() => {
+                    button.innerHTML = originalHTML;
+                    button.classList.remove('bg-green-600');
+                    button.classList.add('bg-blue-600');
+                }, 2000);
+            })
+            .catch(err => {
+                console.error('Error al copiar:', err);
+                // Fallback al método antiguo
+                input.select();
+                input.setSelectionRange(0, 99999);
+                document.execCommand('copy');
+            });
+    } else {
+        // Fallback para navegadores antiguos
+        input.select();
+        input.setSelectionRange(0, 99999);
+        document.execCommand('copy');
+        
+        const button = event.target.closest('button');
+        if (!button) return;
+        
+        const originalHTML = button.innerHTML;
+        button.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+        button.classList.add('bg-green-600');
+        button.classList.remove('bg-blue-600');
+        
+        setTimeout(() => {
+            button.innerHTML = originalHTML;
+            button.classList.remove('bg-green-600');
+            button.classList.add('bg-blue-600');
+        }, 2000);
+    }
 }
 </script>

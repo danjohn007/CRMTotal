@@ -50,6 +50,7 @@ class Event extends Model {
     public function getRegistrations(int $eventId): array {
         // Join with contacts table to get owner_name and legal_representative
         // First try to join by contact_id, if null, try to match by email
+        // Only show parent registrations (exclude child registrations to avoid duplicates)
         $sql = "SELECT 
                     er.*,
                     COALESCE(c.business_name, '') as business_name,
@@ -62,8 +63,9 @@ class Event extends Model {
                     er.contact_id = c.id 
                     OR (er.contact_id IS NULL AND er.guest_email = c.corporate_email)
                 )
-                WHERE er.event_id = :event_id
-                ORDER BY er.registration_date";
+                WHERE er.event_id = :event_id 
+                AND (er.parent_registration_id IS NULL OR er.parent_registration_id = 0)
+                ORDER BY er.registration_date DESC";
         return $this->raw($sql, ['event_id' => $eventId]);
     }
     

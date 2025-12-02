@@ -6,7 +6,7 @@
     <title><?php echo htmlspecialchars($pageTitle); ?> - CRM Total CCQ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <?php if (!empty($paypalClientId)): ?>
-    <script src="https://www.paypal.com/sdk/js?client-id=<?php echo htmlspecialchars($paypalClientId); ?>&currency=MXN"></script>
+    <script src="https://www.paypal.com/sdk/js?client-id=<?php echo htmlspecialchars($paypalClientId); ?>&vault=true&intent=subscription&currency=MXN"></script>
     <?php endif; ?>
 </head>
 <body class="bg-gray-50">
@@ -130,6 +130,10 @@
     }
 
     <?php if (!empty($paypalClientId) && !empty($membership['paypal_product_id'])): ?>
+    console.log('Inicializando PayPal...');
+    console.log('Client ID:', '<?php echo substr($paypalClientId, 0, 20); ?>...');
+    console.log('Plan ID:', '<?php echo $membership['paypal_product_id']; ?>');
+    
     // Check if returning from PayPal
     const urlParams = new URLSearchParams(window.location.search);
     const subscriptionId = urlParams.get('subscription_id');
@@ -176,47 +180,87 @@
         `;
     } else {
         // Show PayPal subscription button
-        paypal.Buttons({
-            createSubscription: function(data, actions) {
-                return fetch('<?php echo BASE_URL; ?>/membresias/crear-suscripcion', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: new URLSearchParams({
-                        'membership_id': '<?php echo $membership['id']; ?>'
+        console.log('Renderizando botones de PayPal...');
+        
+        try {
+            paypal.Buttons({
+                createSubscription: function(data, actions) {
+                    console.log('createSubscription llamado');
+                    const url = '<?php echo BASE_URL; ?>/membresias/crear-suscripcion';
+                    console.log('Llamando a:', url);
+                    
+                    return fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: new URLSearchParams({
+                            'membership_id': '<?php echo $membership['id']; ?>'
+                        })
                     })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        throw new Error(data.error);
-                    }
-                    return data.subscriptionId;
-                })
-                .catch(err => {
-                    alert('Error al crear la suscripción: ' + err.message);
-                });
-            },
-            onApprove: function(data, actions) {
-                // Redirect to success page with subscription ID
-                window.location.href = '<?php echo BASE_URL; ?>/membresias/<?php echo $membership['id']; ?>/pagar?success=true&subscription_id=' + data.subscriptionID;
-            },
-            onError: function(err) {
-                console.error('PayPal error:', err);
-                alert('Ocurrió un error con PayPal. Por favor intenta nuevamente.');
-            },
-            onCancel: function(data) {
-                window.location.href = '<?php echo BASE_URL; ?>/membresias/<?php echo $membership['id']; ?>/pagar?cancelled=true';
-            },
-            style: {
-                layout: 'vertical',
-                color: 'blue',
-                shape: 'rect',
-                label: 'subscribe',
-                height: 45
-            }
-        }).render('#paypal-button-container');
+                    .then(response => {
+                        console.log('Response status:', response.status);
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Response data:', data);
+                        if (data.error) {
+                            console.error('Error en respuesta:', data.error);
+                            throw new Error(data.error);
+                        }
+                        if (!data.subscriptionId) {
+                            console.error('No se recibió subscriptionId:', data);
+                            throw new Error('No se pudo crear la suscripción');
+                        }
+                        console.log('Subscription ID:', data.subscriptionId);
+                        return data.subscriptionId;
+                    })
+                    .catch(err => {
+                        console.error('Error completo:', err);
+                        alert('Error al crear la suscripción: ' + err.message);
+                        throw err;
+                    });
+                },
+                onApprove: function(data, actions) {
+                    console.log('onApprove llamado con:', data);
+                    // Redirect to success page with subscription ID
+                    window.location.href = '<?php echo BASE_URL; ?>/membresias/<?php echo $membership['id']; ?>/pagar?success=true&subscription_id=' + data.subscriptionID;
+                },
+                onError: function(err) {
+                    console.error('PayPal error:', err);
+                    alert('Ocurrió un error con PayPal. Por favor intenta nuevamente.');
+                },
+                onCancel: function(data) {
+                    console.log('Usuario canceló el pago');
+                    window.location.href = '<?php echo BASE_URL; ?>/membresias/<?php echo $membership['id']; ?>/pagar?cancelled=true';
+                },
+                style: {
+                    layout: 'vertical',
+                    color: 'blue',
+                    shape: 'rect',
+                    label: 'subscribe',
+                    height: 45
+                }
+            }).render('#paypal-button-container')
+            .then(() => {
+                console.log('Botones de PayPal renderizados exitosamente');
+            })
+            .catch((err) => {
+                console.error('Error al renderizar botones:', err);
+                document.getElementById('paypal-button-container').innerHTML = 
+                    '<div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">' +
+                    '<p class="text-red-800">Error al cargar los botones de PayPal.</p>' +
+                    '<p class="text-sm text-red-600 mt-2">Por favor, recarga la página o contacta a soporte.</p>' +
+                    '</div>';
+            });
+        } catch (err) {
+            console.error('Error al inicializar PayPal:', err);
+            document.getElementById('paypal-button-container').innerHTML = 
+                '<div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">' +
+                '<p class="text-red-800">Error al inicializar PayPal.</p>' +
+                '<p class="text-sm text-red-600 mt-2">' + err.message + '</p>' +
+                '</div>';
+        }
     }
     <?php endif; ?>
     </script>

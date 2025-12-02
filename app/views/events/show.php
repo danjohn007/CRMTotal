@@ -99,7 +99,8 @@
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Teléfono</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">RFC</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha Registro</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pago</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Asistencia</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200">
@@ -121,10 +122,21 @@
                                     <?php echo date('d/m/Y H:i', strtotime($reg['registration_date'])); ?>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
+                                    <?php 
+                                    $paymentStatus = strtolower($reg['payment_status'] ?? 'pending');
+                                    if ($paymentStatus === 'paid'): ?>
+                                    <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Pagado</span>
+                                    <?php elseif ($paymentStatus === 'free'): ?>
+                                    <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">Gratuito</span>
+                                    <?php else: ?>
+                                    <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Pendiente Pago</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
                                     <?php if ($reg['attended']): ?>
                                     <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Asistió</span>
                                     <?php else: ?>
-                                    <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">Pendiente</span>
+                                    <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">Sin confirmar</span>
                                     <?php endif; ?>
                                 </td>
                             </tr>

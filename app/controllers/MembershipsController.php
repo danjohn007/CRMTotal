@@ -463,14 +463,33 @@ class MembershipsController extends Controller {
         
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
         curl_close($ch);
         
         if ($httpCode === 201) {
             $data = json_decode($response, true);
-            $this->json(['success' => true, 'subscriptionId' => $data['id']]);
+            if (isset($data['id'])) {
+                $this->json(['success' => true, 'subscriptionId' => $data['id']]);
+            } else {
+                error_log('PayPal Subscription - No ID in response: ' . $response);
+                $this->json(['error' => 'Error: No se recibió ID de suscripción', 'details' => $response], 500);
+            }
         } else {
-            error_log('PayPal Subscription Creation Failed: ' . $response);
-            $this->json(['error' => 'Error al crear suscripción', 'details' => $response], 500);
+            $errorData = json_decode($response, true);
+            $errorMsg = $errorData['message'] ?? 'Error desconocido';
+            $errorDetails = $errorData['details'] ?? [];
+            
+            error_log('PayPal Subscription Creation Failed - HTTP ' . $httpCode . ': ' . $response);
+            if ($curlError) {
+                error_log('PayPal CURL Error: ' . $curlError);
+            }
+            
+            $this->json([
+                'error' => 'Error al crear suscripción: ' . $errorMsg, 
+                'httpCode' => $httpCode,
+                'details' => $errorDetails,
+                'curlError' => $curlError
+            ], $httpCode >= 400 ? $httpCode : 500);
         }
     }
     
@@ -513,6 +532,119 @@ class MembershipsController extends Controller {
         } else {
             error_log('PayPal Subscription Get Failed: ' . $response);
             $this->json(['error' => 'Error al obtener suscripción'], 500);
+        }
+    }
+    
+    /**
+     * Create PayPal order for one-time payment
+     */
+    public function createOrder(): void {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['error' => 'Invalid request method'], 405);
+            return;
+        }
+        
+        $membershipId = (int) $this->getInput('membership_id', 0);
+        $membership = $this->membershipModel->find($membershipId);
+        
+        if (!$membership || !$membership['is_active']) {
+            $this->json(['error' => 'Membresía no disponible'], 404);
+            return;
+        }
+        
+        $accessToken = $this->getPayPalAccessToken();
+        if (!$accessToken) {
+            $this->json(['error' => 'No se pudo autenticar con PayPal'], 500);
+            return;
+        }
+        
+        // Create order
+        $orderData = [
+            'intent' => 'CAPTURE',
+            'purchase_units' => [
+                [
+                    'reference_id' => 'membership_' . $membershipId,
+                    'description' => 'Membresía: ' . $membership['name'],
+                    'amount' => [
+                        'currency_code' => 'MXN',
+                        'value' => number_format($membership['price'], 2, '.', '')
+                    ]
+                ]
+            ],
+            'application_context' => [
+                'brand_name' => 'Cámara de Comercio de Querétaro',
+                'locale' => 'es-MX',
+                'landing_page' => 'BILLING',
+                'shipping_preference' => 'NO_SHIPPING',
+                'user_action' => 'PAY_NOW',
+                'return_url' => BASE_URL . '/membresias/' . $membershipId,
+                'cancel_url' => BASE_URL . '/membresias/' . $membershipId
+            ]
+        ];
+        
+        $ch = curl_init($this->paypalBaseUrl . '/v2/checkout/orders');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . $accessToken
+        ]);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($orderData));
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($httpCode === 201) {
+            $data = json_decode($response, true);
+            $this->json(['success' => true, 'orderId' => $data['id']]);
+        } else {
+            error_log('PayPal Order Creation Failed: ' . $response);
+            $this->json(['error' => 'Error al crear orden de pago', 'details' => $response], 500);
+        }
+    }
+    
+    /**
+     * Capture PayPal order payment
+     */
+    public function captureOrder(): void {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['error' => 'Invalid request method'], 405);
+            return;
+        }
+        
+        $orderId = $this->sanitize($this->getInput('orderId', ''));
+        
+        if (empty($orderId)) {
+            $this->json(['error' => 'Order ID requerido'], 400);
+            return;
+        }
+        
+        $accessToken = $this->getPayPalAccessToken();
+        if (!$accessToken) {
+            $this->json(['error' => 'No se pudo autenticar con PayPal'], 500);
+            return;
+        }
+        
+        $ch = curl_init($this->paypalBaseUrl . '/v2/checkout/orders/' . $orderId . '/capture');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . $accessToken
+        ]);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($httpCode === 201) {
+            $data = json_decode($response, true);
+            $captureId = $data['purchase_units'][0]['payments']['captures'][0]['id'] ?? '';
+            $this->json(['success' => true, 'captureId' => $captureId, 'details' => $data]);
+        } else {
+            error_log('PayPal Order Capture Failed: ' . $response);
+            $this->json(['error' => 'Error al capturar el pago', 'details' => $response], 500);
         }
     }
 }
