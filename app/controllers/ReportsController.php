@@ -118,4 +118,56 @@ class ReportsController extends Controller {
             'noMatches' => array_slice($noMatches, 0, 10)
         ]);
     }
+    
+    public function events(): void {
+        $this->requireAuth();
+        $this->requireRole(['superadmin', 'direccion', 'jefe_comercial']);
+        
+        $eventModel = new Event();
+        
+        // Get filter parameters
+        $eventId = (int) $this->getInput('event_id', 0);
+        $eventType = $this->sanitize($this->getInput('event_type', ''));
+        $category = $this->sanitize($this->getInput('category', ''));
+        
+        // Get comprehensive event metrics
+        $metrics = $eventModel->getEventMetrics(
+            $eventId ?: null,
+            $eventType ?: null,
+            $category ?: null
+        );
+        
+        // Get top 50 attending businesses
+        $topBusinesses = $eventModel->getTopAttendingBusinesses($eventId ?: null, 50);
+        
+        // Get metrics by category and type
+        $metricsByCategory = $eventModel->getMetricsByCategory();
+        $metricsByType = $eventModel->getMetricsByType();
+        
+        // Get events list for filter dropdown
+        $allEvents = $eventModel->all();
+        
+        // Get unique categories for filter
+        $categories = array_unique(array_filter(array_column($allEvents, 'category')));
+        sort($categories);
+        
+        $this->view('reports/events', [
+            'pageTitle' => 'Reportes de Eventos',
+            'currentPage' => 'reportes',
+            'metrics' => $metrics,
+            'topBusinesses' => $topBusinesses,
+            'metricsByCategory' => $metricsByCategory,
+            'metricsByType' => $metricsByType,
+            'allEvents' => $allEvents,
+            'categories' => $categories,
+            'selectedEventId' => $eventId,
+            'selectedEventType' => $eventType,
+            'selectedCategory' => $category,
+            'eventTypes' => [
+                'interno' => 'Evento Interno CCQ',
+                'publico' => 'Evento Público',
+                'terceros' => 'Evento de Terceros'
+            ]
+        ]);
+    }
 }
