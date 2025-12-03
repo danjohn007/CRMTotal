@@ -182,8 +182,11 @@ class ProspectsController extends Controller {
     }
     
     private function getFormData(): array {
+        // Get RFC and convert empty string to NULL to avoid unique constraint conflicts
+        $rfc = $this->sanitize($this->getInput('rfc', ''));
+        
         return [
-            'rfc' => $this->sanitize($this->getInput('rfc', '')),
+            'rfc' => !empty($rfc) ? $rfc : null,
             'whatsapp' => $this->sanitize($this->getInput('whatsapp', '')),
             'business_name' => $this->sanitize($this->getInput('business_name', '')),
             'commercial_name' => $this->sanitize($this->getInput('commercial_name', '')),

@@ -327,7 +327,10 @@
     <div x-show="activeTab === 'month'" x-cloak class="bg-white rounded-lg shadow-sm p-6">
         <div class="flex items-center justify-between mb-6">
             <h3 class="text-lg font-semibold text-gray-900">Resumen del Mes</h3>
-            <span class="text-gray-500"><?php echo strftime('%B %Y', time()); ?></span>
+            <span class="text-gray-500"><?php 
+                $months = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                echo $months[(int)date('n')] . ' ' . date('Y'); 
+            ?></span>
         </div>
         
         <!-- Monthly Stats -->

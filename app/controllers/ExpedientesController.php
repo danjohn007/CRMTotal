@@ -229,8 +229,11 @@ class ExpedientesController extends Controller {
             if (!$this->validateCsrf()) {
                 $error = 'Token de seguridad inválido.';
             } else {
+                // Get RFC and convert empty string to NULL to avoid unique constraint conflicts
+                $rfc = $this->sanitize($this->getInput('rfc', ''));
+                
                 $data = [
-                    'rfc' => $this->sanitize($this->getInput('rfc', '')),
+                    'rfc' => !empty($rfc) ? $rfc : null,
                     'owner_name' => $this->sanitize($this->getInput('owner_name', '')),
                     'legal_representative' => $this->sanitize($this->getInput('legal_representative', '')),
                     'business_name' => $this->sanitize($this->getInput('business_name', '')),

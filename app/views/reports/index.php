@@ -98,19 +98,19 @@
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Resumen Rápido del Mes</h3>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div class="text-center">
-                <p class="text-3xl font-bold text-blue-600">-</p>
+                <p class="text-3xl font-bold text-blue-600"><?php echo $newAffiliationsMonth ?? 0; ?></p>
                 <p class="text-sm text-gray-500">Nuevas Afiliaciones</p>
             </div>
             <div class="text-center">
-                <p class="text-3xl font-bold text-green-600">-</p>
+                <p class="text-3xl font-bold text-green-600"><?php echo $renewalsMonth ?? 0; ?></p>
                 <p class="text-sm text-gray-500">Renovaciones</p>
             </div>
             <div class="text-center">
-                <p class="text-3xl font-bold text-purple-600">$-</p>
+                <p class="text-3xl font-bold text-purple-600">$<?php echo number_format($totalRevenueMonth ?? 0, 0); ?></p>
                 <p class="text-sm text-gray-500">Ingresos Totales</p>
             </div>
             <div class="text-center">
-                <p class="text-3xl font-bold text-yellow-600">-%</p>
+                <p class="text-3xl font-bold text-yellow-600"><?php echo number_format($renewalRate ?? 0, 1); ?>%</p>
                 <p class="text-sm text-gray-500">Tasa de Renovación</p>
             </div>
         </div>

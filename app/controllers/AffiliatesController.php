@@ -106,6 +106,22 @@ class AffiliatesController extends Controller {
             }
         }
         
+        // If no prospect_id provided but RFC exists, try to find and load that contact
+        if (!$prospect && $_SERVER['REQUEST_METHOD'] === 'GET') {
+            $searchRfc = trim($this->getInput('rfc', ''));
+            if (!empty($searchRfc)) {
+                $existingContact = $this->db->queryOne(
+                    "SELECT * FROM contacts WHERE rfc = :rfc",
+                    ['rfc' => $searchRfc]
+                );
+                if ($existingContact && $existingContact['contact_type'] === 'prospecto') {
+                    // Found a prospect with this RFC, load it
+                    $prospect = $existingContact;
+                    $prospectId = $existingContact['id'];
+                }
+            }
+        }
+        
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$this->validateCsrf()) {
                 $error = 'Token de seguridad inválido.';
@@ -113,11 +129,41 @@ class AffiliatesController extends Controller {
                 $contactData = $this->getContactFormData();
                 $contactData['contact_type'] = 'afiliado';
                 
-                try {
-                    $this->db->beginTransaction();
-                    
-                    // Create contact
-                    $contactId = $this->contactModel->create($contactData);
+                // Check for duplicate RFC if provided
+                if (!empty($contactData['rfc'])) {
+                    $existingRfc = $this->db->queryOne(
+                        "SELECT id, contact_type, business_name FROM contacts WHERE rfc = :rfc",
+                        ['rfc' => $contactData['rfc']]
+                    );
+                    // Only error if RFC exists in a DIFFERENT contact
+                    if ($existingRfc && $existingRfc['id'] != $prospectId) {
+                        $businessName = $existingRfc['business_name'] ?? 'Sin nombre';
+                        $error = 'El RFC "' . htmlspecialchars($contactData['rfc']) . '" ya está registrado en: ' . 
+                                htmlspecialchars($businessName) . ' (ID: ' . $existingRfc['id'] . ', ' . 
+                                ucfirst($existingRfc['contact_type']) . '). Por favor usa otro RFC o deja el campo vacío.';
+                    }
+                }
+                
+                // Check if converting from prospect
+                if ($prospectId > 0 && $prospect) {
+                    // Update existing prospect to affiliate
+                    $contactId = $prospectId;
+                } else {
+                    $contactId = null;
+                }
+                
+                if (!$error) {
+                    try {
+                        $this->db->beginTransaction();
+                        
+                        // Create or update contact
+                        if ($contactId) {
+                            // Update existing prospect to affiliate
+                            $this->contactModel->update($contactId, $contactData);
+                        } else {
+                            // Create new contact
+                            $contactId = $this->contactModel->create($contactData);
+                        }
                     
                     // Create affiliation
                     $membershipId = (int) $this->getInput('membership_type_id');
@@ -143,9 +189,10 @@ class AffiliatesController extends Controller {
                     $_SESSION['flash_success'] = 'Afiliado creado exitosamente.';
                     $this->redirect('afiliados/' . $contactId);
                     
-                } catch (Exception $e) {
-                    $this->db->rollBack();
-                    $error = 'Error al crear el afiliado: ' . $e->getMessage();
+                    } catch (Exception $e) {
+                        $this->db->rollBack();
+                        $error = 'Error al crear el afiliado: ' . $e->getMessage();
+                    }
                 }
             }
         }
@@ -405,8 +452,11 @@ class AffiliatesController extends Controller {
     }
     
     private function getContactFormData(): array {
+        // Get RFC and convert empty string to NULL to avoid unique constraint conflicts
+        $rfc = $this->sanitize($this->getInput('rfc', ''));
+        
         return [
-            'rfc' => $this->sanitize($this->getInput('rfc', '')),
+            'rfc' => !empty($rfc) ? $rfc : null,
             'whatsapp' => $this->sanitize($this->getInput('whatsapp', '')),
             'business_name' => $this->sanitize($this->getInput('business_name', '')),
             'commercial_name' => $this->sanitize($this->getInput('commercial_name', '')),

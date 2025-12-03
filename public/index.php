@@ -129,6 +129,7 @@ $router->add('reportes', ['controller' => 'reports', 'action' => 'index']);
 $router->add('reportes/comerciales', ['controller' => 'reports', 'action' => 'commercial']);
 $router->add('reportes/financieros', ['controller' => 'reports', 'action' => 'financial']);
 $router->add('reportes/operativos', ['controller' => 'reports', 'action' => 'operational']);
+$router->add('reportes/eventos', ['controller' => 'reports', 'action' => 'events']);
 
 // Configuration (Superadmin)
 $router->add('configuracion', ['controller' => 'config', 'action' => 'index']);

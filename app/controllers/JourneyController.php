@@ -410,10 +410,19 @@ class JourneyController extends Controller {
                 JOIN membership_types m ON a.membership_type_id = m.id
                 LEFT JOIN users u ON c.assigned_affiliate_id = u.id
                 WHERE m.upsell_order < 4
-                AND m.upsell_order > 0
-                ORDER BY m.upsell_order, a.expiration_date";
+                AND m.upsell_order > 0";
         
-        return $this->db->fetchAll($sql);
+        // Filter by assigned affiliator if user is afiliador
+        if ($_SESSION['user_role'] === 'afiliador') {
+            $sql .= " AND c.assigned_affiliate_id = :user_id";
+            $params = ['user_id' => $_SESSION['user_id']];
+        } else {
+            $params = [];
+        }
+        
+        $sql .= " ORDER BY m.upsell_order, a.expiration_date";
+        
+        return $this->db->fetchAll($sql, $params);
     }
     
     private function getCrosssellingOpportunities(): array {
@@ -427,26 +436,43 @@ class JourneyController extends Controller {
                 LEFT JOIN users u ON c.assigned_affiliate_id = u.id
                 LEFT JOIN service_contracts sc ON c.id = sc.contact_id
                 WHERE sc.id IS NULL
-                AND c.contact_type = 'afiliado'
-                ORDER BY c.business_name
-                LIMIT 50";
+                AND c.contact_type = 'afiliado'";
         
-        return $this->db->fetchAll($sql);
+        // Filter by assigned affiliator if user is afiliador
+        if ($_SESSION['user_role'] === 'afiliador') {
+            $sql .= " AND c.assigned_affiliate_id = :user_id";
+            $params = ['user_id' => $_SESSION['user_id']];
+        } else {
+            $params = [];
+        }
+        
+        $sql .= " ORDER BY c.business_name LIMIT 50";
+        
+        return $this->db->fetchAll($sql, $params);
     }
     
     /**
      * Get statistics for each journey stage
      */
     private function getJourneyStageStats(): array {
+        $whereClause = "contact_type IN ('prospecto', 'afiliado', 'exafiliado')";
+        $params = [];
+        
+        // Filter by assigned affiliator if user is afiliador
+        if ($_SESSION['user_role'] === 'afiliador') {
+            $whereClause .= " AND assigned_affiliate_id = :user_id";
+            $params['user_id'] = $_SESSION['user_id'];
+        }
+        
         $sql = "SELECT 
                     COALESCE(journey_stage, 1) as stage,
                     COUNT(*) as count
                 FROM contacts
-                WHERE contact_type IN ('prospecto', 'afiliado', 'exafiliado')
+                WHERE {$whereClause}
                 GROUP BY COALESCE(journey_stage, 1)
                 ORDER BY stage";
         
-        $results = $this->db->fetchAll($sql);
+        $results = $this->db->fetchAll($sql, $params);
         
         // Initialize all 6 stages with 0 count
         $stats = [];
@@ -468,19 +494,28 @@ class JourneyController extends Controller {
      * Get affiliates eligible for council (2+ years continuous affiliation)
      */
     private function getCouncilEligibleAffiliates(): array {
+        $whereClause = "c.contact_type = 'afiliado'";
+        $params = [];
+        
+        // Filter by assigned affiliator if user is afiliador
+        if ($_SESSION['user_role'] === 'afiliador') {
+            $whereClause .= " AND c.assigned_affiliate_id = :user_id";
+            $params['user_id'] = $_SESSION['user_id'];
+        }
+        
         $sql = "SELECT c.*, 
                        MIN(a.affiliation_date) as first_affiliation_date,
                        DATEDIFF(CURDATE(), MIN(a.affiliation_date)) / 365.0 as years_affiliated,
                        (SELECT cm.status FROM council_members cm WHERE cm.contact_id = c.id ORDER BY cm.created_at DESC LIMIT 1) as council_status
                 FROM contacts c
                 JOIN affiliations a ON c.id = a.contact_id
-                WHERE c.contact_type = 'afiliado'
+                WHERE {$whereClause}
                 GROUP BY c.id
                 HAVING years_affiliated >= 2
                 ORDER BY years_affiliated DESC
                 LIMIT 50";
         
-        return $this->db->fetchAll($sql);
+        return $this->db->fetchAll($sql, $params);
     }
     
     /**

@@ -163,7 +163,7 @@
                 <div>
                     <label for="products_sells" class="block text-sm font-medium text-gray-700">Productos que Vende</label>
                     <input type="text" id="products_sells" name="products_sells" 
-                           value="<?php echo htmlspecialchars(is_array(json_decode($contact['products_sells'] ?? '[]', true)) ? implode(', ', json_decode($contact['products_sells'], true)) : ''); ?>"
+                           value="<?php $productsSellsArray = json_decode($contact['products_sells'] ?? '[]', true); echo htmlspecialchars(is_array($productsSellsArray) && !empty($productsSellsArray) ? implode(', ', $productsSellsArray) : ''); ?>"
                            placeholder="Separados por coma"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
@@ -171,7 +171,7 @@
                 <div>
                     <label for="products_buys" class="block text-sm font-medium text-gray-700">Productos que Compra</label>
                     <input type="text" id="products_buys" name="products_buys" 
-                           value="<?php echo htmlspecialchars(is_array(json_decode($contact['products_buys'] ?? '[]', true)) ? implode(', ', json_decode($contact['products_buys'], true)) : ''); ?>"
+                           value="<?php $productsBuysArray = json_decode($contact['products_buys'] ?? '[]', true); echo htmlspecialchars(is_array($productsBuysArray) && !empty($productsBuysArray) ? implode(', ', $productsBuysArray) : ''); ?>"
                            placeholder="Separados por coma"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
                 </div>
