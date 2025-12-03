@@ -127,12 +127,23 @@
                                 return response.json();
                             }).then(function(result) {
                                 console.log('Payment confirmation result:', result);
-                                // Redirect to ticket page immediately
-                                window.location.href = <?php echo json_encode(BASE_URL . '/evento/boleto/' . $registration['registration_code']); ?>;
+                                if (result && result.success) {
+                                    var ticketCode = result.registration_code || <?php echo json_encode($registration['registration_code']); ?>;
+                                    console.log('Redirecting to ticket:', ticketCode);
+                                    // Redirect to ticket page immediately
+                                    setTimeout(function() {
+                                        window.location.href = <?php echo json_encode(BASE_URL); ?> + '/evento/boleto/' + ticketCode;
+                                    }, 500);
+                                } else {
+                                    throw new Error('Payment confirmation returned unsuccessful');
+                                }
                             }).catch(function(error) {
                                 console.error('Error confirmando pago:', error);
+                                alert('Pago procesado correctamente. Serás redirigido a tu boleto.');
                                 // Even if confirmation fails, redirect to ticket (payment was already captured)
-                                window.location.href = <?php echo json_encode(BASE_URL . '/evento/boleto/' . $registration['registration_code']); ?>;
+                                setTimeout(function() {
+                                    window.location.href = <?php echo json_encode(BASE_URL . '/evento/boleto/' . $registration['registration_code']); ?>;
+                                }, 500);
                             });
                         });
                     },

@@ -291,6 +291,20 @@ class EventsController extends Controller {
                 }
                 
                 if (!$error) {
+                    // Check if this email already has an active registration
+                    $existingRegistration = $this->eventModel->hasExistingRegistration($id, $registrationData['guest_email']);
+                    if ($existingRegistration) {
+                        // User already registered, redirect to their existing registration
+                        if ($existingRegistration['payment_status'] === 'pending') {
+                            // Redirect to payment page
+                            $this->redirect('/evento/pagar/' . $existingRegistration['registration_code']);
+                        } else {
+                            // Already paid or free, redirect to ticket
+                            $this->redirect('/evento/boleto/' . $existingRegistration['registration_code']);
+                        }
+                        return;
+                    }
+                    
                     // Always verify affiliate status on server side for security
                     // Frontend data (is_active_affiliate) cannot be trusted as it can be manipulated
                     $isActiveAffiliate = $this->eventModel->isActiveAffiliate($registrationData['guest_email']);

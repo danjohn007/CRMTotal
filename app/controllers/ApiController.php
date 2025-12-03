@@ -192,13 +192,18 @@ class ApiController extends Controller {
         $orderId = $this->sanitize($input['order_id'] ?? '');
         $payerEmail = $this->sanitize($input['payer_email'] ?? '');
         
+        // Log payment confirmation attempt
+        error_log("Payment confirmation - Registration ID: {$registrationId}, Order ID: {$orderId}");
+        
         if (!$registrationId || !$orderId) {
+            error_log("Payment confirmation failed - Invalid data");
             $this->json(['success' => false, 'message' => 'Invalid data'], 400);
             return;
         }
         
         $eventModel = new Event();
-        $eventModel->updatePaymentStatus($registrationId, 'paid', $orderId);
+        $updated = $eventModel->updatePaymentStatus($registrationId, 'paid', $orderId);
+        error_log("Payment status updated - Rows affected: {$updated}");
         
         // Get registration and event details (including end_date and address for email template)
         $registration = $this->db->queryOne(
@@ -250,7 +255,12 @@ class ApiController extends Controller {
             }
         }
         
-        $this->json(['success' => true, 'email' => $registration['guest_email'] ?? '']);
+        error_log("Payment confirmation completed successfully for registration {$registrationId}");
+        $this->json([
+            'success' => true, 
+            'email' => $registration['guest_email'] ?? '',
+            'registration_code' => $registration['registration_code'] ?? ''
+        ]);
     }
     
     private function generateAndSendQR(int $registrationId, array $event, array $registrationData): void {

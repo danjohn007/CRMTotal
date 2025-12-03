@@ -47,6 +47,21 @@ class Event extends Model {
         return $this->findBy('registration_url', $url);
     }
     
+    /**
+     * Check if an email already has an active registration for this event
+     * Returns the existing registration if found, null otherwise
+     */
+    public function hasExistingRegistration(int $eventId, string $email): ?array {
+        $sql = "SELECT * FROM event_registrations 
+                WHERE event_id = :event_id 
+                AND guest_email = :email 
+                AND parent_registration_id IS NULL
+                ORDER BY registration_date DESC
+                LIMIT 1";
+        $result = $this->raw($sql, ['event_id' => $eventId, 'email' => $email]);
+        return $result ? $result[0] : null;
+    }
+    
     public function getRegistrations(int $eventId): array {
         // Join with contacts table to get owner_name and legal_representative
         // First try to join by contact_id, if null, try to match by email
