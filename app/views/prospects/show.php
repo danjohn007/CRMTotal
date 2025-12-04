@@ -14,13 +14,73 @@
             </p>
         </div>
         <div class="mt-4 sm:mt-0 flex space-x-3">
-            <a href="<?php echo BASE_URL; ?>/agenda/nueva?contact_id=<?php echo $prospect['id']; ?>" 
-               class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                </svg>
-                Nueva Actividad
-            </a>
+            <!-- Activity Dropdown -->
+            <div class="relative" x-data="{ open: false }">
+                <button @click="open = !open" 
+                        class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
+                    ACTIVIDAD
+                    <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div x-show="open" @click.away="open = false" x-cloak
+                     class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl z-50 border border-gray-200">
+                    <div class="py-2">
+                        <a href="<?php echo BASE_URL; ?>/agenda/nueva?contact_id=<?php echo $prospect['id']; ?>&type=visita" 
+                           class="flex items-center px-4 py-3 hover:bg-gray-50 border-b border-gray-100">
+                            <span class="text-xl mr-3">🏢</span>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900">Visita a sus instalaciones</p>
+                                <p class="text-xs text-gray-500">Programar fecha, hora y notas</p>
+                            </div>
+                        </a>
+                        <a href="<?php echo BASE_URL; ?>/agenda/nueva?contact_id=<?php echo $prospect['id']; ?>&type=whatsapp" 
+                           class="flex items-center px-4 py-3 hover:bg-gray-50 border-b border-gray-100">
+                            <span class="text-xl mr-3">💬</span>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900">Mandar WhatsApp</p>
+                                <p class="text-xs text-gray-500">Programar fecha, hora y notas</p>
+                            </div>
+                        </a>
+                        <a href="<?php echo BASE_URL; ?>/agenda/nueva?contact_id=<?php echo $prospect['id']; ?>&type=email" 
+                           class="flex items-center px-4 py-3 hover:bg-gray-50 border-b border-gray-100">
+                            <span class="text-xl mr-3">📧</span>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900">Mandar email</p>
+                                <p class="text-xs text-gray-500">Programar fecha, hora y notas</p>
+                            </div>
+                        </a>
+                        <a href="<?php echo BASE_URL; ?>/agenda/nueva?contact_id=<?php echo $prospect['id']; ?>&type=factura" 
+                           class="flex items-center px-4 py-3 hover:bg-gray-50 border-b border-gray-100">
+                            <span class="text-xl mr-3">🧾</span>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900">Mandar factura o comprobante de pago</p>
+                                <p class="text-xs text-gray-500">Programar fecha, hora y notas</p>
+                            </div>
+                        </a>
+                        <a href="<?php echo BASE_URL; ?>/expedientes/<?php echo $prospect['id']; ?>" 
+                           class="flex items-center px-4 py-3 hover:bg-gray-50 border-b border-gray-100">
+                            <span class="text-xl mr-3">📎</span>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900">Adjuntar documentación al EDA</p>
+                                <p class="text-xs text-gray-500">O a su sección Prospectos</p>
+                            </div>
+                        </a>
+                        <a href="<?php echo BASE_URL; ?>/afiliados/nuevo?prospect_id=<?php echo $prospect['id']; ?>" 
+                           class="flex items-center px-4 py-3 hover:bg-gray-50">
+                            <span class="text-xl mr-3">✅</span>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900">Dar de alta como afiliado</p>
+                                <p class="text-xs text-gray-500">Terminar llenado de perfil</p>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
             <a href="<?php echo BASE_URL; ?>/prospectos/<?php echo $prospect['id']; ?>/editar" 
                class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50">
                 Editar

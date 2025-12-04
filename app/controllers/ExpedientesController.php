@@ -463,15 +463,18 @@ class ExpedientesController extends Controller {
     
     /**
      * Calculate Stage A completion (25% of total)
+     * Basic identification and contact information
      */
     private function calculateStageACompletion(array $contact): array {
         $fields = [
             'rfc' => !empty($contact['rfc']),
-            'owner_name' => !empty($contact['owner_name']) || !empty($contact['legal_representative']),
             'business_name' => !empty($contact['business_name']),
             'commercial_name' => !empty($contact['commercial_name']),
-            'commercial_address' => !empty($contact['commercial_address']) || !empty($contact['fiscal_address']),
-            'whatsapp' => !empty($contact['whatsapp'])
+            'owner_name' => !empty($contact['owner_name']) || !empty($contact['legal_representative']),
+            'whatsapp' => !empty($contact['whatsapp']),
+            'industry' => !empty($contact['industry']),
+            'phone' => !empty($contact['phone']),
+            'corporate_email' => !empty($contact['corporate_email'])
         ];
         
         $completed = count(array_filter($fields));
@@ -489,6 +492,7 @@ class ExpedientesController extends Controller {
     
     /**
      * Calculate Stage B completion (35% of total)
+     * Location and business details
      */
     private function calculateStageBCompletion(array $contact): array {
         $productsSells = [];
@@ -502,11 +506,14 @@ class ExpedientesController extends Controller {
         }
         
         $fields = [
+            'fiscal_address' => !empty($contact['fiscal_address']),
+            'commercial_address' => !empty($contact['commercial_address']),
+            'description' => !empty($contact['description']),
+            'niza_classification' => !empty($contact['niza_classification']) || !empty($contact['niza_custom_category']),
             'whatsapp_sales' => !empty($contact['whatsapp_sales']),
             'whatsapp_purchases' => !empty($contact['whatsapp_purchases']),
-            'website' => !empty($contact['website']),
-            'products_sells' => count($productsSells) >= 1,
-            'products_buys' => count($productsBuys) >= 1
+            'products_sells' => count($productsSells) >= 4,
+            'products_buys' => count($productsBuys) >= 2
         ];
         
         $completed = count(array_filter($fields));
@@ -524,11 +531,20 @@ class ExpedientesController extends Controller {
     
     /**
      * Calculate Stage C completion (40% of total)
+     * Affiliation and membership details
      */
     private function calculateStageCCompletion(array $contact, ?array $affiliation): array {
         $fields = [
-            'affiliation_date' => !empty($affiliation['affiliation_date']),
-            'invoice_or_csf' => !empty($affiliation['invoice_number'])
+            'csf_file' => !empty($contact['csf_file']),
+            'sticker' => !empty($contact['sticker']),
+            'amount' => !empty($contact['amount']),
+            'payment_method' => !empty($contact['payment_method']),
+            'reaffiliation_new' => !empty($contact['is_new']) || !empty($contact['reaffiliation']),
+            'seller' => !empty($contact['seller']) || !empty($contact['assigned_affiliate_id']),
+            'affiliation_type' => !empty($contact['affiliation_type']),
+            'membership_type' => !empty($contact['membership_type_id']),
+            'renewal_month' => !empty($contact['renewal_month']),
+            'affiliation_date' => !empty($affiliation['affiliation_date'])
         ];
         
         $completed = count(array_filter($fields));
