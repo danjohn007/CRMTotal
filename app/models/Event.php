@@ -427,4 +427,187 @@ class Event extends Model {
         
         return $this->raw($sql);
     }
+    
+    /**
+     * Get all emails from event registrations for export
+     * @param int $eventId
+     * @return array Array of registration data with emails
+     */
+    public function getEmailsForExport(int $eventId): array {
+        $sql = "SELECT 
+                    er.registration_code,
+                    er.attendee_name as nombre,
+                    COALESCE(er.attendee_email, er.guest_email) as email,
+                    COALESCE(er.attendee_phone, er.guest_phone) as whatsapp,
+                    CASE 
+                        WHEN er.is_guest = 1 THEN er.guest_type
+                        WHEN er.contact_id IS NOT NULL THEN c.contact_type
+                        ELSE 'invitado'
+                    END as tipo_registro,
+                    er.payment_status,
+                    er.is_courtesy_ticket as cortesia,
+                    er.attended as asistio,
+                    c.business_name as razon_social,
+                    c.rfc,
+                    mt.name as tipo_membresia
+                FROM event_registrations er
+                LEFT JOIN contacts c ON er.contact_id = c.id
+                LEFT JOIN membership_types mt ON c.membership_type_id = mt.id
+                WHERE er.event_id = :event_id
+                  AND (er.parent_registration_id IS NULL OR er.parent_registration_id = 0)
+                ORDER BY er.registration_date DESC";
+        
+        return $this->raw($sql, ['event_id' => $eventId]);
+    }
+    
+    /**
+     * Get WhatsApp numbers for bulk messaging
+     * @param int $eventId
+     * @return array Array of phone numbers with names
+     */
+    public function getWhatsAppForMessaging(int $eventId): array {
+        $sql = "SELECT DISTINCT
+                    COALESCE(er.attendee_phone, er.guest_phone) as whatsapp,
+                    er.attendee_name as nombre,
+                    er.registration_code
+                FROM event_registrations er
+                WHERE er.event_id = :event_id
+                  AND (er.parent_registration_id IS NULL OR er.parent_registration_id = 0)
+                  AND COALESCE(er.attendee_phone, er.guest_phone) IS NOT NULL
+                  AND COALESCE(er.attendee_phone, er.guest_phone) != ''
+                ORDER BY er.registration_date DESC";
+        
+        return $this->raw($sql, ['event_id' => $eventId]);
+    }
+    
+    /**
+     * Validate if a contact can use a courtesy ticket for an event
+     * @param int $eventId
+     * @param int $contactId
+     * @return array ['valid' => bool, 'message' => string]
+     */
+    public function validateCourtesyTicket(int $eventId, int $contactId): array {
+        // Get event details
+        $event = $this->find($eventId);
+        if (!$event) {
+            return ['valid' => false, 'message' => 'Evento no encontrado'];
+        }
+        
+        // Only paid events can have courtesy tickets
+        if (!$event['is_paid']) {
+            return ['valid' => false, 'message' => 'Las cortesías solo aplican para eventos pagados'];
+        }
+        
+        // Check if event allows courtesy tickets
+        if (!$event['has_courtesy_tickets']) {
+            return ['valid' => false, 'message' => 'Este evento no permite cortesías'];
+        }
+        
+        // Get contact and membership info
+        $sql = "SELECT c.contact_type, c.membership_type_id, mt.code as membership_code
+                FROM contacts c
+                LEFT JOIN membership_types mt ON c.membership_type_id = mt.id
+                WHERE c.id = :contact_id";
+        $contact = $this->rawOne($sql, ['contact_id' => $contactId]);
+        
+        if (!$contact) {
+            return ['valid' => false, 'message' => 'Contacto no encontrado'];
+        }
+        
+        // Only affiliates can receive courtesy tickets
+        if ($contact['contact_type'] !== 'afiliado') {
+            return ['valid' => false, 'message' => 'Solo afiliados pueden recibir cortesías'];
+        }
+        
+        // Check if membership is eligible for courtesy
+        $eligibleMemberships = ['BASICA', 'PYME', 'EMPRENDEDOR', 'VISIONARIO', 
+                                'PREMIER', 'PATROCINADOR_OFICIAL', 
+                                'PATROCINADOR_AAA', 'NAMING_RIGHTS'];
+        
+        if (!in_array($contact['membership_code'], $eligibleMemberships)) {
+            return ['valid' => false, 'message' => 'Membresía actual no tiene derecho a cortesías'];
+        }
+        
+        // Check if contact already used their courtesy ticket
+        $sql = "SELECT COUNT(*) as count
+                FROM event_registrations
+                WHERE contact_id = :contact_id
+                  AND is_courtesy_ticket = 1
+                  AND payment_status = 'courtesy'";
+        $result = $this->rawOne($sql, ['contact_id' => $contactId]);
+        
+        if (($result['count'] ?? 0) >= 1) {
+            return ['valid' => false, 'message' => 'Ya utilizó su cortesía disponible (máximo 1 por membresía)'];
+        }
+        
+        return ['valid' => true, 'message' => 'Cortesía válida'];
+    }
+    
+    /**
+     * Check for duplicate registration codes
+     * @param int $eventId
+     * @return array Array of duplicate registration codes
+     */
+    public function findDuplicateRegistrations(int $eventId): array {
+        $sql = "SELECT registration_code, COUNT(*) as count
+                FROM event_registrations
+                WHERE event_id = :event_id
+                  AND registration_code IS NOT NULL
+                  AND registration_code != ''
+                GROUP BY registration_code
+                HAVING count > 1";
+        
+        return $this->raw($sql, ['event_id' => $eventId]);
+    }
+    
+    /**
+     * Get statistics for free vs paid events
+     * @param int $eventId
+     * @return array Statistics array
+     */
+    public function getEventTypeStatistics(int $eventId): array {
+        $event = $this->find($eventId);
+        
+        if (!$event) {
+            return [];
+        }
+        
+        if ($event['is_paid']) {
+            // Paid event statistics
+            $sql = "SELECT 
+                        COUNT(*) as total_registrations,
+                        SUM(CASE WHEN payment_status = 'paid' THEN 1 ELSE 0 END) as paid_tickets,
+                        SUM(CASE WHEN payment_status = 'courtesy' OR is_courtesy_ticket = 1 THEN 1 ELSE 0 END) as courtesy_tickets,
+                        SUM(CASE WHEN payment_status = 'pending' THEN 1 ELSE 0 END) as pending_tickets,
+                        SUM(CASE WHEN attended = 1 THEN 1 ELSE 0 END) as attended,
+                        SUM(CASE WHEN payment_status = 'paid' AND attended = 1 THEN 1 ELSE 0 END) as paid_attended,
+                        SUM(CASE WHEN (payment_status = 'courtesy' OR is_courtesy_ticket = 1) AND attended = 1 THEN 1 ELSE 0 END) as courtesy_attended,
+                        SUM(total_amount) as total_revenue
+                    FROM event_registrations
+                    WHERE event_id = :event_id
+                      AND (parent_registration_id IS NULL OR parent_registration_id = 0)";
+        } else {
+            // Free event statistics
+            $sql = "SELECT 
+                        COUNT(*) as total_registrations,
+                        COUNT(*) as free_tickets,
+                        SUM(CASE WHEN attended = 1 THEN 1 ELSE 0 END) as attended,
+                        COUNT(*) - SUM(CASE WHEN attended = 1 THEN 1 ELSE 0 END) as no_show
+                    FROM event_registrations
+                    WHERE event_id = :event_id
+                      AND (parent_registration_id IS NULL OR parent_registration_id = 0)";
+        }
+        
+        $stats = $this->rawOne($sql, ['event_id' => $eventId]);
+        
+        // Calculate rates
+        $totalReg = (int)($stats['total_registrations'] ?? 0);
+        $attended = (int)($stats['attended'] ?? 0);
+        
+        $stats['attendance_rate'] = $totalReg > 0 ? round(($attended / $totalReg) * 100, 2) : 0;
+        $stats['is_paid'] = $event['is_paid'];
+        $stats['event_type'] = $event['is_paid'] ? 'Pagado' : 'Gratuito';
+        
+        return $stats;
+    }
 }

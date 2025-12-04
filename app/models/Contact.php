@@ -6,6 +6,9 @@
 class Contact extends Model {
     protected string $table = 'contacts';
     protected array $fillable = [
+        'registration_number', 'renewal_date', 'receipt_date', 'receipt_number', 'invoice_number',
+        'csf_file', 'sticker', 'amount', 'payment_method', 'reaffiliation', 'is_new',
+        'seller', 'affiliation_type', 'membership_type_id', 'renewal_month',
         'rfc', 'person_type', 'whatsapp', 'contact_type', 'business_name', 'commercial_name',
         'owner_name', 'legal_representative', 'corporate_email', 'phone',
         'position', 'industry', 'niza_classification', 'niza_custom_category', 'products_sells', 'products_buys',
@@ -13,7 +16,9 @@ class Contact extends Model {
         'state', 'postal_code', 'google_maps_url', 'website', 'facebook',
         'instagram', 'linkedin', 'twitter', 'whatsapp_sales', 'whatsapp_purchases',
         'whatsapp_admin', 'profile_completion', 'completion_stage',
-        'assigned_affiliate_id', 'source_channel', 'notes', 'is_validated', 'validated_by'
+        'assigned_affiliate_id', 'source_channel', 'notes', 'is_validated', 'validated_by',
+        'trade_name', 'business_sector', 'description', 'nice_classification',
+        'sales_contact', 'purchase_contact', 'branch_count', 'branch_addresses', 'services_interest'
     ];
     
     // Threshold for complete profile (65% completion is considered full)
@@ -292,5 +297,167 @@ class Contact extends Model {
                 LEFT JOIN membership_types m ON a.membership_type_id = m.id
                 WHERE c.id = :contact_id";
         return $this->rawOne($sql, ['contact_id' => $contactId]);
+    }
+    
+    /**
+     * Validate and set person_type based on RFC length
+     * @param string $rfc
+     * @return string|null Returns 'moral' (12 chars) or 'fisica' (13 chars) or null
+     */
+    public function validatePersonTypeByRFC(string $rfc): ?string {
+        $rfc = strtoupper(trim($rfc));
+        $length = strlen($rfc);
+        
+        if ($length === 12) {
+            return 'moral'; // Persona moral (empresa)
+        } elseif ($length === 13) {
+            return 'fisica'; // Persona física (individuo)
+        }
+        
+        return null; // RFC inválido
+    }
+    
+    /**
+     * Get next upselling step for a contact
+     * @param array $contact
+     * @return string
+     */
+    public function getNextUpsellingStep(array $contact): string {
+        $contactType = $contact['contact_type'] ?? '';
+        $membershipCode = $contact['membership_code'] ?? '';
+        
+        // Flujo de upselling según MEMBRESIAS.md
+        $upsellingMap = [
+            'siem' => 'PROSPECTO',
+            'prospecto' => 'AFILIADO - BÁSICA',
+            'BASICA' => 'PYME o EMPRENDEDOR',
+            'PYME' => 'VISIONARIO',
+            'EMPRENDEDOR' => 'VISIONARIO',
+            'VISIONARIO' => 'PREMIER',
+            'PREMIER' => 'PATROCINADOR OFICIAL',
+            'PATROCINADOR_OFICIAL' => 'PATROCINADOR AAA',
+            'PATROCINADOR_AAA' => 'NAMING RIGHTS',
+            'NAMING_RIGHTS' => 'MÁXIMO NIVEL ALCANZADO'
+        ];
+        
+        // Si es un tipo de contacto (no afiliado), usar el mapeo por contact_type
+        if (in_array($contactType, ['siem', 'prospecto'])) {
+            return $upsellingMap[$contactType] ?? 'NO DEFINIDO';
+        }
+        
+        // Si es afiliado, usar el mapeo por membership_code
+        if ($contactType === 'afiliado' && !empty($membershipCode)) {
+            return $upsellingMap[$membershipCode] ?? 'NO DEFINIDO';
+        }
+        
+        return 'NO DEFINIDO';
+    }
+    
+    /**
+     * Get SIEM contacts for upselling
+     * @return array
+     */
+    public function getSiemContacts(): array {
+        $sql = "SELECT c.*, u.name as affiliator_name 
+                FROM {$this->table} c 
+                LEFT JOIN users u ON c.assigned_affiliate_id = u.id 
+                WHERE c.contact_type = 'siem'
+                ORDER BY c.created_at DESC";
+        return $this->raw($sql);
+    }
+    
+    /**
+     * Get invitados (guests) - contacts without RFC
+     * @return array
+     */
+    public function getInvitados(): array {
+        $sql = "SELECT c.* 
+                FROM {$this->table} c 
+                WHERE c.contact_type = 'invitado'
+                ORDER BY c.created_at DESC";
+        return $this->raw($sql);
+    }
+    
+    /**
+     * Get funcionarios de gobierno
+     * @return array
+     */
+    public function getFuncionariosGobierno(): array {
+        $sql = "SELECT c.* 
+                FROM {$this->table} c 
+                WHERE c.contact_type = 'funcionario_gobierno'
+                ORDER BY c.business_name";
+        return $this->raw($sql);
+    }
+    
+    /**
+     * Check if contact is eligible for courtesy tickets
+     * @param int $contactId
+     * @return array ['eligible' => bool, 'reason' => string, 'tickets_used' => int]
+     */
+    public function checkCourtesyEligibility(int $contactId): array {
+        $sql = "SELECT 
+                    c.id,
+                    c.contact_type,
+                    c.membership_type_id,
+                    mt.code as membership_code,
+                    mt.name as membership_name,
+                    CASE 
+                        WHEN mt.code IN ('BASICA', 'PYME', 'EMPRENDEDOR', 'VISIONARIO', 
+                                         'PREMIER', 'PATROCINADOR_OFICIAL', 
+                                         'PATROCINADOR_AAA', 'NAMING_RIGHTS') THEN 1
+                        ELSE 0
+                    END as is_eligible,
+                    (SELECT COUNT(*) 
+                     FROM event_registrations er 
+                     WHERE er.contact_id = c.id 
+                       AND er.is_courtesy_ticket = 1
+                       AND er.payment_status = 'courtesy') as tickets_used
+                FROM {$this->table} c
+                LEFT JOIN membership_types mt ON c.membership_type_id = mt.id
+                WHERE c.id = :contact_id";
+        
+        $result = $this->rawOne($sql, ['contact_id' => $contactId]);
+        
+        if (!$result) {
+            return [
+                'eligible' => false,
+                'reason' => 'Contacto no encontrado',
+                'tickets_used' => 0
+            ];
+        }
+        
+        $isEligible = (bool)$result['is_eligible'];
+        $ticketsUsed = (int)$result['tickets_used'];
+        
+        if ($result['contact_type'] !== 'afiliado') {
+            return [
+                'eligible' => false,
+                'reason' => 'Solo afiliados pueden recibir cortesías',
+                'tickets_used' => 0
+            ];
+        }
+        
+        if (!$isEligible) {
+            return [
+                'eligible' => false,
+                'reason' => 'Membresía actual no tiene derecho a cortesías',
+                'tickets_used' => 0
+            ];
+        }
+        
+        if ($ticketsUsed >= 1) {
+            return [
+                'eligible' => false,
+                'reason' => 'Ya utilizó su cortesía disponible (máximo 1 por membresía)',
+                'tickets_used' => $ticketsUsed
+            ];
+        }
+        
+        return [
+            'eligible' => true,
+            'reason' => 'Elegible para cortesía',
+            'tickets_used' => $ticketsUsed
+        ];
     }
 }
