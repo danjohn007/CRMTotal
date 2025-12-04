@@ -72,7 +72,7 @@
                     'evento_gratuito' => 'Evento Gratuito',
                     'evento_pagado' => 'Evento Pagado',
                     'buscador' => 'Buscador',
-                    'jefatura_comercial' => 'Jefatura Comercial'
+                    'jefatura_comercial' => 'Reasignaciones'
                 ];
                 foreach ($channelStats as $channel): ?>
                 <div class="flex justify-between text-sm">
@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', function() {
         'evento_gratuito': 'Evento Gratuito',
         'evento_pagado': 'Evento Pagado',
         'buscador': 'Buscador',
-        'jefatura_comercial': 'Jefatura'
+        'jefatura_comercial': 'Reasignaciones'
     };
     
     new Chart(document.getElementById('channelChart'), {

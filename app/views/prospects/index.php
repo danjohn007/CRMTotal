@@ -62,12 +62,12 @@
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Empresa</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contacto</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Canal</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Afiliador</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Perfil</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">WhatsApp</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre de Contacto</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Razón Social & RFC</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre Afiliador</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                     </tr>
                 </thead>
@@ -82,53 +82,37 @@
                     <?php foreach ($prospects as $prospect): ?>
                     <tr class="hover:bg-gray-50">
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0 h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center">
-                                    <span class="text-purple-600 font-medium text-sm">
-                                        <?php echo substr($prospect['business_name'] ?? 'P', 0, 1); ?>
-                                    </span>
-                                </div>
-                                <div class="ml-4">
-                                    <div class="text-sm font-medium text-gray-900">
-                                        <?php echo htmlspecialchars($prospect['business_name'] ?? $prospect['owner_name'] ?? 'Sin nombre'); ?>
-                                    </div>
-                                    <div class="text-sm text-gray-500">
-                                        <?php echo htmlspecialchars($prospect['rfc'] ?? '-'); ?>
-                                    </div>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-gray-900"><?php echo htmlspecialchars($prospect['owner_name'] ?? '-'); ?></div>
-                            <div class="text-sm text-gray-500"><?php echo htmlspecialchars($prospect['phone'] ?? $prospect['whatsapp'] ?? '-'); ?></div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
                             <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
                                 <?php echo $channels[$prospect['source_channel']] ?? $prospect['source_channel']; ?>
                             </span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <?php echo htmlspecialchars($prospect['affiliator_name'] ?? 'Sin asignar'); ?>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900"><?php echo htmlspecialchars($prospect['whatsapp'] ?? '-'); ?></div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex items-center">
-                                <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
-                                    <div class="bg-<?php echo $prospect['profile_completion'] >= 70 ? 'green' : ($prospect['profile_completion'] >= 35 ? 'yellow' : 'red'); ?>-500 h-2 rounded-full" 
-                                         style="width: <?php echo $prospect['profile_completion']; ?>%"></div>
-                                </div>
-                                <span class="text-xs text-gray-500"><?php echo $prospect['profile_completion']; ?>%</span>
+                            <div class="text-sm text-gray-900"><?php echo htmlspecialchars($prospect['owner_name'] ?? $prospect['legal_representative'] ?? '-'); ?></div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-medium text-gray-900">
+                                <?php echo htmlspecialchars($prospect['business_name'] ?? 'Sin razón social'); ?>
+                            </div>
+                            <div class="text-sm text-gray-500">
+                                RFC: <?php echo htmlspecialchars($prospect['rfc'] ?? '-'); ?>
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             <?php echo date('d/m/Y', strtotime($prospect['created_at'])); ?>
                         </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <?php echo htmlspecialchars($prospect['affiliator_name'] ?? 'Sin asignar'); ?>
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <a href="<?php echo BASE_URL; ?>/prospectos/<?php echo $prospect['id']; ?>" 
-                               class="text-blue-600 hover:text-blue-900 mr-3">Ver</a>
+                               class="text-blue-600 hover:text-blue-900 mr-3" title="Ver">Ver</a>
                             <a href="<?php echo BASE_URL; ?>/prospectos/<?php echo $prospect['id']; ?>/editar" 
-                               class="text-indigo-600 hover:text-indigo-900 mr-3">Editar</a>
+                               class="text-indigo-600 hover:text-indigo-900 mr-3" title="Editar">Editar</a>
                             <a href="<?php echo BASE_URL; ?>/afiliados/nuevo?prospect_id=<?php echo $prospect['id']; ?>" 
-                               class="text-green-600 hover:text-green-900">Afiliar</a>
+                               class="text-green-600 hover:text-green-900" title="Afiliar">Afiliar</a>
                         </td>
                     </tr>
                     <?php endforeach; ?>

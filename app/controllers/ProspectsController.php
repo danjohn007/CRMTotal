@@ -99,7 +99,7 @@ class ProspectsController extends Controller {
         $activities = $activityModel->getByContact($id);
         
         $this->view('prospects/show', [
-            'pageTitle' => 'Detalle de Prospecto',
+            'pageTitle' => 'Detalle Prospectos',
             'currentPage' => 'prospectos',
             'prospect' => $prospect,
             'activities' => $activities,

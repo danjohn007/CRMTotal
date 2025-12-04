@@ -166,7 +166,7 @@
                                     'evento_pagado' => ['label' => 'Evento', 'class' => 'bg-green-100 text-green-800'],
                                     'alta_directa' => ['label' => 'Manual', 'class' => 'bg-gray-100 text-gray-800'],
                                     'buscador' => ['label' => 'Buscador', 'class' => 'bg-yellow-100 text-yellow-800'],
-                                    'jefatura_comercial' => ['label' => 'Jefatura', 'class' => 'bg-indigo-100 text-indigo-800'],
+                                    'jefatura_comercial' => ['label' => 'Reasignaciones', 'class' => 'bg-indigo-100 text-indigo-800'],
                                 ];
                                 $channel = $channelLabels[$prospect['source_channel']] ?? ['label' => $prospect['source_channel'], 'class' => 'bg-gray-100 text-gray-800'];
                                 ?>

@@ -254,7 +254,7 @@
                 'evento_gratuito' => ['label' => 'Evento Gratuito', 'icon' => '🎉'],
                 'evento_pagado' => ['label' => 'Evento Pagado', 'icon' => '🎟️'],
                 'buscador' => ['label' => 'Buscador', 'icon' => '🔍'],
-                'jefatura_comercial' => ['label' => 'Jefatura', 'icon' => '👔'],
+                'jefatura_comercial' => ['label' => 'Reasignaciones', 'icon' => '🔄'],
             ];
             foreach ($channelStats as $channel):
                 $info = $channelLabels[$channel['source_channel']] ?? ['label' => $channel['source_channel'], 'icon' => '📊'];
