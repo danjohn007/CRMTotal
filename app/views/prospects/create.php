@@ -25,8 +25,8 @@
             <h3 class="text-lg font-medium text-gray-900 mb-4">Identificación</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label for="rfc" class="block text-sm font-medium text-gray-700">RFC</label>
-                    <input type="text" name="rfc" id="rfc" maxlength="13"
+                    <label for="rfc" class="block text-sm font-medium text-gray-700">RFC *</label>
+                    <input type="text" name="rfc" id="rfc" maxlength="13" required
                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
                            placeholder="RFC de la empresa">
                 </div>
@@ -50,30 +50,30 @@
                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
                 </div>
                 <div>
-                    <label for="commercial_name" class="block text-sm font-medium text-gray-700">Nombre Comercial</label>
-                    <input type="text" name="commercial_name" id="commercial_name"
+                    <label for="commercial_name" class="block text-sm font-medium text-gray-700">Nombre Comercial *</label>
+                    <input type="text" name="commercial_name" id="commercial_name" required
                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
                 </div>
                 <div>
-                    <label for="owner_name" class="block text-sm font-medium text-gray-700">Nombre del Dueño/Representante *</label>
+                    <label for="owner_name" class="block text-sm font-medium text-gray-700">Nombre del Encargado/Recepcionista/Representante Legal *</label>
                     <input type="text" name="owner_name" id="owner_name" required
                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
                 </div>
                 <div>
-                    <label for="corporate_email" class="block text-sm font-medium text-gray-700">Correo Corporativo *</label>
-                    <input type="email" name="corporate_email" id="corporate_email" required
+                    <label for="industry" class="block text-sm font-medium text-gray-700">Industria / Giro (Clasificación Niza) *</label>
+                    <input type="text" name="industry" id="industry" required
                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
                 </div>
                 <div>
-                    <label for="phone" class="block text-sm font-medium text-gray-700">Teléfono</label>
+                    <label for="corporate_email" class="block text-sm font-medium text-gray-700">Email (Opcional)</label>
+                    <input type="email" name="corporate_email" id="corporate_email"
+                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label for="phone" class="block text-sm font-medium text-gray-700">Teléfono Oficina (Opcional)</label>
                     <input type="text" name="phone" id="phone"
                            maxlength="10" pattern="[0-9]{10}" title="Ingrese exactamente 10 dígitos"
                            placeholder="10 dígitos"
-                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div>
-                    <label for="industry" class="block text-sm font-medium text-gray-700">Industria/Giro</label>
-                    <input type="text" name="industry" id="industry"
                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
                 </div>
             </div>
@@ -114,7 +114,12 @@
             <h3 class="text-lg font-medium text-gray-900 mb-4">Dirección (Opcional)</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="md:col-span-2">
-                    <label for="commercial_address" class="block text-sm font-medium text-gray-700">Dirección Comercial</label>
+                    <label for="fiscal_address" class="block text-sm font-medium text-gray-700">Dirección Fiscal (Opcional)</label>
+                    <input type="text" name="fiscal_address" id="fiscal_address"
+                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="md:col-span-2">
+                    <label for="commercial_address" class="block text-sm font-medium text-gray-700">Dirección Comercial (Opcional)</label>
                     <input type="text" name="commercial_address" id="commercial_address"
                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
                 </div>
@@ -133,7 +138,7 @@
         
         <!-- Notes -->
         <div>
-            <label for="notes" class="block text-sm font-medium text-gray-700">Notas</label>
+            <label for="notes" class="block text-sm font-medium text-gray-700">Notas (Opcional)</label>
             <textarea name="notes" id="notes" rows="3"
                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Notas adicionales sobre el prospecto..."></textarea>
