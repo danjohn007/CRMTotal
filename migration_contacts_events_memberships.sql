@@ -294,6 +294,8 @@ DELIMITER ;
 -- Trigger para validar RFC y person_type en INSERT
 DELIMITER //
 
+DROP TRIGGER IF EXISTS `trg_contacts_validate_rfc_insert` //
+
 CREATE TRIGGER `trg_contacts_validate_rfc_insert`
 BEFORE INSERT ON `contacts`
 FOR EACH ROW
@@ -311,6 +313,8 @@ DELIMITER ;
 
 -- Trigger para validar RFC y person_type en UPDATE
 DELIMITER //
+
+DROP TRIGGER IF EXISTS `trg_contacts_validate_rfc_update` //
 
 CREATE TRIGGER `trg_contacts_validate_rfc_update`
 BEFORE UPDATE ON `contacts`

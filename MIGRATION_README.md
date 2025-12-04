@@ -275,6 +275,11 @@ Verificar configuración en tabla `config`:
 - `smtp_from_email`
 - `smtp_from_name`
 
+**Nota**: La implementación actual usa la función `mail()` de PHP. Para producción, se recomienda:
+1. Instalar y configurar PHPMailer o SwiftMailer
+2. Actualizar el método `sendEventEmail()` en EventsController
+3. Configurar SMTP en el servidor o usar un servicio como SendGrid/Mailgun
+
 ---
 
 ## Contacto y Soporte

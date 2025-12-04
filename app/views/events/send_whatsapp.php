@@ -9,7 +9,7 @@
             <div class="card">
                 <div class="card-header pb-0">
                     <div class="d-flex align-items-center">
-                        <a href="/eventos/<?= $event['id'] ?>" class="btn btn-sm btn-secondary me-3">
+                        <a href="<?php echo BASE_URL; ?>/eventos/<?= $event['id'] ?>" class="btn btn-sm btn-secondary me-3">
                             <i class="fas fa-arrow-left me-1"></i> Volver
                         </a>
                         <div>
@@ -36,7 +36,7 @@
                     
                     <?php if (empty($whatsappLinks)): ?>
                         <!-- Form to generate WhatsApp links -->
-                        <form method="POST" action="/eventos/<?= $event['id'] ?>/send-whatsapp">
+                        <form method="POST" action="<?php echo BASE_URL; ?>/eventos/<?= $event['id'] ?>/send-whatsapp">
                             <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
                             
                             <div class="row mb-4">
@@ -125,11 +125,11 @@
                         
                         <div class="row mt-4">
                             <div class="col-12">
-                                <a href="/eventos/<?= $event['id'] ?>/send-whatsapp" class="btn btn-primary">
+                                <a href="<?php echo BASE_URL; ?>/eventos/<?= $event['id'] ?>/send-whatsapp" class="btn btn-primary">
                                     <i class="fas fa-redo me-2"></i>
                                     Generar Nuevos Enlaces
                                 </a>
-                                <a href="/eventos/<?= $event['id'] ?>" class="btn btn-secondary">
+                                <a href="<?php echo BASE_URL; ?>/eventos/<?= $event['id'] ?>" class="btn btn-secondary">
                                     <i class="fas fa-times me-2"></i>
                                     Finalizar
                                 </a>

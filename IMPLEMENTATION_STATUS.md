@@ -217,17 +217,21 @@ El sistema puede calcular automáticamente el siguiente paso usando la función 
 
 ## Notas Importantes
 
-1. **RFC Validation**: El sistema valida automáticamente el tipo de persona:
+1. **WhatsApp Country Code**: El código de país para WhatsApp se obtiene de la configuración (`whatsapp_country_code`). Por defecto es '52' (México). Para cambiar, agregar el valor en la tabla `config`.
+
+2. **Email Sending**: La implementación actual usa `mail()` de PHP. Para producción se recomienda usar PHPMailer o SwiftMailer para mayor confiabilidad.
+
+3. **RFC Validation**: El sistema valida automáticamente el tipo de persona:
    - 12 caracteres = Persona Moral (usar business_name y legal_representative)
    - 13 caracteres = Persona Física (usar owner_name)
 
-2. **Invitados**: Contactos tipo "invitado" no requieren RFC, solo email, whatsapp y nombre.
+4. **Invitados**: Contactos tipo "invitado" no requieren RFC, solo email, whatsapp y nombre.
 
-3. **Cortesías**: Las cortesías son un beneficio global del afiliado, no por evento. Una vez usada, no puede usar otra cortesía hasta su siguiente renovación.
+5. **Cortesías**: Las cortesías son un beneficio global del afiliado, no por evento. Una vez usada, no puede usar otra cortesía hasta su siguiente renovación.
 
-4. **Códigos de Registro**: Cada registration_code debe ser único. El sistema previene duplicados automáticamente.
+6. **Códigos de Registro**: Cada registration_code debe ser único. El sistema previene duplicados automáticamente.
 
-5. **SIEM**: Contactos tipo SIEM son el punto de entrada al funnel de ventas. Deben ser promovidos a prospecto y luego a afiliado.
+7. **SIEM**: Contactos tipo SIEM son el punto de entrada al funnel de ventas. Deben ser promovidos a prospecto y luego a afiliado.
 
 ---
 

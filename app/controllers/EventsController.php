@@ -1654,11 +1654,15 @@ HTML;
                 } else {
                     // Generate WhatsApp links for each contact
                     $whatsappLinks = [];
+                    // Get country code from config or use default (Mexico)
+                    $config = $this->configModel->getAllSettings();
+                    $countryCode = $config['whatsapp_country_code'] ?? '52';
+                    
                     foreach ($contacts as $contact) {
                         $phone = preg_replace('/[^0-9]/', '', $contact['whatsapp']);
                         // Format: remove leading zeros, add country code if not present
-                        if (substr($phone, 0, 2) !== '52') {
-                            $phone = '52' . $phone;
+                        if (substr($phone, 0, strlen($countryCode)) !== $countryCode) {
+                            $phone = $countryCode . $phone;
                         }
                         
                         $personalizedMessage = str_replace('{nombre}', $contact['nombre'], $message);
