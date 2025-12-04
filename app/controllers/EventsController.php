@@ -1549,4 +1549,280 @@ HTML;
             return false;
         }
     }
+    
+    /**
+     * Export emails from event registrations to CSV
+     */
+    public function exportEmails(): void {
+        $this->requireAuth();
+        
+        $eventId = (int) ($this->params['id'] ?? 0);
+        $event = $this->eventModel->find($eventId);
+        
+        if (!$event) {
+            $_SESSION['flash_error'] = 'Evento no encontrado.';
+            $this->redirect('eventos');
+        }
+        
+        // Get all registration data for export
+        $registrations = $this->eventModel->getEmailsForExport($eventId);
+        
+        if (empty($registrations)) {
+            $_SESSION['flash_error'] = 'No hay registros para exportar.';
+            $this->redirect('eventos/' . $eventId);
+        }
+        
+        // Create CSV filename
+        $filename = 'emails_' . $this->sanitizeFilename($event['title']) . '_' . date('Y-m-d') . '.csv';
+        
+        // Set headers for CSV download
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        
+        // Create output stream
+        $output = fopen('php://output', 'w');
+        
+        // Add BOM for proper UTF-8 encoding in Excel
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+        
+        // Write CSV headers
+        fputcsv($output, [
+            'Código Registro',
+            'Nombre',
+            'Email',
+            'WhatsApp',
+            'Tipo Registro',
+            'Estado Pago',
+            'Cortesía',
+            'Asistió',
+            'Razón Social',
+            'RFC',
+            'Tipo Membresía'
+        ]);
+        
+        // Write data rows
+        foreach ($registrations as $reg) {
+            fputcsv($output, [
+                $reg['registration_code'] ?? '',
+                $reg['nombre'] ?? '',
+                $reg['email'] ?? '',
+                $reg['whatsapp'] ?? '',
+                $reg['tipo_registro'] ?? '',
+                $reg['payment_status'] ?? '',
+                $reg['cortesia'] ? 'Sí' : 'No',
+                $reg['asistio'] ? 'Sí' : 'No',
+                $reg['razon_social'] ?? '',
+                $reg['rfc'] ?? '',
+                $reg['tipo_membresia'] ?? ''
+            ]);
+        }
+        
+        fclose($output);
+        exit;
+    }
+    
+    /**
+     * Prepare WhatsApp bulk messaging
+     */
+    public function sendWhatsApp(): void {
+        $this->requireAuth();
+        
+        $eventId = (int) ($this->params['id'] ?? 0);
+        $event = $this->eventModel->find($eventId);
+        
+        if (!$event) {
+            $_SESSION['flash_error'] = 'Evento no encontrado.';
+            $this->redirect('eventos');
+        }
+        
+        $error = null;
+        $success = null;
+        
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $message = $this->getInput('message', '');
+            
+            if (empty($message)) {
+                $error = 'El mensaje no puede estar vacío.';
+            } else {
+                // Get WhatsApp numbers
+                $contacts = $this->eventModel->getWhatsAppForMessaging($eventId);
+                
+                if (empty($contacts)) {
+                    $error = 'No hay números de WhatsApp registrados para este evento.';
+                } else {
+                    // Generate WhatsApp links for each contact
+                    $whatsappLinks = [];
+                    foreach ($contacts as $contact) {
+                        $phone = preg_replace('/[^0-9]/', '', $contact['whatsapp']);
+                        // Format: remove leading zeros, add country code if not present
+                        if (substr($phone, 0, 2) !== '52') {
+                            $phone = '52' . $phone;
+                        }
+                        
+                        $personalizedMessage = str_replace('{nombre}', $contact['nombre'], $message);
+                        $personalizedMessage = str_replace('{codigo}', $contact['registration_code'], $personalizedMessage);
+                        $encodedMessage = urlencode($personalizedMessage);
+                        
+                        $whatsappLinks[] = [
+                            'nombre' => $contact['nombre'],
+                            'phone' => $contact['whatsapp'],
+                            'link' => "https://wa.me/{$phone}?text={$encodedMessage}"
+                        ];
+                    }
+                    
+                    $success = 'Se generaron ' . count($whatsappLinks) . ' enlaces de WhatsApp.';
+                    
+                    // Store in session for display
+                    $_SESSION['whatsapp_links'] = $whatsappLinks;
+                }
+            }
+        }
+        
+        // Default message template
+        $defaultMessage = "Hola {nombre},\n\n"
+                        . "Te recordamos nuestro evento: " . $event['title'] . "\n"
+                        . "Fecha: " . date('d/m/Y H:i', strtotime($event['start_date'])) . "\n"
+                        . "Lugar: " . ($event['location'] ?? 'Por confirmar') . "\n\n"
+                        . "Tu código de registro: {codigo}\n\n"
+                        . "¡Te esperamos!";
+        
+        $this->view('events/send_whatsapp', [
+            'pageTitle' => 'Enviar WhatsApp - ' . $event['title'],
+            'currentPage' => 'eventos',
+            'event' => $event,
+            'defaultMessage' => $defaultMessage,
+            'whatsappLinks' => $_SESSION['whatsapp_links'] ?? [],
+            'error' => $error,
+            'success' => $success,
+            'csrf_token' => $this->csrfToken()
+        ]);
+        
+        // Clear session data after displaying
+        unset($_SESSION['whatsapp_links']);
+    }
+    
+    /**
+     * Send email with QR code to all attendees
+     */
+    public function sendEmailWithQR(): void {
+        $this->requireAuth();
+        
+        $eventId = (int) ($this->params['id'] ?? 0);
+        $event = $this->eventModel->find($eventId);
+        
+        if (!$event) {
+            $_SESSION['flash_error'] = 'Evento no encontrado.';
+            $this->redirect('eventos');
+        }
+        
+        $error = null;
+        $success = null;
+        
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!$this->validateCsrf()) {
+                $error = 'Token de seguridad inválido.';
+            } else {
+                $subject = $this->getInput('subject', '');
+                $emailBody = $this->getInput('email_body', '');
+                
+                if (empty($subject) || empty($emailBody)) {
+                    $error = 'El asunto y el mensaje son requeridos.';
+                } else {
+                    // Get registrations with email
+                    $registrations = $this->eventModel->getEmailsForExport($eventId);
+                    $sent = 0;
+                    $failed = 0;
+                    
+                    foreach ($registrations as $reg) {
+                        if (empty($reg['email'])) {
+                            continue;
+                        }
+                        
+                        // Personalize email
+                        $personalizedBody = str_replace('{nombre}', $reg['nombre'], $emailBody);
+                        $personalizedBody = str_replace('{codigo}', $reg['registration_code'], $personalizedBody);
+                        $personalizedBody = str_replace('{evento}', $event['title'], $personalizedBody);
+                        
+                        // Send email (use existing email sending functionality)
+                        $emailSent = $this->sendEventEmail($reg['email'], $subject, $personalizedBody, $reg['registration_code']);
+                        
+                        if ($emailSent) {
+                            $sent++;
+                        } else {
+                            $failed++;
+                        }
+                    }
+                    
+                    if ($sent > 0) {
+                        $success = "Se enviaron {$sent} correos exitosamente.";
+                        if ($failed > 0) {
+                            $success .= " {$failed} correos fallaron.";
+                        }
+                    } else {
+                        $error = "No se pudo enviar ningún correo.";
+                    }
+                }
+            }
+        }
+        
+        // Default email template
+        $defaultSubject = "Confirmación de registro - " . $event['title'];
+        $defaultBody = "Estimado/a {nombre},\n\n"
+                     . "Confirmamos tu registro para el evento:\n\n"
+                     . "Evento: {evento}\n"
+                     . "Fecha: " . date('d/m/Y H:i', strtotime($event['start_date'])) . "\n"
+                     . "Lugar: " . ($event['location'] ?? 'Por confirmar') . "\n\n"
+                     . "Tu código de registro (boleto QR): {codigo}\n\n"
+                     . "Por favor, presenta este código al momento de tu registro.\n\n"
+                     . "¡Te esperamos!\n\n"
+                     . "Saludos,\n"
+                     . "Cámara de Comercio de Querétaro";
+        
+        $this->view('events/send_email', [
+            'pageTitle' => 'Enviar Email con QR - ' . $event['title'],
+            'currentPage' => 'eventos',
+            'event' => $event,
+            'defaultSubject' => $defaultSubject,
+            'defaultBody' => $defaultBody,
+            'error' => $error,
+            'success' => $success,
+            'csrf_token' => $this->csrfToken()
+        ]);
+    }
+    
+    /**
+     * Send email to a specific address
+     */
+    private function sendEventEmail(string $to, string $subject, string $body, string $registrationCode): bool {
+        // Use the existing email configuration from Config model
+        $config = $this->configModel->getAllSettings();
+        
+        $from = $config['smtp_from_email'] ?? 'no-reply@canaco.org';
+        $fromName = $config['smtp_from_name'] ?? 'Cámara de Comercio Querétaro';
+        
+        $headers = "From: {$fromName} <{$from}>\r\n";
+        $headers .= "Reply-To: {$from}\r\n";
+        $headers .= "MIME-Version: 1.0\r\n";
+        $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+        $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
+        
+        // Add registration code to body
+        $fullBody = $body . "\n\n---\nCódigo de registro: {$registrationCode}\n";
+        
+        return mail($to, $subject, $fullBody, $headers);
+    }
+    
+    /**
+     * Sanitize filename for safe download
+     */
+    private function sanitizeFilename(string $filename): string {
+        // Remove special characters and spaces
+        $filename = preg_replace('/[^A-Za-z0-9\-_]/', '_', $filename);
+        // Remove multiple underscores
+        $filename = preg_replace('/_+/', '_', $filename);
+        // Trim underscores from ends
+        return trim($filename, '_');
+    }
 }

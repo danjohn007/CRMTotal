@@ -74,6 +74,9 @@ $router->add('eventos/{id}', ['controller' => 'events', 'action' => 'show']);
 $router->add('eventos/{id}/editar', ['controller' => 'events', 'action' => 'edit']);
 $router->add('eventos/{id}/registro', ['controller' => 'events', 'action' => 'registration']);
 $router->add('eventos/{id}/asistencia', ['controller' => 'events', 'action' => 'attendance']);
+$router->add('eventos/{id}/export-emails', ['controller' => 'events', 'action' => 'exportEmails']);
+$router->add('eventos/{id}/send-whatsapp', ['controller' => 'events', 'action' => 'sendWhatsApp']);
+$router->add('eventos/{id}/send-email', ['controller' => 'events', 'action' => 'sendEmailWithQR']);
 
 // Public Event Registration (friendly URL)
 $router->add('evento/{url}', ['controller' => 'events', 'action' => 'publicRegistration']);
