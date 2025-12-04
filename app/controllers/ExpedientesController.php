@@ -6,6 +6,10 @@
  */
 class ExpedientesController extends Controller {
     
+    // EDA Completion Requirements
+    private const REQUIRED_PRODUCTS_SELLS = 4;  // 4 principales productos que vende
+    private const REQUIRED_PRODUCTS_BUYS = 2;   // 2 principales productos que compra
+    
     private Contact $contactModel;
     private Affiliation $affiliationModel;
     private MembershipType $membershipModel;
@@ -512,8 +516,8 @@ class ExpedientesController extends Controller {
             'niza_classification' => !empty($contact['niza_classification']) || !empty($contact['niza_custom_category']),
             'whatsapp_sales' => !empty($contact['whatsapp_sales']),
             'whatsapp_purchases' => !empty($contact['whatsapp_purchases']),
-            'products_sells' => count($productsSells) >= 4,
-            'products_buys' => count($productsBuys) >= 2
+            'products_sells' => count($productsSells) >= self::REQUIRED_PRODUCTS_SELLS,
+            'products_buys' => count($productsBuys) >= self::REQUIRED_PRODUCTS_BUYS
         ];
         
         $completed = count(array_filter($fields));

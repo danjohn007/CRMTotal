@@ -198,20 +198,25 @@ BEGIN
         END IF;
         
         -- Calculate cross-selling opportunities (every 6 weeks = 42 days)
+        -- Only generate opportunities for the last 6 months and next 3 months
         SET v_cross_selling_date = DATE_ADD(v_affiliation_date, INTERVAL 42 DAY);
         
         -- Create cross-selling opportunities that haven't been created yet
-        WHILE v_cross_selling_date <= CURDATE() DO
-            INSERT INTO automated_opportunities (contact_id, opportunity_type, scheduled_date, notes)
-            SELECT v_contact_id, 'cross_selling', v_cross_selling_date, 
-                   CONCAT('Oportunidad automática de Cross-Selling - Ciclo cada 6 semanas')
-            FROM DUAL
-            WHERE NOT EXISTS (
-                SELECT 1 FROM automated_opportunities
-                WHERE contact_id = v_contact_id
-                AND opportunity_type = 'cross_selling'
-                AND scheduled_date = v_cross_selling_date
-            );
+        -- Limit to opportunities within a reasonable timeframe to avoid performance issues
+        WHILE v_cross_selling_date <= DATE_ADD(CURDATE(), INTERVAL 90 DAY) DO
+            -- Only create if within the last 180 days or future
+            IF v_cross_selling_date >= DATE_SUB(CURDATE(), INTERVAL 180 DAY) THEN
+                INSERT INTO automated_opportunities (contact_id, opportunity_type, scheduled_date, notes)
+                SELECT v_contact_id, 'cross_selling', v_cross_selling_date, 
+                       CONCAT('Oportunidad automática de Cross-Selling - Ciclo cada 6 semanas')
+                FROM DUAL
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM automated_opportunities
+                    WHERE contact_id = v_contact_id
+                    AND opportunity_type = 'cross_selling'
+                    AND scheduled_date = v_cross_selling_date
+                );
+            END IF;
             
             SET v_cross_selling_date = DATE_ADD(v_cross_selling_date, INTERVAL 42 DAY);
         END WHILE;
@@ -269,6 +274,8 @@ SET GLOBAL event_scheduler = ON;
 DROP EVENT IF EXISTS `daily_opportunity_generation`;
 
 -- Create daily event to generate opportunities
+-- Runs at 2:00 AM daily to minimize impact on business hours
+-- Adjust INTERVAL 2 HOUR to change the time (e.g., INTERVAL 3 HOUR for 3 AM)
 CREATE EVENT `daily_opportunity_generation`
 ON SCHEDULE EVERY 1 DAY
 STARTS CURRENT_DATE + INTERVAL 1 DAY + INTERVAL 2 HOUR
