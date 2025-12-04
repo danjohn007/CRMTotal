@@ -6,7 +6,6 @@
 La columna `contact_type` diferencia entre:
 - **prospecto**: Contacto potencial sin afiliación
 - **afiliado**: Miembro activo de la cámara
-- **registro**: Contacto registrado en eventos
 - **siem**: Registro del Sistema de Información Empresarial Mexicano
 - **invitado**: Asistente a eventos (no requiere RFC, solo email, whatsapp, nombre)
 - **funcionario de gobierno**: Representante de gobierno
@@ -163,7 +162,7 @@ Mantener funcionalidad actual de estadísticas del evento.
 
 #### 3 Nuevos Botones (debajo de estadísticas)
 
-##### 1. IMPORTAR
+##### 1. EXPORTAR
 - Descargar lista de emails de todos los registrados
 - Formato: CSV o Excel
 - Columnas: nombre, email, whatsapp, tipo_registro, payment_status
