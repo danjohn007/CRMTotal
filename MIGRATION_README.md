@@ -289,4 +289,13 @@ Para problemas o dudas durante la migración:
 - Revisar logs de PHP: `tail -f /var/log/apache2/error.log`
 - Contactar al equipo de desarrollo
 
+### Nota sobre validación de RFC
+La validación de RFC está implementada en dos lugares:
+1. **Triggers de base de datos** - Validación automática al insertar/actualizar
+2. **Modelo Contact** - Método `validatePersonTypeByRFC()`
+
+Esta duplicación es intencional para:
+- Garantizar la validación a nivel de base de datos (seguridad)
+- Permitir validación en PHP antes de guardar (mejor UX)
+
 **Última actualización**: 2025-12-04

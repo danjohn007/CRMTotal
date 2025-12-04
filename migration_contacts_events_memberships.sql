@@ -121,7 +121,13 @@ ALTER TABLE `event_registrations`
 ALTER TABLE `event_registrations` 
   MODIFY COLUMN `payment_status` ENUM('paid', 'pending', 'free', 'courtesy') DEFAULT 'free' COMMENT 'Estado del pago';
 
--- Asegurar que registration_code sea único y no nulo para registros válidos
+-- Asegurar que registration_code sea único (pero permitir NULL para registros en proceso)
+-- Primero, actualizar cualquier valor NULL existente
+UPDATE `event_registrations` 
+SET `registration_code` = CONCAT('REG-', id, '-', UNIX_TIMESTAMP())
+WHERE `registration_code` IS NULL OR `registration_code` = '';
+
+-- Ahora modificar la columna
 ALTER TABLE `event_registrations` 
   MODIFY COLUMN `registration_code` VARCHAR(20) NOT NULL UNIQUE COMMENT 'Código único de registro (boleto)',
   MODIFY COLUMN `is_courtesy_ticket` TINYINT(1) DEFAULT 0 COMMENT 'Boleto de cortesía otorgado (máx 1 por membresía elegible)';

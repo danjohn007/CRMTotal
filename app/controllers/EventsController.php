@@ -1655,12 +1655,16 @@ HTML;
                     // Generate WhatsApp links for each contact
                     $whatsappLinks = [];
                     // Get country code from config or use default (Mexico)
-                    $config = $this->configModel->getAllSettings();
-                    $countryCode = $config['whatsapp_country_code'] ?? '52';
+                    $countryCode = $this->configModel->get('whatsapp_country_code', '52');
                     
                     foreach ($contacts as $contact) {
+                        // Remove all non-numeric characters including + sign
                         $phone = preg_replace('/[^0-9]/', '', $contact['whatsapp']);
-                        // Format: remove leading zeros, add country code if not present
+                        
+                        // Remove leading zeros
+                        $phone = ltrim($phone, '0');
+                        
+                        // Add country code if not present (check if phone starts with country code)
                         if (substr($phone, 0, strlen($countryCode)) !== $countryCode) {
                             $phone = $countryCode . $phone;
                         }
@@ -1801,10 +1805,8 @@ HTML;
      */
     private function sendEventEmail(string $to, string $subject, string $body, string $registrationCode): bool {
         // Use the existing email configuration from Config model
-        $config = $this->configModel->getAllSettings();
-        
-        $from = $config['smtp_from_email'] ?? 'no-reply@canaco.org';
-        $fromName = $config['smtp_from_name'] ?? 'Cámara de Comercio Querétaro';
+        $from = $this->configModel->get('smtp_from_email', 'no-reply@canaco.org');
+        $fromName = $this->configModel->get('smtp_from_name', 'Cámara de Comercio Querétaro');
         
         $headers = "From: {$fromName} <{$from}>\r\n";
         $headers .= "Reply-To: {$from}\r\n";
