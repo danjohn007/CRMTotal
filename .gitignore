@@ -1,0 +1,3 @@
+# Respaldos de la base con datos reales: nunca en el repositorio
+/enlaceca_*.sql
+/contacts*.sql
