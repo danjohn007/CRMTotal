@@ -6,6 +6,7 @@ sin costo en Grandes Empleados sin enviar comprobantes.
 
 ## Activar
 
+0. Ejecuta `config/update_v2.9.0.sql` en la base (tabla `api_request_log` para el registro y los límites).
 1. *Configuración → APIs → Grandes Empleados*: marca **Generar token** y guarda.
 2. Copia el token y la URL que aparece debajo (`https://<este-dominio>/api/v1/afiliacion`).
 3. En Grandes Empleados: *Administración → Cámaras de Comercio → CANACO*, pega la URL y el token y guarda.
@@ -28,3 +29,12 @@ Authorization: Bearer <token>
 
 Código: `ApiController::verifyAffiliation()`, `Contact::getCurrentAffiliationByRfc()` y la ruta en
 `public/index.php`. El `.htaccess` de `public/` ya reenvía el encabezado `Authorization`.
+
+## Registro y límites
+
+- Cada consulta queda en `api_request_log`: endpoint, IP, RFC (o hash del correo/teléfono) y resultado.
+- `api/v1/afiliacion`: 600 consultas por hora por IP; después responde `429`.
+- `api/buscar-empresa` (formulario de registro a eventos): 30 búsquedas por hora por IP. Ya no busca por
+  razón social, y si se busca por RFC no devuelve correo, teléfono, WhatsApp ni dueño (sí razón social y si
+  es afiliado activo). Por correo o teléfono sigue autollenando el formulario.
+- Si la tabla todavía no existe, la API funciona igual pero sin registro ni límites.

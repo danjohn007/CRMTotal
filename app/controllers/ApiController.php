@@ -121,9 +121,13 @@ class ApiController extends Controller {
     }
     
     public function searchCompany(): void {
-        // Public API - search company by WhatsApp or RFC
-        $identifier = $this->sanitize($this->getInput('q', ''));
-        
+        // Public API (registro a eventos): busca la empresa por RFC, correo, WhatsApp o teléfono.
+        // - Por correo o teléfono devuelve los datos de contacto para autollenar: quien busca ya los conoce.
+        // - Por RFC (dato fácil de conseguir) solo devuelve la razón social y si es afiliado activo.
+        // - Ya no se busca por razón social, y hay un límite de consultas por IP.
+        $identifier = trim((string) $this->getInput('q', ''));
+        $apiLog = new ApiRequestLog();
+
         if (strlen($identifier) < 3) {
             $this->json([
                 'success' => false,
@@ -132,26 +136,44 @@ class ApiController extends Controller {
             ]);
             return;
         }
-        
+
+        if ($apiLog->exceeded('buscar-empresa', 30, 60)) {
+            $apiLog->log('buscar-empresa', null, 'limite');
+            $this->json(['success' => false, 'message' => 'Demasiadas búsquedas. Intenta más tarde.', 'company' => null], 429);
+        }
+
         $contactModel = new Contact();
-        $company = $contactModel->identify($identifier);
-        
+        $rfc = strtoupper(preg_replace('/[\s-]+/', '', $identifier));
+        $byRfc = (bool) preg_match('/^[A-ZÑ&]{3,4}\d{6}[A-Z\d]{3}$/u', $rfc);
+
+        if ($byRfc) {
+            $company = $contactModel->findByRfc($rfc);
+        } elseif (filter_var($identifier, FILTER_VALIDATE_EMAIL)) {
+            $company = $contactModel->findBy('corporate_email', $identifier);
+        } else {
+            $digits = preg_replace('/\D+/', '', $identifier);
+            $company = strlen($digits) >= 10
+                ? ($contactModel->findByWhatsapp($identifier) ?? $contactModel->findByWhatsapp($digits) ?? $contactModel->findBy('phone', $digits))
+                : null;
+        }
+
+        $apiLog->log('buscar-empresa', $byRfc ? $rfc : hash('sha256', strtolower($identifier)), $company ? 'encontrada' : 'no_encontrada');
+
         if ($company) {
             // Check if this is an active affiliate
             $eventModel = new Event();
             $isActiveAffiliate = $eventModel->isActiveAffiliate($company['corporate_email'] ?? '');
-            
-            // Return only safe fields for public access
+
             $this->json([
                 'success' => true,
                 'company' => [
                     'id' => $company['id'],
                     'business_name' => $company['business_name'],
                     'commercial_name' => $company['commercial_name'],
-                    'owner_name' => $company['owner_name'],
-                    'corporate_email' => $company['corporate_email'],
-                    'phone' => $company['phone'],
-                    'whatsapp' => $company['whatsapp'],
+                    'owner_name' => $byRfc ? '' : $company['owner_name'],
+                    'corporate_email' => $byRfc ? '' : $company['corporate_email'],
+                    'phone' => $byRfc ? '' : $company['phone'],
+                    'whatsapp' => $byRfc ? '' : $company['whatsapp'],
                     'rfc' => $company['rfc']
                 ],
                 'is_active_affiliate' => $isActiveAffiliate
@@ -175,6 +197,13 @@ class ApiController extends Controller {
      */
     public function verifyAffiliation(): void {
         header('Cache-Control: no-store');
+        $apiLog = new ApiRequestLog();
+
+        // Límite por IP: la sincronización diaria de Grandes Empleados consulta todas sus afiliaciones.
+        if ($apiLog->exceeded('afiliacion', 600, 60)) {
+            $apiLog->log('afiliacion', null, 'limite');
+            $this->json(['success' => false, 'message' => 'Demasiadas consultas'], 429);
+        }
 
         $configModel = new Config();
         $token = (string) $configModel->get('grandes_empleados_api_token', '');
@@ -182,16 +211,19 @@ class ApiController extends Controller {
         $sent = preg_match('/^Bearer\s+(\S+)$/i', trim($header), $m) ? $m[1] : '';
 
         if ($token === '' || $sent === '' || !hash_equals($token, $sent)) {
+            $apiLog->log('afiliacion', null, 'no_autorizado');
             $this->json(['success' => false, 'message' => 'No autorizado'], 401);
         }
 
         $rfc = strtoupper(preg_replace('/[\s-]+/', '', (string) $this->getInput('rfc', '')));
         if (!preg_match('/^[A-ZÑ&]{3,4}\d{6}[A-Z\d]{3}$/u', $rfc)) {
+            $apiLog->log('afiliacion', null, 'rfc_invalido');
             $this->json(['success' => false, 'message' => 'RFC inválido'], 422);
         }
 
         $contactModel = new Contact();
         $affiliation = $contactModel->getCurrentAffiliationByRfc($rfc);
+        $apiLog->log('afiliacion', $rfc, $affiliation ? 'afiliada' : 'no_afiliada');
 
         if (!$affiliation) {
             $this->json(['success' => true, 'afiliada' => false, 'rfc' => $rfc]);
