@@ -208,6 +208,7 @@ $router->add('api/dashboard', ['controller' => 'api', 'action' => 'dashboard']);
 $router->add('api/notificaciones', ['controller' => 'api', 'action' => 'notifications']);
 $router->add('api/buscar', ['controller' => 'api', 'action' => 'search']);
 $router->add('api/buscar-empresa', ['controller' => 'api', 'action' => 'searchCompany']);
+$router->add('api/v1/afiliacion', ['controller' => 'api', 'action' => 'verifyAffiliation']);
 $router->add('api/eventos/verificar-url', ['controller' => 'api', 'action' => 'verifyEventUrl']);
 $router->add('api/eventos/confirmar-pago', ['controller' => 'api', 'action' => 'confirmEventPayment']);
 $router->add('api/eventos/validar-qr', ['controller' => 'api', 'action' => 'validateEventQR']);

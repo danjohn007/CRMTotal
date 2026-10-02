@@ -165,6 +165,53 @@ class ApiController extends Controller {
         }
     }
     
+    /**
+     * API para Grandes Empleados (grandesempleados.com): confirma si una empresa es afiliada vigente.
+     *
+     * GET api/v1/afiliacion?rfc=XXX
+     * Authorization: Bearer <grandes_empleados_api_token>  (Configuración → APIs)
+     *
+     * Responde solo datos de la afiliación (vigencia y membresía), sin datos personales del contacto.
+     */
+    public function verifyAffiliation(): void {
+        header('Cache-Control: no-store');
+
+        $configModel = new Config();
+        $token = (string) $configModel->get('grandes_empleados_api_token', '');
+        $header = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
+        $sent = preg_match('/^Bearer\s+(\S+)$/i', trim($header), $m) ? $m[1] : '';
+
+        if ($token === '' || $sent === '' || !hash_equals($token, $sent)) {
+            $this->json(['success' => false, 'message' => 'No autorizado'], 401);
+        }
+
+        $rfc = strtoupper(preg_replace('/[\s-]+/', '', (string) $this->getInput('rfc', '')));
+        if (!preg_match('/^[A-ZÑ&]{3,4}\d{6}[A-Z\d]{3}$/u', $rfc)) {
+            $this->json(['success' => false, 'message' => 'RFC inválido'], 422);
+        }
+
+        $contactModel = new Contact();
+        $affiliation = $contactModel->getCurrentAffiliationByRfc($rfc);
+
+        if (!$affiliation) {
+            $this->json(['success' => true, 'afiliada' => false, 'rfc' => $rfc]);
+        }
+
+        $number = $affiliation['sticker_number'] ?: ($affiliation['registration_number'] ?: 'CCQ-' . $affiliation['affiliation_id']);
+
+        $this->json([
+            'success' => true,
+            'afiliada' => true,
+            'rfc' => $rfc,
+            'razon_social' => $affiliation['business_name'],
+            'nombre_comercial' => $affiliation['commercial_name'],
+            'numero_afiliacion' => (string) $number,
+            'membresia' => $affiliation['membership_name'],
+            'fecha_afiliacion' => $affiliation['affiliation_date'],
+            'fecha_vencimiento' => $affiliation['expiration_date'],
+        ]);
+    }
+
     public function verifyEventUrl(): void {
         // Check if event URL is available
         $url = $this->sanitize($this->getInput('url', ''));

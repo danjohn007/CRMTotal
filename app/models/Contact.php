@@ -28,6 +28,26 @@ class Contact extends Model {
         return $this->findBy('rfc', $rfc);
     }
     
+    /**
+     * Afiliación activa y no vencida de una empresa, buscada por RFC (API para Grandes Empleados).
+     * Solo devuelve datos de la afiliación; nunca datos personales del contacto.
+     */
+    public function getCurrentAffiliationByRfc(string $rfc): ?array {
+        $sql = "SELECT c.rfc, c.business_name, c.commercial_name, c.registration_number,
+                       a.id AS affiliation_id, a.affiliation_date, a.expiration_date, a.sticker_number,
+                       m.name AS membership_name
+                FROM {$this->table} c
+                JOIN affiliations a ON a.contact_id = c.id
+                LEFT JOIN membership_types m ON m.id = a.membership_type_id
+                WHERE UPPER(REPLACE(REPLACE(c.rfc, ' ', ''), '-', '')) = :rfc
+                  AND c.contact_type = 'afiliado'
+                  AND a.status = 'active'
+                  AND a.expiration_date >= CURDATE()
+                ORDER BY a.expiration_date DESC
+                LIMIT 1";
+        return $this->rawOne($sql, ['rfc' => $rfc]);
+    }
+
     public function findByWhatsapp(string $whatsapp): ?array {
         return $this->findBy('whatsapp', $whatsapp);
     }

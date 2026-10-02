@@ -202,7 +202,14 @@ class ConfigController extends Controller {
                 // Other APIs
                 $this->configModel->set('whatsapp_api_key', $this->sanitize($this->getInput('whatsapp_api_key', '')));
                 $this->configModel->set('google_maps_api_key', $this->sanitize($this->getInput('google_maps_api_key', '')));
-                
+
+                // Grandes Empleados: token para la API de verificación de afiliación (api/v1/afiliacion)
+                if ($this->getInput('grandes_empleados_generar', '0') === '1') {
+                    $this->configModel->set('grandes_empleados_api_token', bin2hex(random_bytes(32)));
+                } elseif ($this->getInput('grandes_empleados_revocar', '0') === '1') {
+                    $this->configModel->set('grandes_empleados_api_token', '');
+                }
+
                 $success = 'Configuración de APIs guardada.';
             }
         }

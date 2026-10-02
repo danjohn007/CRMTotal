@@ -195,7 +195,36 @@
                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
             </div>
         </div>
-        
+
+        <!-- Grandes Empleados -->
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <div class="mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Grandes Empleados</h3>
+                <p class="text-sm text-gray-500">Permite que grandesempleados.com confirme por RFC si una empresa es afiliada vigente, para darle consultas sin costo. Solo comparte la vigencia y el tipo de membresía.</p>
+            </div>
+            <?php $geToken = $config['grandes_empleados_api_token'] ?? ''; ?>
+            <div>
+                <label for="grandes_empleados_api_token" class="block text-sm font-medium text-gray-700">Token de acceso</label>
+                <input type="text" id="grandes_empleados_api_token" readonly
+                       value="<?php echo htmlspecialchars($geToken); ?>"
+                       placeholder="Sin token: la API está desactivada"
+                       class="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm p-2 border font-mono text-sm">
+                <p class="mt-1 text-xs text-gray-500">Cópialo en Grandes Empleados → Cámaras de Comercio → CANACO. URL de la API: <?php echo htmlspecialchars(rtrim(BASE_URL ?? '', '/')); ?>/api/v1/afiliacion</p>
+            </div>
+            <div class="mt-3 flex gap-6 text-sm">
+                <label class="inline-flex items-center gap-2">
+                    <input type="checkbox" name="grandes_empleados_generar" value="1">
+                    <?php echo $geToken === '' ? 'Generar token' : 'Generar un token nuevo (el anterior deja de funcionar)'; ?>
+                </label>
+                <?php if ($geToken !== ''): ?>
+                <label class="inline-flex items-center gap-2 text-red-600">
+                    <input type="checkbox" name="grandes_empleados_revocar" value="1">
+                    Revocar el token
+                </label>
+                <?php endif; ?>
+            </div>
+        </div>
+
         <div class="flex justify-end">
             <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
                 Guardar Configuración
