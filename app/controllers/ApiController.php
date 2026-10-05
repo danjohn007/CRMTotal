@@ -188,12 +188,15 @@ class ApiController extends Controller {
     }
     
     /**
-     * API para Grandes Empleados (grandesempleados.com): confirma si una empresa es afiliada vigente.
+     * API para Grandes Empleados (grandesempleados.com): confirma si una empresa es afiliada vigente
+     * y, si el RFC existe en el CRM (afiliada o no), devuelve los datos de la empresa para autollenar
+     * su registro.
      *
      * GET api/v1/afiliacion?rfc=XXX
      * Authorization: Bearer <grandes_empleados_api_token>  (Configuración → APIs)
      *
-     * Responde solo datos de la afiliación (vigencia y membresía), sin datos personales del contacto.
+     * Nunca devuelve datos personales (dueño, representante, correos, teléfonos, WhatsApp).
+     * El domicilio solo se envía para personas morales (RFC de 12 caracteres).
      */
     public function verifyAffiliation(): void {
         header('Cache-Control: no-store');
@@ -222,11 +225,30 @@ class ApiController extends Controller {
         }
 
         $contactModel = new Contact();
+        $company = $contactModel->getCompanyDataByRfc($rfc);
+
+        if (!$company) {
+            $apiLog->log('afiliacion', $rfc, 'no_encontrada');
+            $this->json(['success' => true, 'afiliada' => false, 'encontrada' => false, 'rfc' => $rfc]);
+        }
+
         $affiliation = $contactModel->getCurrentAffiliationByRfc($rfc);
         $apiLog->log('afiliacion', $rfc, $affiliation ? 'afiliada' : 'no_afiliada');
 
+        // Datos de la empresa. Los valores se guardan con htmlspecialchars: se decodifican para el autollenado.
+        $decode = fn(?string $v) => $v !== null ? html_entity_decode($v, ENT_QUOTES | ENT_HTML5, 'UTF-8') : null;
+        $data = [];
+        foreach (['razon_social', 'nombre_comercial', 'giro', 'codigo_postal', 'estado', 'municipio', 'sitio_web'] as $key) {
+            $data[$key] = $decode($company[$key]);
+        }
+        // Privacidad: el domicilio solo para persona moral (RFC de 12). En persona física es el de una persona
+        // y no se envía (ni siquiera la clave).
+        if (preg_match('/^[A-ZÑ&]{3}\d{6}[A-Z\d]{3}$/u', $rfc)) {
+            $data['domicilio'] = $decode($company['domicilio']);
+        }
+
         if (!$affiliation) {
-            $this->json(['success' => true, 'afiliada' => false, 'rfc' => $rfc]);
+            $this->json(['success' => true, 'afiliada' => false, 'encontrada' => true, 'rfc' => $rfc] + $data);
         }
 
         $number = $affiliation['sticker_number'] ?: ($affiliation['registration_number'] ?: 'CCQ-' . $affiliation['affiliation_id']);
@@ -234,9 +256,9 @@ class ApiController extends Controller {
         $this->json([
             'success' => true,
             'afiliada' => true,
+            'encontrada' => true,
             'rfc' => $rfc,
-            'razon_social' => $affiliation['business_name'],
-            'nombre_comercial' => $affiliation['commercial_name'],
+        ] + $data + [
             'numero_afiliacion' => (string) $number,
             'membresia' => $affiliation['membership_name'],
             'fecha_afiliacion' => $affiliation['affiliation_date'],

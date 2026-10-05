@@ -48,6 +48,29 @@ class Contact extends Model {
         return $this->rawOne($sql, ['rfc' => $rfc]);
     }
 
+    /**
+     * Datos de la empresa (no personales) de cualquier contacto con ese RFC, afiliado o no
+     * (API para Grandes Empleados: autollenado del registro de empresas).
+     * Nunca selecciona dueño, representante, correos, teléfonos ni WhatsApp. El controlador
+     * decide si envía el domicilio (solo persona moral).
+     * Si varios contactos comparten el RFC normalizado, prefiere el afiliado y luego el más reciente.
+     */
+    public function getCompanyDataByRfc(string $rfc): ?array {
+        $sql = "SELECT NULLIF(TRIM(c.business_name), '') AS razon_social,
+                       COALESCE(NULLIF(TRIM(c.commercial_name), ''), NULLIF(TRIM(c.trade_name), '')) AS nombre_comercial,
+                       COALESCE(NULLIF(TRIM(c.business_sector), ''), NULLIF(TRIM(c.industry), '')) AS giro,
+                       NULLIF(TRIM(c.postal_code), '') AS codigo_postal,
+                       NULLIF(TRIM(c.state), '') AS estado,
+                       NULLIF(TRIM(c.city), '') AS municipio,
+                       NULLIF(TRIM(c.website), '') AS sitio_web,
+                       COALESCE(NULLIF(TRIM(c.fiscal_address), ''), NULLIF(TRIM(c.commercial_address), '')) AS domicilio
+                FROM {$this->table} c
+                WHERE UPPER(REPLACE(REPLACE(c.rfc, ' ', ''), '-', '')) = :rfc
+                ORDER BY (c.contact_type = 'afiliado') DESC, c.updated_at DESC
+                LIMIT 1";
+        return $this->rawOne($sql, ['rfc' => $rfc]);
+    }
+
     public function findByWhatsapp(string $whatsapp): ?array {
         return $this->findBy('whatsapp', $whatsapp);
     }
