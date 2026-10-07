@@ -49,10 +49,10 @@ class Contact extends Model {
     }
 
     /**
-     * Datos de la empresa (no personales) de cualquier contacto con ese RFC, afiliado o no
+     * Datos de la empresa de cualquier contacto con ese RFC, afiliado o no
      * (API para Grandes Empleados: autollenado del registro de empresas).
-     * Nunca selecciona dueño, representante, correos, teléfonos ni WhatsApp. El controlador
-     * decide si envía el domicilio (solo persona moral).
+     * Incluye el teléfono (si no hay, el WhatsApp) y el correo registrados, y el representante legal
+     * (si no hay, el dueño). El controlador decide si envía el domicilio (solo persona moral).
      * Si varios contactos comparten el RFC normalizado, prefiere el afiliado y luego el más reciente.
      */
     public function getCompanyDataByRfc(string $rfc): ?array {
@@ -63,7 +63,10 @@ class Contact extends Model {
                        NULLIF(TRIM(c.state), '') AS estado,
                        NULLIF(TRIM(c.city), '') AS municipio,
                        NULLIF(TRIM(c.website), '') AS sitio_web,
-                       COALESCE(NULLIF(TRIM(c.fiscal_address), ''), NULLIF(TRIM(c.commercial_address), '')) AS domicilio
+                       COALESCE(NULLIF(TRIM(c.fiscal_address), ''), NULLIF(TRIM(c.commercial_address), '')) AS domicilio,
+                       COALESCE(NULLIF(TRIM(c.phone), ''), NULLIF(TRIM(c.whatsapp), '')) AS telefono,
+                       NULLIF(TRIM(c.corporate_email), '') AS correo,
+                       COALESCE(NULLIF(TRIM(c.legal_representative), ''), NULLIF(TRIM(c.owner_name), '')) AS representante_legal
                 FROM {$this->table} c
                 WHERE UPPER(REPLACE(REPLACE(c.rfc, ' ', ''), '-', '')) = :rfc
                 ORDER BY (c.contact_type = 'afiliado') DESC, c.updated_at DESC

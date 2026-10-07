@@ -32,6 +32,7 @@ Tres respuestas `200` (las claves `success`, `afiliada` y los datos de la afilia
 {"success": true, "afiliada": true, "encontrada": true, "rfc": "IDI180615AB3",
  "razon_social": "…", "nombre_comercial": "…", "giro": "…", "codigo_postal": "76000",
  "estado": "Querétaro", "municipio": "Santiago de Querétaro", "sitio_web": "…",
+ "telefono": "4421234567", "correo": "contacto@empresa.mx", "representante_legal": "Ana García López",
  "domicilio": "…",                       // solo persona moral (RFC de 12)
  "numero_afiliacion": "…", "membresia": "…", "fecha_afiliacion": "2026-01-15", "fecha_vencimiento": "2027-01-15"}
 
@@ -39,6 +40,7 @@ Tres respuestas `200` (las claves `success`, `afiliada` y los datos de la afilia
 {"success": true, "afiliada": false, "encontrada": true, "rfc": "IDI180615AB3",
  "razon_social": "…", "nombre_comercial": "…", "giro": "…", "codigo_postal": "…",
  "estado": "…", "municipio": "…", "sitio_web": "…",
+ "telefono": "…", "correo": "…", "representante_legal": "…",
  "domicilio": "…"}                       // solo persona moral (RFC de 12)
 
 // No existe en el CRM
@@ -63,6 +65,9 @@ Tres respuestas `200` (las claves `success`, `afiliada` y los datos de la afilia
 | `municipio` | `city` | el CRM no tiene columna de municipio; `city` es lo más cercano |
 | `sitio_web` | `website` | |
 | `domicilio` | `fiscal_address` | si está vacío, `commercial_address`; solo persona moral |
+| `telefono` | `phone` | si está vacío, `whatsapp` |
+| `correo` | `corporate_email` | |
+| `representante_legal` | `legal_representative` | si está vacío, `owner_name`; nombre completo en un solo texto |
 
 Los valores vacíos se envían como `null` (también `razon_social`/`nombre_comercial` de una afiliada,
 que antes podían llegar como `""`). Las entidades HTML con que el CRM guarda los textos (`&amp;`…) se
@@ -70,8 +75,10 @@ decodifican.
 
 ### Privacidad
 
-- **Nunca** se envían nombres del dueño o representante legal, correos, teléfonos, WhatsApp, redes
-  sociales, notas ni ningún otro dato personal, sea la empresa afiliada o no.
+- Se envían el teléfono, el correo y el nombre del representante legal (o del dueño) para llenar el
+  registro de Grandes Empleados. Con la afiliación vigente, Grandes Empleados ya no pide documentos ni
+  identificación: la afiliación confirma a la empresa y a su representante.
+- **Nunca** se envían redes sociales, notas, WhatsApp de ventas/compras/administración ni otros datos.
 - **Persona moral** (RFC de 12 caracteres): datos de la empresa **con** `domicilio`.
 - **Persona física** (RFC de 13 caracteres): datos de la empresa **sin** `domicilio` (la clave no se
   envía), porque el domicilio de una persona física es un dato personal.

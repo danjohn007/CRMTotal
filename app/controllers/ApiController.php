@@ -195,8 +195,8 @@ class ApiController extends Controller {
      * GET api/v1/afiliacion?rfc=XXX
      * Authorization: Bearer <grandes_empleados_api_token>  (Configuración → APIs)
      *
-     * Nunca devuelve datos personales (dueño, representante, correos, teléfonos, WhatsApp).
-     * El domicilio solo se envía para personas morales (RFC de 12 caracteres).
+     * Incluye el teléfono y el correo registrados y el nombre del representante legal (o del dueño)
+     * para llenar el registro. El domicilio solo se envía para personas morales (RFC de 12 caracteres).
      */
     public function verifyAffiliation(): void {
         header('Cache-Control: no-store');
@@ -238,7 +238,8 @@ class ApiController extends Controller {
         // Datos de la empresa. Los valores se guardan con htmlspecialchars: se decodifican para el autollenado.
         $decode = fn(?string $v) => $v !== null ? html_entity_decode($v, ENT_QUOTES | ENT_HTML5, 'UTF-8') : null;
         $data = [];
-        foreach (['razon_social', 'nombre_comercial', 'giro', 'codigo_postal', 'estado', 'municipio', 'sitio_web'] as $key) {
+        foreach (['razon_social', 'nombre_comercial', 'giro', 'codigo_postal', 'estado', 'municipio', 'sitio_web',
+                  'telefono', 'correo', 'representante_legal'] as $key) {
             $data[$key] = $decode($company[$key]);
         }
         // Privacidad: el domicilio solo para persona moral (RFC de 12). En persona física es el de una persona
